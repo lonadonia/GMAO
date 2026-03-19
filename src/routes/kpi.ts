@@ -1,0 +1,188 @@
+import { Hono } from 'hono'
+
+type Bindings = { DB: D1Database }
+const app = new Hono<{ Bindings: Bindings }>()
+
+// Helper: construit la clause WHERE + AND pour une condition additionnelle
+function buildWhere(conditions: string[]): string {
+  return conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+}
+
+function buildWhereAnd(conditions: string[], extraCondition: string): string {
+  const all = [...conditions, extraCondition]
+  return `WHERE ${all.join(' AND ')}`
+}
+
+// GET /api/kpi — KPIs calculés dynamiquement
+app.get('/', async (c) => {
+  const { date_from, date_to, city, technician_id } = c.req.query()
+
+  const conditions: string[] = []
+  const params: any[] = []
+  if (date_from) { conditions.push("created_at >= ?"); params.push(date_from) }
+  if (date_to) { conditions.push("created_at <= ?"); params.push(date_to) }
+  if (city) { conditions.push("city LIKE ?"); params.push(`%${city}%`) }
+  if (technician_id) { conditions.push("technician_id = ?"); params.push(technician_id) }
+
+  const where = buildWhere(conditions)
+  const whereCorrectif = buildWhereAnd(conditions, "type = 'corrective'")
+  const whereCity = buildWhereAnd(conditions, "city IS NOT NULL")
+  const whereTech = buildWhereAnd(conditions, "technician_name IS NOT NULL")
+
+  // KPIs principaux
+  const stats = await c.env.DB.prepare(`
+    SELECT
+      COUNT(*) as total_interventions,
+      SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) as resolved_count,
+      SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress_count,
+      SUM(CASE WHEN status = 'planned' THEN 1 ELSE 0 END) as planned_count,
+      SUM(CASE WHEN type = 'preventive' THEN 1 ELSE 0 END) as preventive_count,
+      SUM(CASE WHEN type = 'corrective' THEN 1 ELSE 0 END) as corrective_count,
+      SUM(CASE WHEN downtime = 1 THEN 1 ELSE 0 END) as downtime_count,
+      SUM(CASE WHEN priority = 'critical' THEN 1 ELSE 0 END) as critical_count,
+      SUM(CASE WHEN priority = 'high' THEN 1 ELSE 0 END) as high_count,
+      ROUND(AVG(CASE WHEN status = 'resolved' AND duration_hours > 0 THEN duration_hours END), 2) as avg_repair_time,
+      ROUND(SUM(CASE WHEN status = 'resolved' THEN duration_hours ELSE 0 END), 2) as total_repair_hours
+    FROM interventions ${where}
+  `).bind(...params).first<any>()
+
+  // MTTR : Temps moyen de réparation (en heures)
+  const mttr = stats?.avg_repair_time || 0
+
+  // Taux de résolution
+  const resolutionRate = stats?.total_interventions > 0
+    ? parseFloat(((stats.resolved_count / stats.total_interventions) * 100).toFixed(1))
+    : 0
+
+  // % Préventif vs Correctif
+  const preventivePct = stats?.total_interventions > 0
+    ? parseFloat(((stats.preventive_count / stats.total_interventions) * 100).toFixed(1))
+    : 0
+  const correctivePct = stats?.total_interventions > 0
+    ? parseFloat(((stats.corrective_count / stats.total_interventions) * 100).toFixed(1))
+    : 0
+
+  // MTBF (Mean Time Between Failures)
+  const mtbfData = await c.env.DB.prepare(`
+    SELECT 
+      COUNT(*) as failure_count,
+      MIN(CASE WHEN failure_date IS NOT NULL THEN failure_date ELSE created_at END) as first_failure,
+      MAX(CASE WHEN failure_date IS NOT NULL THEN failure_date ELSE created_at END) as last_failure,
+      SUM(duration_hours) as total_downtime_hours
+    FROM interventions ${whereCorrectif}
+  `).bind(...params).first<any>()
+
+  let mtbf = 0
+  if (mtbfData && mtbfData.failure_count > 1 && mtbfData.first_failure && mtbfData.last_failure) {
+    const first = new Date(mtbfData.first_failure).getTime()
+    const last = new Date(mtbfData.last_failure).getTime()
+    const periodHours = (last - first) / (1000 * 3600)
+    const totalDowntime = mtbfData.total_downtime_hours || 0
+    const uptime = periodHours - totalDowntime
+    mtbf = uptime > 0 ? parseFloat((uptime / mtbfData.failure_count).toFixed(1)) : 0
+  }
+
+  // Disponibilité = (MTBF / (MTBF + MTTR)) * 100
+  let availability = 100
+  if (mtbf > 0 && mttr > 0) {
+    availability = parseFloat(((mtbf / (mtbf + mttr)) * 100).toFixed(1))
+    if (availability > 100) availability = 100
+    if (availability < 0) availability = 0
+  }
+
+  // Répartition par ville
+  const byCity = await c.env.DB.prepare(`
+    SELECT city, COUNT(*) as count
+    FROM interventions ${whereCity}
+    GROUP BY city
+    ORDER BY count DESC
+    LIMIT 10
+  `).bind(...params).all()
+
+  // Répartition par mois (12 derniers mois) — toujours sans filtre de date pour avoir l'historique
+  const monthConditions: string[] = ["created_at >= datetime('now', '-12 months')"]
+  if (city) monthConditions.push("city LIKE ?")
+  if (technician_id) monthConditions.push("technician_id = ?")
+  const monthParams: any[] = []
+  if (city) monthParams.push(`%${city}%`)
+  if (technician_id) monthParams.push(technician_id)
+
+  const byMonth = await c.env.DB.prepare(`
+    SELECT 
+      strftime('%Y-%m', created_at) as month,
+      COUNT(*) as total,
+      SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) as resolved,
+      SUM(CASE WHEN type = 'preventive' THEN 1 ELSE 0 END) as preventive,
+      SUM(CASE WHEN type = 'corrective' THEN 1 ELSE 0 END) as corrective
+    FROM interventions
+    WHERE ${monthConditions.join(' AND ')}
+    GROUP BY month
+    ORDER BY month ASC
+  `).bind(...monthParams).all()
+
+  // Top techniciens
+  const topTechnicians = await c.env.DB.prepare(`
+    SELECT 
+      technician_name,
+      technician_id,
+      COUNT(*) as total,
+      SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) as resolved,
+      ROUND(AVG(duration_hours), 2) as avg_duration,
+      ROUND(
+        CASE WHEN COUNT(*) > 0 
+          THEN SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)
+          ELSE 0
+        END, 1
+      ) as resolution_rate
+    FROM interventions ${whereTech}
+    GROUP BY technician_name, technician_id
+    ORDER BY total DESC
+    LIMIT 5
+  `).bind(...params).all()
+
+  // Répartition par priorité
+  const byPriority = await c.env.DB.prepare(`
+    SELECT priority, COUNT(*) as count
+    FROM interventions ${where}
+    GROUP BY priority
+    ORDER BY count DESC
+  `).bind(...params).all()
+
+  // Répartition par status
+  const byStatus = await c.env.DB.prepare(`
+    SELECT status, COUNT(*) as count
+    FROM interventions ${where}
+    GROUP BY status
+    ORDER BY count DESC
+  `).bind(...params).all()
+
+  return c.json({
+    kpis: {
+      total_interventions: stats?.total_interventions || 0,
+      resolved_count: stats?.resolved_count || 0,
+      in_progress_count: stats?.in_progress_count || 0,
+      planned_count: stats?.planned_count || 0,
+      preventive_count: stats?.preventive_count || 0,
+      corrective_count: stats?.corrective_count || 0,
+      downtime_count: stats?.downtime_count || 0,
+      critical_count: stats?.critical_count || 0,
+      high_count: stats?.high_count || 0,
+      mttr,
+      mtbf,
+      availability,
+      resolution_rate: resolutionRate,
+      preventive_pct: preventivePct,
+      corrective_pct: correctivePct,
+      total_repair_hours: stats?.total_repair_hours || 0,
+    },
+    charts: {
+      by_city: byCity.results,
+      by_month: byMonth.results,
+      top_technicians: topTechnicians.results,
+      by_priority: byPriority.results,
+      by_status: byStatus.results,
+    }
+  })
+})
+
+export default app
