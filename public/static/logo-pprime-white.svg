@@ -1,59 +1,57 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 72" width="280" height="72" role="img" aria-label="PPrime – Power Your Future">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 68" width="260" height="68" role="img" aria-label="PPrime – Power Your Future">
   <defs>
-    <!-- Gradient for bar 1 (tall, left) -->
-    <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#7ec8f4"/>
+
+    <!-- Single gradient shared by both bars: light blue top → white bottom -->
+    <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#6dc4f5"/>
       <stop offset="100%" stop-color="#ffffff"/>
     </linearGradient>
-    <!-- Gradient for bar 2 (shorter, right) -->
-    <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#7ec8f4"/>
-      <stop offset="100%" stop-color="#ffffff"/>
-    </linearGradient>
-    <!-- Gradient for apostrophe -->
-    <linearGradient id="g3" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#9dd6f8"/>
-      <stop offset="100%" stop-color="#c8eaff"/>
-    </linearGradient>
+
   </defs>
 
-  <!-- ===================== ICON ===================== -->
-  <!-- Bar 1: tall, rounded, left — starts at y=10, height=46 -->
-  <rect x="4"  y="10" width="8" height="46" rx="4" fill="url(#g1)"/>
+  <!-- ============================================================
+       ICON — 2 vertical bars only, NO apostrophe, NO extra shapes
+       Bar width  : 8px each
+       Gap between: 7px
+       Alignment  : both bars share the same bottom edge (y=58)
+       Left bar   : shorter  → top at y=16  → height = 42
+       Right bar  : taller   → top at y=10  → height = 48
+       Rounded corners: rx=4 (same on both)
+       ============================================================ -->
 
-  <!-- Bar 2: shorter, rounded, right — starts at y=17, height=39 -->
-  <rect x="18" y="17" width="8" height="39" rx="4" fill="url(#g2)"/>
+  <!-- Left bar — shorter -->
+  <rect x="4"  y="16" width="8" height="42" rx="4" fill="url(#barGrad)"/>
 
-  <!-- Apostrophe: small angled bar top-right of icon -->
-  <rect
-    x="30" y="9"
-    width="5" height="15"
-    rx="2.5"
-    fill="url(#g3)"
-    transform="rotate(-18 32.5 16.5)"
-  />
+  <!-- Right bar — taller, same bottom -->
+  <rect x="19" y="10" width="8" height="48" rx="4" fill="url(#barGrad)"/>
 
-  <!-- ===================== TEXT ===================== -->
-  <!-- "PPrime" — vertically centered at midpoint of icon (10+46/2 = 33) -->
+  <!-- ============================================================
+       TEXT BLOCK
+       Vertically centered on the midpoint of the taller bar:
+         mid = 10 + 48/2 = 34  → title baseline anchor
+       ============================================================ -->
+
+  <!-- "PPrime" -->
   <text
-    x="52"
-    y="37"
-    font-family="'Segoe UI', 'Helvetica Neue', 'Arial', sans-serif"
-    font-size="28"
+    x="40"
+    y="34"
+    font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+    font-size="27"
     font-weight="800"
     fill="#ffffff"
     dominant-baseline="middle"
-    letter-spacing="0.2"
+    letter-spacing="0.3"
   >PPrime</text>
 
-  <!-- "POWER YOUR FUTURE" tagline -->
+  <!-- "POWER YOUR FUTURE" -->
   <text
-    x="53"
-    y="54"
-    font-family="'Segoe UI', 'Helvetica Neue', 'Arial', sans-serif"
-    font-size="7.5"
+    x="41"
+    y="53"
+    font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+    font-size="7"
     font-weight="400"
-    fill="#7ec8f4"
-    letter-spacing="3.2"
+    fill="#6dc4f5"
+    letter-spacing="3.0"
   >POWER YOUR FUTURE</text>
+
 </svg>
