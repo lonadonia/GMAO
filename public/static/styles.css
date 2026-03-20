@@ -871,3 +871,42 @@ tbody td {
   min-width: 38px;
   text-align: right;
 }
+
+/* ===== SETTINGS PAGE ===== */
+.logo-drop-zone {
+  border: 2px dashed rgba(74,158,255,0.35);
+  border-radius: 10px;
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  background: rgba(74,158,255,0.03);
+}
+.logo-drop-zone:hover {
+  border-color: var(--accent-blue);
+  background: rgba(74,158,255,0.07);
+}
+
+.settings-calc-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  text-align: center;
+}
+.settings-calc-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.35rem;
+}
+.settings-calc-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent-blue);
+  font-family: monospace;
+}

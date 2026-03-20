@@ -8,6 +8,7 @@ import equipmentRoutes from './routes/equipment'
 import clientsRoutes from './routes/clients'
 import planningRoutes from './routes/planning'
 import kpiRoutes from './routes/kpi'
+import settingsRoutes from './routes/settings'
 
 type Bindings = {
   DB: D1Database
@@ -33,6 +34,7 @@ app.route('/api/equipment', equipmentRoutes)
 app.route('/api/clients', clientsRoutes)
 app.route('/api/planning', planningRoutes)
 app.route('/api/kpi', kpiRoutes)
+app.route('/api/settings', settingsRoutes)
 
 // SPA - toutes les autres routes renvoient l'index.html
 app.get('*', (c) => {

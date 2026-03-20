@@ -29,6 +29,16 @@ app.get('/', async (c) => {
   const whereCity = buildWhereAnd(conditions, "city IS NOT NULL")
   const whereTech = buildWhereAnd(conditions, "technician_name IS NOT NULL")
 
+  // Lire les paramètres utilisateur depuis settings
+  const settingsRows = await c.env.DB.prepare(
+    `SELECT key, value FROM settings WHERE key IN ('mtbf_total_machines','mtbf_total_hours_per_year')`
+  ).all<{ key: string; value: string }>()
+  const settingsMap: Record<string, string> = {}
+  for (const row of settingsRows.results) settingsMap[row.key] = row.value
+
+  const totalMachines      = parseFloat(settingsMap['mtbf_total_machines']        || '1')
+  const totalHoursPerYear  = parseFloat(settingsMap['mtbf_total_hours_per_year']  || '8760')
+
   // KPIs principaux
   const stats = await c.env.DB.prepare(`
     SELECT
@@ -73,13 +83,29 @@ app.get('/', async (c) => {
   `).bind(...params).first<any>()
 
   let mtbf = 0
-  if (mtbfData && mtbfData.failure_count > 1 && mtbfData.first_failure && mtbfData.last_failure) {
-    const first = new Date(mtbfData.first_failure).getTime()
-    const last = new Date(mtbfData.last_failure).getTime()
-    const periodHours = (last - first) / (1000 * 3600)
-    const totalDowntime = mtbfData.total_downtime_hours || 0
-    const uptime = periodHours - totalDowntime
-    mtbf = uptime > 0 ? parseFloat((uptime / mtbfData.failure_count).toFixed(1)) : 0
+  if (mtbfData && mtbfData.failure_count >= 1) {
+    // Méthode 1 : si on a un historique de dates → on utilise la période réelle
+    if (mtbfData.failure_count > 1 && mtbfData.first_failure && mtbfData.last_failure) {
+      const first = new Date(mtbfData.first_failure).getTime()
+      const last  = new Date(mtbfData.last_failure).getTime()
+      const periodHours  = (last - first) / (1000 * 3600)
+      const totalDowntime = mtbfData.total_downtime_hours || 0
+      const uptime = periodHours - totalDowntime
+      if (uptime > 0) {
+        mtbf = parseFloat((uptime / mtbfData.failure_count).toFixed(1))
+      }
+    }
+    // Méthode 2 (paramètres utilisateur) : MTBF = (heures totales - heures d'arrêt) / nombre de pannes
+    // On applique si l'utilisateur a configuré un nombre de machines > 1 OU des heures > 8760 par défaut
+    if (mtbf === 0 || totalMachines > 1 || totalHoursPerYear !== 8760) {
+      const totalAvailableHours = totalHoursPerYear * totalMachines
+      const totalDowntime       = mtbfData.total_downtime_hours || 0
+      const uptime              = totalAvailableHours - totalDowntime
+      const failures            = mtbfData.failure_count || 1
+      if (uptime > 0 && failures > 0) {
+        mtbf = parseFloat((uptime / failures).toFixed(1))
+      }
+    }
   }
 
   // Disponibilité = (MTBF / (MTBF + MTTR)) * 100

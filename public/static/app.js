@@ -14,6 +14,7 @@ const API = {
   clients: '/api/clients',
   planning: '/api/planning',
   kpi: '/api/kpi',
+  settings: '/api/settings',
 }
 
 // ============================================================
@@ -182,6 +183,10 @@ function renderApp() {
         <div class="nav-item ${state.currentPage==='reports'?'active':''}" onclick="navigate('reports')">
           <i class="fas fa-chart-bar"></i> Rapports
         </div>
+        <div class="nav-section-title">Système</div>
+        <div class="nav-item ${state.currentPage==='settings'?'active':''}" onclick="navigate('settings')">
+          <i class="fas fa-sliders-h"></i> Paramètres
+        </div>
       </nav>
       <div class="sidebar-footer">
         <i class="fas fa-circle" style="color:var(--accent-green);font-size:0.6rem"></i>
@@ -207,6 +212,7 @@ function navigate(page) {
     clients:       renderClients,
     planning:      renderPlanning,
     reports:       renderReports,
+    settings:      renderSettings,
   }
   if (pages[page]) pages[page]()
 }
@@ -2371,10 +2377,306 @@ function applyLogoPrefs() { /* no-op */ }
 */
 
 // ============================================================
+// PARAMÈTRES
+// ============================================================
+async function renderSettings() {
+  const pc = document.getElementById('page-container')
+  pc.innerHTML = `
+  <div class="page-header">
+    <h1><i class="fas fa-sliders-h" style="color:var(--accent-blue)"></i> Paramètres</h1>
+    <p style="color:var(--text-secondary);margin-top:0.3rem">Configuration générale de l'application</p>
+  </div>
+  <div id="settings-body" style="display:flex;flex-direction:column;gap:1.5rem;">
+    <div style="text-align:center;padding:2rem;color:var(--text-secondary)">
+      <i class="fas fa-spinner fa-spin" style="font-size:1.5rem"></i><br>Chargement…
+    </div>
+  </div>`
+
+  // Charger les settings depuis l'API
+  let cfg = {}
+  try {
+    cfg = await http.get(API.settings)
+  } catch(e) {
+    cfg = {}
+  }
+
+  const logoData         = cfg.logo_data              || ''
+  const companyName      = cfg.company_name            || ''
+  const totalMachines    = cfg.mtbf_total_machines     || '1'
+  const totalHours       = cfg.mtbf_total_hours_per_year || '8760'
+
+  document.getElementById('settings-body').innerHTML = `
+
+    <!-- === LOGO === -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><i class="fas fa-image"></i> Logo de l'entreprise</span>
+      </div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:start;">
+
+          <!-- Upload zone -->
+          <div>
+            <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:1rem;">
+              Téléchargez votre logo (PNG, JPG ou SVG). Il sera affiché dans la sidebar et sauvegardé.
+            </p>
+            <div id="logo-drop-zone" class="logo-drop-zone" onclick="document.getElementById('logo-file-input').click()" ondragover="event.preventDefault()" ondrop="handleLogoDrop(event)">
+              <i class="fas fa-cloud-upload-alt" style="font-size:2rem;color:var(--accent-blue);margin-bottom:0.5rem;"></i>
+              <div style="font-size:0.85rem;color:var(--text-secondary);">Cliquez ou glissez votre logo ici</div>
+              <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.3rem;">PNG · JPG · SVG — max 500 KB</div>
+            </div>
+            <input type="file" id="logo-file-input" accept="image/*,.svg" style="display:none" onchange="handleLogoFile(this.files[0])"/>
+            <div style="display:flex;gap:0.75rem;margin-top:1rem;flex-wrap:wrap;">
+              <button class="btn btn-primary btn-sm" onclick="saveLogoSetting()"><i class="fas fa-save"></i> Appliquer le logo</button>
+              <button class="btn btn-ghost btn-sm" onclick="removeLogoSetting()"><i class="fas fa-trash"></i> Supprimer</button>
+            </div>
+          </div>
+
+          <!-- Preview -->
+          <div>
+            <div style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;">Aperçu sidebar</div>
+            <div style="background:#0f1923;border-radius:8px;padding:1.2rem 1.5rem;border:1px solid var(--border);display:flex;align-items:center;min-height:80px;">
+              <div id="logo-preview-box">
+                ${logoData
+                  ? `<img src="${logoData}" style="max-height:48px;width:auto;display:block;" />`
+                  : `<div class="logo-placeholder" style="width:180px;"><span class="logo-placeholder-text">LOGO HERE</span></div>`
+                }
+              </div>
+            </div>
+            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.5rem;">
+              <i class="fas fa-info-circle"></i> Le logo remplace automatiquement le placeholder dans la sidebar.
+            </div>
+          </div>
+        </div>
+
+        <!-- Company name -->
+        <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--border);">
+          <label style="font-size:0.82rem;color:var(--text-secondary);font-weight:600;display:block;margin-bottom:0.5rem;">Nom de l'entreprise</label>
+          <div style="display:flex;gap:0.75rem;align-items:center;">
+            <input type="text" id="settings-company-name" class="form-input" value="${escHtml(companyName)}" placeholder="ex: PPrime" style="max-width:320px;" />
+            <button class="btn btn-primary btn-sm" onclick="saveGeneralSettings()"><i class="fas fa-save"></i> Sauvegarder</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- === MTBF & DISPONIBILITÉ === -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><i class="fas fa-chart-area"></i> Paramètres MTBF & Disponibilité</span>
+        <span style="font-size:0.75rem;color:var(--text-secondary);">Utilisés pour le calcul sur le dashboard</span>
+      </div>
+      <div class="card-body">
+
+        <!-- Info formules -->
+        <div style="background:rgba(74,158,255,0.07);border:1px solid rgba(74,158,255,0.2);border-radius:8px;padding:1rem;margin-bottom:1.5rem;font-size:0.8rem;color:var(--text-secondary);line-height:1.7;">
+          <div style="font-weight:700;color:var(--accent-blue);margin-bottom:0.5rem;"><i class="fas fa-info-circle"></i> Formules utilisées</div>
+          <div><b style="color:var(--text-primary)">MTBF</b> = (Heures totales disponibles − Heures d'arrêt) ÷ Nombre de pannes correctives</div>
+          <div><b style="color:var(--text-primary)">Disponibilité</b> = MTBF ÷ (MTBF + MTTR) × 100</div>
+          <div style="margin-top:0.4rem;font-size:0.75rem;color:var(--text-muted);">MTTR est calculé automatiquement depuis la durée moyenne des interventions résolues.</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+
+          <div>
+            <label class="form-label">
+              <i class="fas fa-cogs" style="color:var(--accent-blue)"></i> Nombre de machines / équipements
+            </label>
+            <input type="number" id="settings-machines" class="form-input" min="1" max="9999" value="${escHtml(totalMachines)}" />
+            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.3rem;">Nombre total d'équipements suivis dans le parc</div>
+          </div>
+
+          <div>
+            <label class="form-label">
+              <i class="fas fa-clock" style="color:var(--accent-purple)"></i> Heures de fonctionnement annuelles (par machine)
+            </label>
+            <input type="number" id="settings-hours" class="form-input" min="1" max="8760" value="${escHtml(totalHours)}" />
+            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.3rem;">Ex: 8760 = 24h/7j · 6240 = 2×8h/5j · 2080 = 8h/5j</div>
+          </div>
+
+        </div>
+
+        <!-- Heures rapides -->
+        <div style="margin-top:1rem;">
+          <div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:0.5rem;font-weight:600;">Raccourcis :</div>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+            <button class="btn btn-ghost btn-sm" onclick="setHours(8760)">8 760 h <span style="opacity:0.6;font-size:0.7rem">(24h/7j)</span></button>
+            <button class="btn btn-ghost btn-sm" onclick="setHours(6240)">6 240 h <span style="opacity:0.6;font-size:0.7rem">(2×8h/5j)</span></button>
+            <button class="btn btn-ghost btn-sm" onclick="setHours(4160)">4 160 h <span style="opacity:0.6;font-size:0.7rem">(2×8h/5j ×20j)</span></button>
+            <button class="btn btn-ghost btn-sm" onclick="setHours(2080)">2 080 h <span style="opacity:0.6;font-size:0.7rem">(8h/5j)</span></button>
+          </div>
+        </div>
+
+        <!-- Résumé calculé -->
+        <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--border);">
+          <div style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;"><i class="fas fa-calculator"></i> Récapitulatif</div>
+          <div id="settings-mtbf-summary" style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;">
+            <div class="settings-calc-card">
+              <div class="settings-calc-label">Heures totales parc</div>
+              <div class="settings-calc-value" id="calc-total-hours">—</div>
+            </div>
+            <div class="settings-calc-card">
+              <div class="settings-calc-label">Machines configurées</div>
+              <div class="settings-calc-value" id="calc-machines">—</div>
+            </div>
+            <div class="settings-calc-card">
+              <div class="settings-calc-label">h/machine/an</div>
+              <div class="settings-calc-value" id="calc-hours-per">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:0.75rem;margin-top:1.5rem;">
+          <button class="btn btn-primary" onclick="saveMtbfSettings()">
+            <i class="fas fa-save"></i> Sauvegarder les paramètres MTBF
+          </button>
+          <button class="btn btn-ghost" onclick="navigate('dashboard')">
+            <i class="fas fa-chart-line"></i> Voir le dashboard
+          </button>
+        </div>
+      </div>
+    </div>
+
+  `
+
+  // Init des événements de calcul live
+  document.getElementById('settings-machines').addEventListener('input', updateSettingsSummary)
+  document.getElementById('settings-hours').addEventListener('input', updateSettingsSummary)
+  updateSettingsSummary()
+
+  // Restaurer le logo en mémoire si existant
+  if (window._pendingLogoData) {
+    updateLogoPreview(window._pendingLogoData)
+  }
+}
+
+// ---- Settings helpers ----
+
+function updateSettingsSummary() {
+  const m = parseFloat(document.getElementById('settings-machines')?.value || '1') || 1
+  const h = parseFloat(document.getElementById('settings-hours')?.value   || '8760') || 8760
+  const total = m * h
+  const calcTotal = document.getElementById('calc-total-hours')
+  const calcM     = document.getElementById('calc-machines')
+  const calcH     = document.getElementById('calc-hours-per')
+  if (calcTotal) calcTotal.textContent = total.toLocaleString('fr-FR') + ' h'
+  if (calcM)     calcM.textContent     = m.toString()
+  if (calcH)     calcH.textContent     = h.toLocaleString('fr-FR') + ' h'
+}
+
+function setHours(h) {
+  const el = document.getElementById('settings-hours')
+  if (el) { el.value = h; updateSettingsSummary() }
+}
+
+async function saveMtbfSettings() {
+  const m = document.getElementById('settings-machines')?.value || '1'
+  const h = document.getElementById('settings-hours')?.value   || '8760'
+  try {
+    await http.put(API.settings, {
+      mtbf_total_machines: m,
+      mtbf_total_hours_per_year: h,
+    })
+    showToast('✅ Paramètres MTBF sauvegardés — dashboard mis à jour', 'success')
+  } catch(e) {
+    showToast('Erreur lors de la sauvegarde', 'error')
+  }
+}
+
+async function saveGeneralSettings() {
+  const name = document.getElementById('settings-company-name')?.value || ''
+  try {
+    await http.put(API.settings, { company_name: name })
+    showToast('✅ Nom de l\'entreprise sauvegardé', 'success')
+  } catch(e) {
+    showToast('Erreur lors de la sauvegarde', 'error')
+  }
+}
+
+// Logo handlers
+function handleLogoFile(file) {
+  if (!file) return
+  if (file.size > 512 * 1024) {
+    showToast('Fichier trop volumineux (max 500 KB)', 'error')
+    return
+  }
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    window._pendingLogoData = e.target.result
+    updateLogoPreview(window._pendingLogoData)
+  }
+  reader.readAsDataURL(file)
+}
+
+function handleLogoDrop(e) {
+  e.preventDefault()
+  const file = e.dataTransfer?.files?.[0]
+  if (file) handleLogoFile(file)
+}
+
+function updateLogoPreview(dataUrl) {
+  const box = document.getElementById('logo-preview-box')
+  if (box) box.innerHTML = `<img src="${dataUrl}" style="max-height:48px;width:auto;display:block;" />`
+  const dropZone = document.getElementById('logo-drop-zone')
+  if (dropZone) dropZone.style.borderColor = 'var(--accent-blue)'
+}
+
+async function saveLogoSetting() {
+  const data = window._pendingLogoData
+  if (!data) { showToast('Aucun logo sélectionné', 'error'); return }
+  try {
+    await http.put(API.settings, { logo_data: data })
+    // Appliquer dans la sidebar immédiatement
+    applySidebarLogo(data)
+    showToast('✅ Logo sauvegardé et appliqué dans la sidebar', 'success')
+    window._pendingLogoData = null
+  } catch(e) {
+    showToast('Erreur lors de la sauvegarde du logo', 'error')
+  }
+}
+
+async function removeLogoSetting() {
+  if (!confirm('Supprimer le logo ?')) return
+  try {
+    await http.put(API.settings, { logo_data: '' })
+    window._pendingLogoData = null
+    applySidebarLogo('')
+    navigate('settings')
+    showToast('Logo supprimé', 'success')
+  } catch(e) {
+    showToast('Erreur', 'error')
+  }
+}
+
+function applySidebarLogo(dataUrl) {
+  const slot = document.getElementById('logo-slot')
+  if (!slot) return
+  if (dataUrl) {
+    slot.className = ''
+    slot.style.cssText = ''
+    slot.innerHTML = `<img src="${dataUrl}" alt="Logo" style="max-height:48px;width:auto;display:block;" />`
+  } else {
+    slot.className = 'logo-placeholder'
+    slot.style.cssText = ''
+    slot.innerHTML = `<span class="logo-placeholder-text">LOGO HERE</span>`
+  }
+}
+
+// Charger et appliquer le logo au démarrage
+async function initLogoFromSettings() {
+  try {
+    const row = await http.get(API.settings + '/logo_data')
+    if (row && row.value) applySidebarLogo(row.value)
+  } catch(e) { /* pas de logo configuré */ }
+}
+
+// ============================================================
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
   dayjs.locale('fr')
   renderApp()
   navigate('dashboard')
+  // Charger et appliquer le logo sauvegardé
+  setTimeout(initLogoFromSettings, 200)
 })
