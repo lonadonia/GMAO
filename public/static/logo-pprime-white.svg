@@ -1,33 +1,33 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80" width="300" height="80" role="img" aria-label="PPrime – Power Your Future">
+
   <!--
-    Pixel-perfect reconstruction from original logo reference.
-    Measurements taken from 402×147px source image.
-    Logo content zone: 196×77px, scaled ×1.5 to SVG units.
-
-    ICON geometry (all bottom-aligned at y=74):
-      Bar1 (left/tall) : x=4,  w=10, top=y=8,  h=66  rx=5
-      Bar2 (right/short): x=20, w=8,  top=y=27, h=47  rx=4
-      Apostrophe        : x=32, w=4,  h=18, rotate(-22) — top-right of bar2
-
-    TEXT block starts at x=44
-      "PPrime"          : font-size=28, font-weight=800, y=midY=41
-      "POWER YOUR FUTURE": font-size=7, letter-spacing=2.8, y=59
+    ICON layout — all bottom-aligned at y=74
+    ┌──┐              ← y=8   (bar1 top)
+    │  │
+    │  │  ┌──┐        ← y=27  (bar2 top)
+    │  │  │  │  ╲     ← apostrophe: just right of bar2 top, tilted
+    │  │  │  │
+    └──┘  └──┘        ← y=74  (shared bottom)
   -->
 
-  <!-- ═══ BAR 1 — tall, left ═══ -->
+  <!-- BAR 1 — tall, left : x=4, w=10, y=8→74, rx=5 -->
   <rect x="4" y="8" width="10" height="66" rx="5" fill="white"/>
 
-  <!-- ═══ BAR 2 — shorter, right, same bottom (8+66=74, 27+47=74 ✓) ═══ -->
+  <!-- BAR 2 — short, right : x=20, w=8, y=27→74, rx=4 -->
   <rect x="20" y="27" width="8" height="47" rx="4" fill="white"/>
 
-  <!-- ═══ APOSTROPHE — small angled stroke, top-right of bar2 ═══
-       Center pivot at (34, 18), rotated -22°
-       Positioned so its visual top aligns with bar2 top (~y=18) -->
-  <rect x="32" y="10" width="4" height="16" rx="2"
+  <!--
+    APOSTROPHE — sits immediately top-right of bar2
+    In original: a thin diagonal stroke just above & right of bar2 top
+    Position: x=30 (1px gap from bar2 right edge=28), y=8 (same level as bar1 top)
+    Size: w=3.5, h=14
+    Rotation: -20° around its own center (31.75, 15)
+  -->
+  <rect x="30" y="8" width="3.5" height="14" rx="1.75"
         fill="white"
-        transform="rotate(-22, 34, 18)"/>
+        transform="rotate(-20, 31.75, 15)"/>
 
-  <!-- ═══ TEXT: PPrime ═══ -->
+  <!-- TEXT: PPrime — vertically centered on bar1 midpoint (8+74)/2=41 -->
   <text
     x="44"
     y="41"
@@ -39,7 +39,7 @@
     letter-spacing="0.2"
   >PPrime</text>
 
-  <!-- ═══ TAGLINE: POWER YOUR FUTURE ═══ -->
+  <!-- TAGLINE: POWER YOUR FUTURE -->
   <text
     x="45"
     y="61"
