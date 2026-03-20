@@ -144,12 +144,8 @@ function initials(name) {
 function renderApp() {
   document.getElementById('app').innerHTML = `
     <div class="sidebar" id="sidebar">
-      <div class="sidebar-logo">
-        <div class="sidebar-logo-icon"><i class="fas fa-wrench"></i></div>
-        <div class="sidebar-logo-text">
-          <h2>GMAO</h2>
-          <span>Maintenance Pro</span>
-        </div>
+      <div class="sidebar-logo" style="padding:1rem 1.25rem;justify-content:center">
+        <img src="/static/logo-pprime.png" alt="PPrime" style="height:38px;width:auto;object-fit:contain;filter:brightness(0) invert(1);" />
       </div>
       <nav class="sidebar-nav">
         <div class="nav-section-title">Principal</div>
@@ -181,7 +177,7 @@ function renderApp() {
       </nav>
       <div class="sidebar-footer">
         <i class="fas fa-circle" style="color:var(--accent-green);font-size:0.6rem"></i>
-        Système opérationnel
+        PPrime — GMAO v1.0
       </div>
     </div>
     <div class="main-content">

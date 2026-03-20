@@ -41,7 +41,7 @@ app.get('*', (c) => {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GMAO — Système de Gestion de Maintenance</title>
+  <title>PPrime — GMAO Maintenance</title>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.0/css/all.min.css" rel="stylesheet" />
