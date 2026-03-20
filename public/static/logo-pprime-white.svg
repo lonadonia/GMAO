@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80" width="300" height="80" role="img" aria-label="PPrime – Power Your Future">
+  <!--
+    Pixel-perfect reconstruction from original logo reference.
+    Measurements taken from 402×147px source image.
+    Logo content zone: 196×77px, scaled ×1.5 to SVG units.
+
+    ICON geometry (all bottom-aligned at y=74):
+      Bar1 (left/tall) : x=4,  w=10, top=y=8,  h=66  rx=5
+      Bar2 (right/short): x=20, w=8,  top=y=27, h=47  rx=4
+      Apostrophe        : x=32, w=4,  h=18, rotate(-22) — top-right of bar2
+
+    TEXT block starts at x=44
+      "PPrime"          : font-size=28, font-weight=800, y=midY=41
+      "POWER YOUR FUTURE": font-size=7, letter-spacing=2.8, y=59
+  -->
+
+  <!-- ═══ BAR 1 — tall, left ═══ -->
+  <rect x="4" y="8" width="10" height="66" rx="5" fill="white"/>
+
+  <!-- ═══ BAR 2 — shorter, right, same bottom (8+66=74, 27+47=74 ✓) ═══ -->
+  <rect x="20" y="27" width="8" height="47" rx="4" fill="white"/>
+
+  <!-- ═══ APOSTROPHE — small angled stroke, top-right of bar2 ═══
+       Center pivot at (34, 18), rotated -22°
+       Positioned so its visual top aligns with bar2 top (~y=18) -->
+  <rect x="32" y="10" width="4" height="16" rx="2"
+        fill="white"
+        transform="rotate(-22, 34, 18)"/>
+
+  <!-- ═══ TEXT: PPrime ═══ -->
+  <text
+    x="44"
+    y="41"
+    font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+    font-size="28"
+    font-weight="800"
+    fill="white"
+    dominant-baseline="middle"
+    letter-spacing="0.2"
+  >PPrime</text>
+
+  <!-- ═══ TAGLINE: POWER YOUR FUTURE ═══ -->
+  <text
+    x="45"
+    y="61"
+    font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+    font-size="7.2"
+    font-weight="400"
+    fill="white"
+    opacity="0.75"
+    letter-spacing="2.8"
+  >POWER YOUR FUTURE</text>
+
+</svg>

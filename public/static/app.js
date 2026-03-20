@@ -152,8 +152,16 @@ function renderApp() {
            Do not modify the outer wrappers.
            ============================================= -->
       <div class="sidebar-logo" id="logo-wrapper">
-        <div id="logo-slot" class="logo-placeholder">
-          <span class="logo-placeholder-text">LOGO HERE</span>
+        <!--
+          #logo-slot — logo zone
+          • Par défaut : SVG PPrime intégré (qualité maximale, transparent)
+          • Remplacé automatiquement si un logo est uploadé dans Paramètres
+        -->
+        <div id="logo-slot">
+          <img src="/static/logo-pprime-white.svg"
+               alt="PPrime"
+               class="sidebar-logo-img"
+               onerror="this.style.display='none'" />
         </div>
       </div>
       <nav class="sidebar-nav">
@@ -2655,13 +2663,15 @@ function applySidebarLogo(dataUrl) {
   const slot = document.getElementById('logo-slot')
   if (!slot) return
   if (dataUrl) {
+    // Logo uploadé depuis Paramètres → remplace le SVG par défaut
     slot.className = ''
     slot.style.cssText = ''
-    slot.innerHTML = `<img src="${dataUrl}" alt="Logo" style="max-height:48px;width:auto;display:block;" />`
+    slot.innerHTML = `<img src="${dataUrl}" alt="Logo" class="sidebar-logo-img" />`
   } else {
-    slot.className = 'logo-placeholder'
+    // Retour au SVG PPrime par défaut (transparent, qualité vectorielle)
+    slot.className = ''
     slot.style.cssText = ''
-    slot.innerHTML = `<span class="logo-placeholder-text">LOGO HERE</span>`
+    slot.innerHTML = `<img src="/static/logo-pprime-white.svg" alt="PPrime" class="sidebar-logo-img" onerror="this.style.display='none'" />`
   }
 }
 

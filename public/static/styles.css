@@ -81,17 +81,28 @@ body {
  * #logo-slot     — replace THIS content with your logo
  */
 .sidebar-logo {
-  padding: 1.1rem 1.25rem;
+  padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: flex-start;
   background: transparent;
-  min-height: 72px;
+  min-height: 76px;
   box-sizing: border-box;
 }
 
-/* ---- Logo placeholder (remove once real logo is set) ---- */
+/* ---- Default SVG logo + any uploaded logo ---- */
+.sidebar-logo-img {
+  display: block;
+  height: 52px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  /* transparent background — no white box */
+  background: transparent;
+}
+
+/* ---- Fallback placeholder (shown if no logo at all) ---- */
 .logo-placeholder {
   display: flex;
   align-items: center;
@@ -113,7 +124,7 @@ body {
   pointer-events: none;
 }
 
-/* ---- When a real logo replaces the placeholder ---- */
+/* ---- When an uploaded logo replaces default ---- */
 #logo-slot img,
 #logo-slot svg {
   max-height: 48px;
