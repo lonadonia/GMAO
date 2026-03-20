@@ -145,7 +145,7 @@ function renderApp() {
   document.getElementById('app').innerHTML = `
     <div class="sidebar" id="sidebar">
       <div class="sidebar-logo" style="padding:1rem 1.25rem;justify-content:center">
-        <img src="/static/logo-pprime.png" alt="PPrime" style="height:38px;width:auto;object-fit:contain;filter:brightness(0) invert(1);" />
+        <img src="/static/logo-pprime.png" alt="PPrime" style="height:42px;width:auto;object-fit:contain;" />
       </div>
       <nav class="sidebar-nav">
         <div class="nav-section-title">Principal</div>
