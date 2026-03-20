@@ -1,15 +1,47 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 60" width="220" height="60">
-  <!-- Icon: two vertical bars + apostrophe (like |' symbol) -->
-  <!-- Left bar -->
-  <rect x="0" y="8" width="7" height="38" rx="2" fill="white"/>
-  <!-- Right bar (slightly shorter, offset) -->
-  <rect x="12" y="14" width="7" height="32" rx="2" fill="white"/>
-  <!-- Apostrophe/tick top right of icon -->
-  <rect x="22" y="8" width="4" height="13" rx="2" fill="white" transform="rotate(-15 24 14)"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 70" width="260" height="70" role="img" aria-label="PPrime - Power Your Future">
+  <defs>
+    <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#a8c8f0" stop-opacity="0.85"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6ab4ff" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#4a9eff" stop-opacity="0.9"/>
+    </linearGradient>
+  </defs>
 
-  <!-- Text: PPrime -->
-  <text x="36" y="30" font-family="'Segoe UI', Arial, sans-serif" font-size="22" font-weight="700" fill="white" letter-spacing="0.5">PPrime</text>
+  <!-- === ICON: |' symbol (two vertical bars + angled apostrophe) === -->
 
-  <!-- Subtitle: POWER YOUR FUTURE -->
-  <text x="36" y="46" font-family="'Segoe UI', Arial, sans-serif" font-size="8.5" font-weight="400" fill="#8899aa" letter-spacing="1.5">POWER YOUR FUTURE</text>
+  <!-- Bar 1 — tall, left -->
+  <rect x="2" y="10" width="7" height="42" rx="3.5" fill="url(#barGrad)"/>
+
+  <!-- Bar 2 — slightly shorter, middle -->
+  <rect x="15" y="17" width="7" height="35" rx="3.5" fill="url(#barGrad)"/>
+
+  <!-- Apostrophe / accent — tilted top right, light blue accent -->
+  <rect x="27" y="8" width="5" height="16" rx="2.5" fill="url(#accentGrad)" transform="rotate(-20 29.5 16)"/>
+
+  <!-- === TEXT BLOCK === -->
+
+  <!-- "PPrime" bold title -->
+  <text
+    x="50"
+    y="38"
+    font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+    font-size="26"
+    font-weight="800"
+    letter-spacing="0.3"
+    fill="#ffffff"
+  >PPrime</text>
+
+  <!-- "POWER YOUR FUTURE" tagline -->
+  <text
+    x="51"
+    y="54"
+    font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+    font-size="8"
+    font-weight="400"
+    letter-spacing="2.8"
+    fill="#7fa8cc"
+  >POWER YOUR FUTURE</text>
 </svg>
