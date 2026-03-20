@@ -1526,7 +1526,7 @@ async function renderPlanning() {
       <!-- Plans List -->
       <div class="table-card">
         <div class="table-header">
-          <div class="table-title">Plans de maintenance</div>
+          <div class="table-title"><i class="fas fa-list" style="color:var(--accent-green)"></i> Plans de maintenance préventive (2026)</div>
         </div>
         <div id="plans-list"><div class="loading-overlay"><span class="loader"></span></div></div>
       </div>
@@ -1578,7 +1578,13 @@ async function renderCalendar() {
       const dayEvents = events[d] || []
       html += `<div class="calendar-day ${isToday ? 'today' : ''}">
         <div class="calendar-day-number">${d}</div>
-        ${dayEvents.slice(0, 3).map(e => `<div class="calendar-event ${e.kind}" title="${escHtml(e.title)}">${escHtml(e.title)}</div>`).join('')}
+        ${dayEvents.slice(0, 3).map(e => {
+          // Pour les plans de maintenance, afficher le client (equipment_name) plutôt que le titre long
+          const displayName = e.equipment_name || e.client || e.title
+          const shortName = escHtml(displayName.length > 18 ? displayName.slice(0,18)+'…' : displayName)
+          const tooltip = escHtml(e.title || e.description || displayName)
+          return `<div class="calendar-event ${e.kind}" title="${tooltip}">${shortName}</div>`
+        }).join('')}
         ${dayEvents.length > 3 ? `<div style="font-size:0.6rem;color:var(--text-muted)">+${dayEvents.length-3} autres</div>` : ''}
       </div>`
     }
@@ -1600,36 +1606,106 @@ async function loadPlansList() {
   try {
     const data = await http.get(`${API.planning}?active=true`)
     if (!data.data?.length) {
-      el.innerHTML = `<div class="empty-state"><i class="fas fa-calendar-plus"></i><p>Aucun plan de maintenance</p></div>`
+      el.innerHTML = `<div class="empty-state"><i class="fas fa-calendar-plus"></i><p>Aucun plan de maintenance</p><p>Ajoutez votre premier plan ou importez depuis le module d'import</p></div>`
       return
     }
+
+    // Regrouper par client pour afficher le total
+    const byClient = {}
+    data.data.forEach(p => {
+      const client = p.equipment_name || 'Non assigné'
+      if (!byClient[client]) byClient[client] = 0
+      byClient[client]++
+    })
+
+    // Statistiques rapides
+    const freqStats = {}
+    data.data.forEach(p => { freqStats[p.frequency] = (freqStats[p.frequency]||0)+1 })
+
     el.innerHTML = `
+      <!-- Stats rapides -->
+      <div style="display:flex;gap:1rem;padding:0.75rem 1.25rem;border-bottom:1px solid var(--border);flex-wrap:wrap">
+        <div style="font-size:0.78rem;color:var(--text-secondary)">
+          <strong style="color:var(--text-primary);font-size:1rem">${data.data.length}</strong> plans actifs
+        </div>
+        ${Object.entries(freqStats).map(([f,n]) =>
+          `<div style="font-size:0.78rem"><span class="badge badge-preventive" style="font-size:0.65rem">${formatFrequency(f)}</span> <strong>${n}</strong></div>`
+        ).join('')}
+        <div style="margin-left:auto;font-size:0.78rem;color:var(--text-secondary)">
+          <strong style="color:var(--text-primary)">${Object.keys(byClient).length}</strong> clients
+        </div>
+      </div>
       <div class="table-container">
         <table>
-          <thead><tr><th>Titre</th><th>Équipement</th><th>Technicien</th><th>Fréquence</th><th>Prochaine date</th><th>Durée</th><th>Priorité</th><th>Actions</th></tr></thead>
+          <thead><tr>
+            <th>#</th>
+            <th>Nature / Description</th>
+            <th>Client</th>
+            <th>Fréquence</th>
+            <th>Prochaine date</th>
+            <th>Technicien</th>
+            <th>Durée</th>
+            <th>Priorité</th>
+            <th>Actions</th>
+          </tr></thead>
           <tbody>
-            ${data.data.map(p => `
+            ${data.data.map((p, idx) => {
+              // Extraire nature du titre (avant " — ")
+              const titleParts = p.title.split(' — ')
+              const nature = titleParts[0] || p.title
+              const descFromTitle = titleParts.slice(1).join(' — ')
+              const displayDesc = p.description || descFromTitle
+
+              // Badge type de contrat
+              const isContrat = nature.toLowerCase().includes('contrat')
+              const isBDC = nature.toLowerCase().includes('bon de commande') || nature.toLowerCase().includes('bon')
+              const contractBadge = isContrat
+                ? `<span class="badge" style="background:rgba(79,158,248,0.12);color:var(--accent-blue);border:1px solid rgba(79,158,248,0.25);font-size:0.6rem">Contrat</span>`
+                : isBDC
+                ? `<span class="badge" style="background:rgba(167,139,250,0.12);color:var(--accent-purple);border:1px solid rgba(167,139,250,0.25);font-size:0.6rem">BDC</span>`
+                : ''
+
+              return `
               <tr>
-                <td><strong>${escHtml(p.title)}</strong>${p.description?`<br><small class="text-secondary">${escHtml(p.description.slice(0,50))}</small>`:''}</td>
-                <td class="text-secondary">${escHtml(p.equipment_name||'—')}</td>
-                <td class="text-secondary">${escHtml(p.technician_name||'—')}</td>
+                <td class="text-secondary" style="font-size:0.7rem">${idx+1}</td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:2px">
+                    ${contractBadge}
+                  </div>
+                  <div style="font-size:0.82rem;color:var(--text-primary)">${escHtml(displayDesc.slice(0,70))}${displayDesc.length>70?'…':''}</div>
+                </td>
+                <td>
+                  <div style="font-weight:600;font-size:0.8rem;color:var(--text-primary)">${escHtml(p.equipment_name||'—')}</div>
+                </td>
                 <td><span class="badge badge-preventive">${formatFrequency(p.frequency)}</span></td>
-                <td class="text-secondary">${formatDate(p.next_date)}</td>
+                <td>
+                  <div style="font-size:0.82rem;font-weight:600;color:${isDateSoon(p.next_date)?'var(--accent-yellow)':'var(--text-primary)'}">${formatDate(p.next_date)}</div>
+                  ${isDateSoon(p.next_date) ? '<div style="font-size:0.65rem;color:var(--accent-yellow)"><i class="fas fa-clock"></i> Bientôt</div>' : ''}
+                </td>
+                <td class="text-secondary">${escHtml(p.technician_name||'—')}</td>
                 <td class="text-secondary">${formatHours(p.duration_hours)}</td>
                 <td>${priorityBadge(p.priority)}</td>
                 <td>
                   <div style="display:flex;gap:4px">
-                    <button class="btn btn-ghost btn-sm btn-icon" onclick="openPlanModal(${p.id})"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-danger btn-sm btn-icon" onclick="confirmDeletePlan(${p.id},'${escHtml(p.title)}')"><i class="fas fa-trash"></i></button>
+                    <button class="btn btn-ghost btn-sm btn-icon" onclick="openPlanModal(${p.id})" title="Modifier"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-danger btn-sm btn-icon" onclick="confirmDeletePlan(${p.id},'${escHtml(p.equipment_name||p.title)}')" title="Supprimer"><i class="fas fa-trash"></i></button>
                   </div>
                 </td>
-              </tr>
-            `).join('')}
+              </tr>`
+            }).join('')}
           </tbody>
         </table>
       </div>
     `
-  } catch(e) { el.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Erreur</p></div>` }
+  } catch(e) { el.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Erreur de chargement</p></div>` }
+}
+
+function isDateSoon(dateStr) {
+  if (!dateStr) return false
+  const d = new Date(dateStr)
+  const now = new Date()
+  const diff = (d - now) / (1000 * 3600 * 24)
+  return diff >= 0 && diff <= 30
 }
 
 function formatFrequency(f) {
