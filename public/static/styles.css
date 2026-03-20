@@ -76,12 +76,12 @@ body {
 
 /* ===== SIDEBAR ===== */
 .sidebar-logo {
-  padding: 0.9rem 1.25rem;
+  padding: 1.1rem 1.5rem;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #ffffff;
+  background: transparent;
 }
 
 .sidebar-logo-icon {
