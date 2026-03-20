@@ -2423,7 +2423,7 @@ async function renderSettings() {
             <div id="logo-drop-zone" class="logo-drop-zone" onclick="document.getElementById('logo-file-input').click()" ondragover="event.preventDefault()" ondrop="handleLogoDrop(event)">
               <i class="fas fa-cloud-upload-alt" style="font-size:2rem;color:var(--accent-blue);margin-bottom:0.5rem;"></i>
               <div style="font-size:0.85rem;color:var(--text-secondary);">Cliquez ou glissez votre logo ici</div>
-              <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.3rem;">PNG · JPG · SVG — max 500 KB</div>
+              <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.3rem;">PNG · JPG · SVG — max 5 MB</div>
             </div>
             <input type="file" id="logo-file-input" accept="image/*,.svg" style="display:none" onchange="handleLogoFile(this.files[0])"/>
             <div style="display:flex;gap:0.75rem;margin-top:1rem;flex-wrap:wrap;">
@@ -2460,21 +2460,26 @@ async function renderSettings() {
       </div>
     </div>
 
-    <!-- === MTBF & DISPONIBILITÉ === -->
+    <!-- === MTBF & DISPONIBILITÉ : paramètres de calcul === -->
     <div class="card">
       <div class="card-header">
-        <span class="card-title"><i class="fas fa-chart-area"></i> Paramètres MTBF & Disponibilité</span>
-        <span style="font-size:0.75rem;color:var(--text-secondary);">Utilisés pour le calcul sur le dashboard</span>
+        <span class="card-title"><i class="fas fa-chart-area"></i> Paramètres de calcul — MTBF & Disponibilité</span>
       </div>
       <div class="card-body">
 
-        <!-- Info formules -->
-        <div style="background:rgba(74,158,255,0.07);border:1px solid rgba(74,158,255,0.2);border-radius:8px;padding:1rem;margin-bottom:1.5rem;font-size:0.8rem;color:var(--text-secondary);line-height:1.7;">
-          <div style="font-weight:700;color:var(--accent-blue);margin-bottom:0.5rem;"><i class="fas fa-info-circle"></i> Formules utilisées</div>
-          <div><b style="color:var(--text-primary)">MTBF</b> = (Heures totales disponibles − Heures d'arrêt) ÷ Nombre de pannes correctives</div>
-          <div><b style="color:var(--text-primary)">Disponibilité</b> = MTBF ÷ (MTBF + MTTR) × 100</div>
-          <div style="margin-top:0.4rem;font-size:0.75rem;color:var(--text-muted);">MTTR est calculé automatiquement depuis la durée moyenne des interventions résolues.</div>
+        <!-- Bandeau info : ces KPIs sont automatiques -->
+        <div style="background:rgba(74,158,255,0.07);border:1px solid rgba(74,158,255,0.2);border-radius:8px;padding:1rem;margin-bottom:1.5rem;font-size:0.82rem;color:var(--text-secondary);line-height:1.8;">
+          <div style="font-weight:700;color:var(--accent-blue);margin-bottom:0.6rem;"><i class="fas fa-info-circle"></i> Calcul automatique</div>
+          <div><i class="fas fa-check-circle" style="color:var(--accent-green);margin-right:6px"></i><b style="color:var(--text-primary)">MTTR</b> — calculé automatiquement depuis la durée moyenne des interventions résolues saisies.</div>
+          <div style="margin-top:0.3rem"><i class="fas fa-check-circle" style="color:var(--accent-green);margin-right:6px"></i><b style="color:var(--text-primary)">MTBF</b> = (Heures totales disponibles − Heures d'arrêt) ÷ Nombre de pannes correctives</div>
+          <div style="margin-top:0.3rem"><i class="fas fa-check-circle" style="color:var(--accent-green);margin-right:6px"></i><b style="color:var(--text-primary)">Disponibilité</b> = MTBF ÷ (MTBF + MTTR) × 100</div>
+          <div style="margin-top:0.6rem;padding:0.5rem 0.75rem;background:rgba(255,255,255,0.04);border-radius:6px;font-size:0.76rem;color:var(--text-muted)">
+            <i class="fas fa-lightbulb" style="color:var(--accent-yellow)"></i> Ces valeurs se mettent à jour en temps réel selon les interventions saisies. Aucune saisie manuelle requise.
+          </div>
         </div>
+
+        <!-- Paramètres du parc machine -->
+        <div style="font-size:0.82rem;font-weight:700;color:var(--text-primary);margin-bottom:1rem;"><i class="fas fa-industry" style="color:var(--accent-purple)"></i> Paramètres du parc machine</div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
 
@@ -2482,37 +2487,37 @@ async function renderSettings() {
             <label class="form-label">
               <i class="fas fa-cogs" style="color:var(--accent-blue)"></i> Nombre de machines / équipements
             </label>
-            <input type="number" id="settings-machines" class="form-input" min="1" max="9999" value="${escHtml(totalMachines)}" />
-            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.3rem;">Nombre total d'équipements suivis dans le parc</div>
+            <input type="number" id="settings-machines" class="form-input" min="1" max="9999" value="${escHtml(totalMachines)}" oninput="updateSettingsSummary()" />
+            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.3rem;">Nombre total d'équipements dans votre parc</div>
           </div>
 
           <div>
             <label class="form-label">
-              <i class="fas fa-clock" style="color:var(--accent-purple)"></i> Heures de fonctionnement annuelles (par machine)
+              <i class="fas fa-clock" style="color:var(--accent-purple)"></i> Heures de fonctionnement / machine / an
             </label>
-            <input type="number" id="settings-hours" class="form-input" min="1" max="8760" value="${escHtml(totalHours)}" />
-            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.3rem;">Ex: 8760 = 24h/7j · 6240 = 2×8h/5j · 2080 = 8h/5j</div>
+            <input type="number" id="settings-hours" class="form-input" min="1" max="8760" value="${escHtml(totalHours)}" oninput="updateSettingsSummary()" />
+            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.3rem;">Utilisé pour calculer les heures disponibles totales</div>
           </div>
 
         </div>
 
-        <!-- Heures rapides -->
+        <!-- Raccourcis heures -->
         <div style="margin-top:1rem;">
-          <div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:0.5rem;font-weight:600;">Raccourcis :</div>
+          <div style="font-size:0.73rem;color:var(--text-muted);margin-bottom:0.5rem;font-weight:600;">Raccourcis heures/an :</div>
           <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-            <button class="btn btn-ghost btn-sm" onclick="setHours(8760)">8 760 h <span style="opacity:0.6;font-size:0.7rem">(24h/7j)</span></button>
-            <button class="btn btn-ghost btn-sm" onclick="setHours(6240)">6 240 h <span style="opacity:0.6;font-size:0.7rem">(2×8h/5j)</span></button>
-            <button class="btn btn-ghost btn-sm" onclick="setHours(4160)">4 160 h <span style="opacity:0.6;font-size:0.7rem">(2×8h/5j ×20j)</span></button>
-            <button class="btn btn-ghost btn-sm" onclick="setHours(2080)">2 080 h <span style="opacity:0.6;font-size:0.7rem">(8h/5j)</span></button>
+            <button class="btn btn-ghost btn-sm" onclick="setHours(8760)">8 760 h &nbsp;<span style="opacity:0.55;font-size:0.68rem">(24h/7j)</span></button>
+            <button class="btn btn-ghost btn-sm" onclick="setHours(6240)">6 240 h &nbsp;<span style="opacity:0.55;font-size:0.68rem">(3×8h/5j)</span></button>
+            <button class="btn btn-ghost btn-sm" onclick="setHours(4160)">4 160 h &nbsp;<span style="opacity:0.55;font-size:0.68rem">(2×8h/5j)</span></button>
+            <button class="btn btn-ghost btn-sm" onclick="setHours(2080)">2 080 h &nbsp;<span style="opacity:0.55;font-size:0.68rem">(1×8h/5j)</span></button>
           </div>
         </div>
 
-        <!-- Résumé calculé -->
+        <!-- Résumé live -->
         <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--border);">
-          <div style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;"><i class="fas fa-calculator"></i> Récapitulatif</div>
-          <div id="settings-mtbf-summary" style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;">
+          <div style="font-size:0.73rem;color:var(--text-secondary);margin-bottom:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;"><i class="fas fa-calculator"></i> Récapitulatif</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;">
             <div class="settings-calc-card">
-              <div class="settings-calc-label">Heures totales parc</div>
+              <div class="settings-calc-label">Heures totales parc / an</div>
               <div class="settings-calc-value" id="calc-total-hours">—</div>
             </div>
             <div class="settings-calc-card">
@@ -2520,7 +2525,7 @@ async function renderSettings() {
               <div class="settings-calc-value" id="calc-machines">—</div>
             </div>
             <div class="settings-calc-card">
-              <div class="settings-calc-label">h/machine/an</div>
+              <div class="settings-calc-label">h / machine / an</div>
               <div class="settings-calc-value" id="calc-hours-per">—</div>
             </div>
           </div>
@@ -2528,7 +2533,7 @@ async function renderSettings() {
 
         <div style="display:flex;gap:0.75rem;margin-top:1.5rem;">
           <button class="btn btn-primary" onclick="saveMtbfSettings()">
-            <i class="fas fa-save"></i> Sauvegarder les paramètres MTBF
+            <i class="fas fa-save"></i> Sauvegarder
           </button>
           <button class="btn btn-ghost" onclick="navigate('dashboard')">
             <i class="fas fa-chart-line"></i> Voir le dashboard
@@ -2539,9 +2544,7 @@ async function renderSettings() {
 
   `
 
-  // Init des événements de calcul live
-  document.getElementById('settings-machines').addEventListener('input', updateSettingsSummary)
-  document.getElementById('settings-hours').addEventListener('input', updateSettingsSummary)
+  // Init événements
   updateSettingsSummary()
 
   // Restaurer le logo en mémoire si existant
@@ -2596,8 +2599,8 @@ async function saveGeneralSettings() {
 // Logo handlers
 function handleLogoFile(file) {
   if (!file) return
-  if (file.size > 512 * 1024) {
-    showToast('Fichier trop volumineux (max 500 KB)', 'error')
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('Fichier trop volumineux (max 5 MB)', 'error')
     return
   }
   const reader = new FileReader()
