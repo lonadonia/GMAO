@@ -144,8 +144,16 @@ function initials(name) {
 function renderApp() {
   document.getElementById('app').innerHTML = `
     <div class="sidebar" id="sidebar">
-      <div class="sidebar-logo">
-        <img src="/static/logo-pprime-white.svg" alt="PPrime" style="height:48px;width:auto;display:block;max-width:100%;" />
+      <!-- =============================================
+           LOGO PLACEHOLDER
+           Replace the content inside #logo-slot
+           with your own <img>, <svg>, or HTML logo.
+           Do not modify the outer wrappers.
+           ============================================= -->
+      <div class="sidebar-logo" id="logo-wrapper">
+        <div id="logo-slot" class="logo-placeholder">
+          <span class="logo-placeholder-text">LOGO HERE</span>
+        </div>
       </div>
       <nav class="sidebar-nav">
         <div class="nav-section-title">Principal</div>
@@ -174,10 +182,6 @@ function renderApp() {
         <div class="nav-item ${state.currentPage==='reports'?'active':''}" onclick="navigate('reports')">
           <i class="fas fa-chart-bar"></i> Rapports
         </div>
-        <div class="nav-section-title">Paramètres</div>
-        <div class="nav-item ${state.currentPage==='logo-studio'?'active':''}" onclick="navigate('logo-studio')">
-          <i class="fas fa-paint-brush"></i> Logo Studio
-        </div>
       </nav>
       <div class="sidebar-footer">
         <i class="fas fa-circle" style="color:var(--accent-green);font-size:0.6rem"></i>
@@ -203,7 +207,6 @@ function navigate(page) {
     clients:       renderClients,
     planning:      renderPlanning,
     reports:       renderReports,
-    'logo-studio': renderLogoStudio,
   }
   if (pages[page]) pages[page]()
 }
@@ -2053,8 +2056,10 @@ function closeModalAll() {
 }
 
 // ============================================================
-// LOGO STUDIO
+// LOGO STUDIO — removed, placeholder only
+// To add your logo: replace the content of #logo-slot in renderApp()
 // ============================================================
+/*
 function renderLogoStudio() {
   // Load saved prefs or defaults
   const prefs = JSON.parse(localStorage.getItem('pprime_logo_prefs') || '{}');
@@ -2356,20 +2361,14 @@ function lsCopyCode() {
     navigator.clipboard.writeText(code.value).then(() => showToast('Code SVG copié !', 'success'));
   }
 }
+*/ // end logo-studio block
 
 // Apply saved logo on every page load
-function applyLogoPrefs() {
-  const prefs = JSON.parse(localStorage.getItem('pprime_logo_prefs') || '{}');
-  if (!Object.keys(prefs).length) return;
-  const cfg = Object.assign({}, _lsDef, prefs);
-  const svgClean = _lsBuildSVG(cfg, false);
-  const b64 = btoa(unescape(encodeURIComponent(svgClean)));
-  const sidebarImg = document.querySelector('.sidebar-logo img');
-  if (sidebarImg) {
-    sidebarImg.src = 'data:image/svg+xml;base64,' + b64;
-    sidebarImg.style.height = cfg.logoH + 'px';
-  }
-}
+// (stub — logo studio removed, placeholder active)
+function applyLogoPrefs() { /* no-op */ }
+/*
+  To restore logo studio, uncomment the block above.
+*/
 
 // ============================================================
 // INIT
@@ -2378,6 +2377,4 @@ document.addEventListener('DOMContentLoaded', () => {
   dayjs.locale('fr')
   renderApp()
   navigate('dashboard')
-  // Apply any saved logo customisation on top
-  setTimeout(applyLogoPrefs, 100)
 })

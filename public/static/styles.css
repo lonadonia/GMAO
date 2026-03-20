@@ -75,6 +75,11 @@ body {
 }
 
 /* ===== SIDEBAR ===== */
+
+/*
+ * #logo-wrapper  — outer shell, do not touch
+ * #logo-slot     — replace THIS content with your logo
+ */
 .sidebar-logo {
   padding: 1.1rem 1.25rem;
   border-bottom: 1px solid var(--border);
@@ -83,30 +88,37 @@ body {
   justify-content: flex-start;
   background: transparent;
   min-height: 72px;
+  box-sizing: border-box;
 }
 
-.sidebar-logo-icon {
-  width: 40px; height: 40px;
-  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.1rem;
-  color: white;
-  flex-shrink: 0;
+/* ---- Logo placeholder (remove once real logo is set) ---- */
+.logo-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 48px;
+  border: 1.5px dashed rgba(255,255,255,0.18);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.03);
 }
 
-.sidebar-logo-text h2 {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1.2;
-}
-
-.sidebar-logo-text span {
+.logo-placeholder-text {
   font-size: 0.7rem;
-  color: var(--text-secondary);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: rgba(255,255,255,0.28);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* ---- When a real logo replaces the placeholder ---- */
+#logo-slot img,
+#logo-slot svg {
+  max-height: 48px;
+  width: auto;
+  display: block;
 }
 
 .sidebar-nav {
