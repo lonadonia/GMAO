@@ -828,3 +828,34 @@ tbody td {
   align-items: center;
   justify-content: space-between;
 }
+
+/* ===== LOGO STUDIO ===== */
+.ls-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.ls-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.ls-row input[type="range"] {
+  flex: 1;
+  accent-color: var(--accent-blue);
+  cursor: pointer;
+  height: 4px;
+}
+
+.ls-val {
+  font-size: 0.72rem;
+  color: var(--accent-blue);
+  font-family: monospace;
+  min-width: 38px;
+  text-align: right;
+}

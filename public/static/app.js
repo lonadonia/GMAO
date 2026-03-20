@@ -174,6 +174,10 @@ function renderApp() {
         <div class="nav-item ${state.currentPage==='reports'?'active':''}" onclick="navigate('reports')">
           <i class="fas fa-chart-bar"></i> Rapports
         </div>
+        <div class="nav-section-title">Paramètres</div>
+        <div class="nav-item ${state.currentPage==='logo-studio'?'active':''}" onclick="navigate('logo-studio')">
+          <i class="fas fa-paint-brush"></i> Logo Studio
+        </div>
       </nav>
       <div class="sidebar-footer">
         <i class="fas fa-circle" style="color:var(--accent-green);font-size:0.6rem"></i>
@@ -199,6 +203,7 @@ function navigate(page) {
     clients:       renderClients,
     planning:      renderPlanning,
     reports:       renderReports,
+    'logo-studio': renderLogoStudio,
   }
   if (pages[page]) pages[page]()
 }
@@ -2048,10 +2053,331 @@ function closeModalAll() {
 }
 
 // ============================================================
+// LOGO STUDIO
+// ============================================================
+function renderLogoStudio() {
+  // Load saved prefs or defaults
+  const prefs = JSON.parse(localStorage.getItem('pprime_logo_prefs') || '{}');
+  const cfg = {
+    bar1H:      prefs.bar1H      ?? 42,
+    bar2H:      prefs.bar2H      ?? 48,
+    barW:       prefs.barW       ?? 8,
+    barGap:     prefs.barGap     ?? 7,
+    barRx:      prefs.barRx      ?? 4,
+    colorTop:   prefs.colorTop   ?? '#6dc4f5',
+    colorBot:   prefs.colorBot   ?? '#ffffff',
+    titleSize:  prefs.titleSize  ?? 27,
+    titleColor: prefs.titleColor ?? '#ffffff',
+    tagSize:    prefs.tagSize    ?? 7,
+    tagColor:   prefs.tagColor   ?? '#6dc4f5',
+    tagSpacing: prefs.tagSpacing ?? 3.0,
+    logoH:      prefs.logoH      ?? 48,
+  };
+
+  const pc = document.getElementById('page-container');
+  pc.innerHTML = `
+  <div class="page-header">
+    <h1><i class="fas fa-paint-brush" style="color:var(--accent-blue)"></i> Logo Studio</h1>
+    <p style="color:var(--text-secondary);margin-top:0.3rem">Personnalise le logo PPrime directement depuis l\'interface</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+
+    <!-- LEFT: Controls -->
+    <div style="display:flex;flex-direction:column;gap:1rem;">
+
+      <!-- Icon section -->
+      <div class="card">
+        <div class="card-header"><span class="card-title"><i class="fas fa-sliders-h"></i> Icône — Barres</span></div>
+        <div class="card-body" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+
+          <label class="ls-label">Hauteur barre gauche
+            <div class="ls-row">
+              <input type="range" min="20" max="60" value="${cfg.bar1H}" oninput="lsUpdate('bar1H',+this.value);lsRefresh()" />
+              <span id="v-bar1H" class="ls-val">${cfg.bar1H}px</span>
+            </div>
+          </label>
+
+          <label class="ls-label">Hauteur barre droite
+            <div class="ls-row">
+              <input type="range" min="20" max="60" value="${cfg.bar2H}" oninput="lsUpdate('bar2H',+this.value);lsRefresh()" />
+              <span id="v-bar2H" class="ls-val">${cfg.bar2H}px</span>
+            </div>
+          </label>
+
+          <label class="ls-label">Largeur barres
+            <div class="ls-row">
+              <input type="range" min="4" max="16" value="${cfg.barW}" oninput="lsUpdate('barW',+this.value);lsRefresh()" />
+              <span id="v-barW" class="ls-val">${cfg.barW}px</span>
+            </div>
+          </label>
+
+          <label class="ls-label">Espacement
+            <div class="ls-row">
+              <input type="range" min="3" max="20" value="${cfg.barGap}" oninput="lsUpdate('barGap',+this.value);lsRefresh()" />
+              <span id="v-barGap" class="ls-val">${cfg.barGap}px</span>
+            </div>
+          </label>
+
+          <label class="ls-label">Arrondi coins (rx)
+            <div class="ls-row">
+              <input type="range" min="0" max="8" value="${cfg.barRx}" oninput="lsUpdate('barRx',+this.value);lsRefresh()" />
+              <span id="v-barRx" class="ls-val">${cfg.barRx}px</span>
+            </div>
+          </label>
+
+          <label class="ls-label">Hauteur logo sidebar
+            <div class="ls-row">
+              <input type="range" min="24" max="72" value="${cfg.logoH}" oninput="lsUpdate('logoH',+this.value);lsRefresh()" />
+              <span id="v-logoH" class="ls-val">${cfg.logoH}px</span>
+            </div>
+          </label>
+
+        </div>
+      </div>
+
+      <!-- Colors -->
+      <div class="card">
+        <div class="card-header"><span class="card-title"><i class="fas fa-palette"></i> Couleurs</span></div>
+        <div class="card-body" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+
+          <label class="ls-label">Gradient haut
+            <div class="ls-row">
+              <input type="color" value="${cfg.colorTop}" oninput="lsUpdate('colorTop',this.value);lsRefresh()" style="width:40px;height:32px;border:none;background:none;cursor:pointer;" />
+              <span id="v-colorTop" class="ls-val">${cfg.colorTop}</span>
+            </div>
+          </label>
+
+          <label class="ls-label">Gradient bas
+            <div class="ls-row">
+              <input type="color" value="${cfg.colorBot}" oninput="lsUpdate('colorBot',this.value);lsRefresh()" style="width:40px;height:32px;border:none;background:none;cursor:pointer;" />
+              <span id="v-colorBot" class="ls-val">${cfg.colorBot}</span>
+            </div>
+          </label>
+
+          <label class="ls-label">Couleur titre
+            <div class="ls-row">
+              <input type="color" value="${cfg.titleColor}" oninput="lsUpdate('titleColor',this.value);lsRefresh()" style="width:40px;height:32px;border:none;background:none;cursor:pointer;" />
+              <span id="v-titleColor" class="ls-val">${cfg.titleColor}</span>
+            </div>
+          </label>
+
+          <label class="ls-label">Couleur tagline
+            <div class="ls-row">
+              <input type="color" value="${cfg.tagColor}" oninput="lsUpdate('tagColor',this.value);lsRefresh()" style="width:40px;height:32px;border:none;background:none;cursor:pointer;" />
+              <span id="v-tagColor" class="ls-val">${cfg.tagColor}</span>
+            </div>
+          </label>
+
+        </div>
+      </div>
+
+      <!-- Typography -->
+      <div class="card">
+        <div class="card-header"><span class="card-title"><i class="fas fa-font"></i> Typographie</span></div>
+        <div class="card-body" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+
+          <label class="ls-label">Taille titre
+            <div class="ls-row">
+              <input type="range" min="16" max="42" value="${cfg.titleSize}" oninput="lsUpdate('titleSize',+this.value);lsRefresh()" />
+              <span id="v-titleSize" class="ls-val">${cfg.titleSize}px</span>
+            </div>
+          </label>
+
+          <label class="ls-label">Taille tagline
+            <div class="ls-row">
+              <input type="range" min="5" max="14" value="${cfg.tagSize}" oninput="lsUpdate('tagSize',+this.value);lsRefresh()" />
+              <span id="v-tagSize" class="ls-val">${cfg.tagSize}px</span>
+            </div>
+          </label>
+
+          <label class="ls-label">Espacement lettres tagline
+            <div class="ls-row">
+              <input type="range" min="0" max="8" step="0.5" value="${cfg.tagSpacing}" oninput="lsUpdate('tagSpacing',+this.value);lsRefresh()" />
+              <span id="v-tagSpacing" class="ls-val">${cfg.tagSpacing}px</span>
+            </div>
+          </label>
+
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="lsSave()"><i class="fas fa-save"></i> Appliquer & Sauvegarder</button>
+        <button class="btn btn-ghost" onclick="lsReset()"><i class="fas fa-undo"></i> Réinitialiser</button>
+        <button class="btn btn-ghost" onclick="lsDownload()"><i class="fas fa-download"></i> Télécharger SVG</button>
+      </div>
+
+    </div>
+
+    <!-- RIGHT: Preview -->
+    <div style="display:flex;flex-direction:column;gap:1rem;">
+
+      <!-- Dark preview -->
+      <div class="card">
+        <div class="card-header"><span class="card-title"><i class="fas fa-eye"></i> Aperçu — fond sombre</span></div>
+        <div class="card-body" style="background:#0f1923;border-radius:8px;display:flex;align-items:center;justify-content:center;min-height:120px;">
+          <div id="preview-dark"></div>
+        </div>
+      </div>
+
+      <!-- Light preview -->
+      <div class="card">
+        <div class="card-header"><span class="card-title"><i class="fas fa-eye"></i> Aperçu — fond clair</span></div>
+        <div class="card-body" style="background:#e8ecf0;border-radius:8px;display:flex;align-items:center;justify-content:center;min-height:120px;">
+          <div id="preview-light"></div>
+        </div>
+      </div>
+
+      <!-- Sidebar preview -->
+      <div class="card">
+        <div class="card-header"><span class="card-title"><i class="fas fa-columns"></i> Aperçu — sidebar</span></div>
+        <div class="card-body" style="background:#131d2a;border-radius:8px;display:flex;align-items:center;padding:1rem 1.5rem;">
+          <div id="preview-sidebar"></div>
+        </div>
+      </div>
+
+      <!-- SVG Code -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title"><i class="fas fa-code"></i> Code SVG</span>
+          <button class="btn btn-ghost btn-sm" onclick="lsCopyCode()"><i class="fas fa-copy"></i> Copier</button>
+        </div>
+        <div class="card-body">
+          <textarea id="svg-code-output" readonly style="width:100%;height:180px;background:#0a1520;color:#7ec8f4;font-family:monospace;font-size:0.72rem;border:1px solid var(--border);border-radius:6px;padding:0.75rem;resize:vertical;"></textarea>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  `;
+
+  lsRefresh();
+}
+
+// ---- Logo Studio helpers ----
+window._lsCfg = JSON.parse(localStorage.getItem('pprime_logo_prefs') || '{}');
+const _lsDef = { bar1H:42, bar2H:48, barW:8, barGap:7, barRx:4, colorTop:'#6dc4f5', colorBot:'#ffffff', titleSize:27, titleColor:'#ffffff', tagSize:7, tagColor:'#6dc4f5', tagSpacing:3.0, logoH:48 };
+
+function lsUpdate(key, val) {
+  window._lsCfg[key] = val;
+  const el = document.getElementById('v-'+key);
+  if (el) {
+    if (typeof val === 'string' && val.startsWith('#')) el.textContent = val;
+    else el.textContent = val + (key.endsWith('Spacing') ? 'px' : key === 'logoH' || key.endsWith('Size') || key.endsWith('H') || key.endsWith('W') || key === 'barGap' || key === 'barRx' ? 'px' : '');
+  }
+}
+
+function _lsBuildSVG(cfg, withBg) {
+  const vH = 72;
+  const vW = 280;
+  // Bars share same bottom: anchor at y=vH-10=62
+  const bottom = 62;
+  const b1y = bottom - cfg.bar1H;
+  const b2y = bottom - cfg.bar2H;
+  const b2x = 4 + cfg.barW + cfg.barGap;
+  const textX = b2x + cfg.barW + 10;
+  const midY  = (b2y + bottom) / 2;  // center of taller bar
+  const tagY  = midY + cfg.titleSize * 0.55 + cfg.tagSize + 2;
+
+  const bg = withBg
+    ? `<rect width="${vW}" height="${vH}" rx="6" fill="#0f2a44"/>`
+    : '';
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${vW} ${vH}" width="${vW}" height="${vH}" role="img" aria-label="PPrime – Power Your Future">
+  <defs>
+    <linearGradient id="lg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${cfg.colorTop}"/>
+      <stop offset="100%" stop-color="${cfg.colorBot}"/>
+    </linearGradient>
+  </defs>
+  ${bg}
+  <rect x="4" y="${b1y}" width="${cfg.barW}" height="${cfg.bar1H}" rx="${cfg.barRx}" fill="url(#lg)"/>
+  <rect x="${b2x}" y="${b2y}" width="${cfg.barW}" height="${cfg.bar2H}" rx="${cfg.barRx}" fill="url(#lg)"/>
+  <text x="${textX}" y="${midY}" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="${cfg.titleSize}" font-weight="800" fill="${cfg.titleColor}" dominant-baseline="middle" letter-spacing="0.3">PPrime</text>
+  <text x="${textX+1}" y="${tagY}" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="${cfg.tagSize}" font-weight="400" fill="${cfg.tagColor}" letter-spacing="${cfg.tagSpacing}">POWER YOUR FUTURE</text>
+</svg>`;
+}
+
+function lsRefresh() {
+  const cfg = Object.assign({}, _lsDef, window._lsCfg);
+  const svgDark  = _lsBuildSVG(cfg, true);
+  const svgClean = _lsBuildSVG(cfg, false);
+
+  const pd = document.getElementById('preview-dark');
+  const pl = document.getElementById('preview-light');
+  const ps = document.getElementById('preview-sidebar');
+  const code = document.getElementById('svg-code-output');
+
+  if (pd) pd.innerHTML = svgDark;
+  if (pl) pl.innerHTML = svgClean;
+  if (ps) {
+    ps.innerHTML = `<img src="data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgClean)))}" style="height:${cfg.logoH}px;width:auto;" />`;
+  }
+  if (code) code.value = svgClean;
+}
+
+function lsSave() {
+  const cfg = Object.assign({}, _lsDef, window._lsCfg);
+  localStorage.setItem('pprime_logo_prefs', JSON.stringify(cfg));
+  // Patch live sidebar logo
+  const sidebarImg = document.querySelector('.sidebar-logo img');
+  if (sidebarImg) {
+    const svgClean = _lsBuildSVG(cfg, false);
+    const b64 = btoa(unescape(encodeURIComponent(svgClean)));
+    sidebarImg.src = 'data:image/svg+xml;base64,' + b64;
+    sidebarImg.style.height = cfg.logoH + 'px';
+  }
+  showToast('✅ Logo appliqué et sauvegardé !', 'success');
+}
+
+function lsReset() {
+  window._lsCfg = {};
+  localStorage.removeItem('pprime_logo_prefs');
+  navigate('logo-studio');
+  showToast('Logo réinitialisé aux valeurs par défaut', 'info');
+}
+
+function lsDownload() {
+  const cfg = Object.assign({}, _lsDef, window._lsCfg);
+  const svg = _lsBuildSVG(cfg, false);
+  const blob = new Blob([svg], { type: 'image/svg+xml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'logo-pprime.svg';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('SVG téléchargé !', 'success');
+}
+
+function lsCopyCode() {
+  const code = document.getElementById('svg-code-output');
+  if (code) {
+    navigator.clipboard.writeText(code.value).then(() => showToast('Code SVG copié !', 'success'));
+  }
+}
+
+// Apply saved logo on every page load
+function applyLogoPrefs() {
+  const prefs = JSON.parse(localStorage.getItem('pprime_logo_prefs') || '{}');
+  if (!Object.keys(prefs).length) return;
+  const cfg = Object.assign({}, _lsDef, prefs);
+  const svgClean = _lsBuildSVG(cfg, false);
+  const b64 = btoa(unescape(encodeURIComponent(svgClean)));
+  const sidebarImg = document.querySelector('.sidebar-logo img');
+  if (sidebarImg) {
+    sidebarImg.src = 'data:image/svg+xml;base64,' + b64;
+    sidebarImg.style.height = cfg.logoH + 'px';
+  }
+}
+
+// ============================================================
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
   dayjs.locale('fr')
   renderApp()
   navigate('dashboard')
+  // Apply any saved logo customisation on top
+  setTimeout(applyLogoPrefs, 100)
 })
