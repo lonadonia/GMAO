@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" fill="none">
+  <!-- Barre gauche grande -->
+  <rect x="0" y="8" width="9" height="40" rx="4.5" fill="#001428"/>
+  <!-- Point bleu ciel haut barre gauche -->
+  <rect x="0" y="6" width="9" height="14" rx="4.5" fill="#50a0c8"/>
+
+  <!-- Barre droite petite -->
+  <rect x="15" y="18" width="9" height="30" rx="4.5" fill="#001428"/>
+  <!-- Point bleu ciel haut barre droite -->
+  <rect x="15" y="16" width="9" height="11" rx="4.5" fill="#50a0c8"/>
+
+  <!-- Texte PPrime -->
+  <text x="34" y="40" font-family="'Segoe UI', Arial, sans-serif" font-size="28" font-weight="700" fill="#001428" letter-spacing="-0.5">PPrime</text>
+</svg>
