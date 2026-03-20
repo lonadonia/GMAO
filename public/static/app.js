@@ -145,7 +145,7 @@ function renderApp() {
   document.getElementById('app').innerHTML = `
     <div class="sidebar" id="sidebar">
       <div class="sidebar-logo">
-        <img src="/static/logo-pprime-white.svg" alt="PPrime" style="height:40px;width:auto;display:block;" />
+        <img src="/static/logo-pprime-white.svg" alt="PPrime" style="height:48px;width:auto;display:block;max-width:100%;" />
       </div>
       <nav class="sidebar-nav">
         <div class="nav-section-title">Principal</div>

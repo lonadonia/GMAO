@@ -1,14 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" fill="none">
-  <!-- Barre gauche grande - blanc -->
-  <rect x="0" y="8" width="9" height="40" rx="4.5" fill="rgba(255,255,255,0.92)"/>
-  <!-- Point bleu ciel haut barre gauche -->
-  <rect x="0" y="6" width="9" height="14" rx="4.5" fill="#50a0c8"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 60" width="220" height="60">
+  <!-- Icon: two vertical bars + apostrophe (like |' symbol) -->
+  <!-- Left bar -->
+  <rect x="0" y="8" width="7" height="38" rx="2" fill="white"/>
+  <!-- Right bar (slightly shorter, offset) -->
+  <rect x="12" y="14" width="7" height="32" rx="2" fill="white"/>
+  <!-- Apostrophe/tick top right of icon -->
+  <rect x="22" y="8" width="4" height="13" rx="2" fill="white" transform="rotate(-15 24 14)"/>
 
-  <!-- Barre droite petite - blanc -->
-  <rect x="15" y="18" width="9" height="30" rx="4.5" fill="rgba(255,255,255,0.92)"/>
-  <!-- Point bleu ciel haut barre droite -->
-  <rect x="15" y="16" width="9" height="11" rx="4.5" fill="#50a0c8"/>
+  <!-- Text: PPrime -->
+  <text x="36" y="30" font-family="'Segoe UI', Arial, sans-serif" font-size="22" font-weight="700" fill="white" letter-spacing="0.5">PPrime</text>
 
-  <!-- Texte PPrime blanc -->
-  <text x="34" y="40" font-family="'Segoe UI', Arial, sans-serif" font-size="28" font-weight="700" fill="white" letter-spacing="-0.5">PPrime</text>
+  <!-- Subtitle: POWER YOUR FUTURE -->
+  <text x="36" y="46" font-family="'Segoe UI', Arial, sans-serif" font-size="8.5" font-weight="400" fill="#8899aa" letter-spacing="1.5">POWER YOUR FUTURE</text>
 </svg>
