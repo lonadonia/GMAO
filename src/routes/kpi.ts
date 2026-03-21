@@ -41,7 +41,7 @@ app.get('/', async (c) => {
   const totalMachines      = parseFloat(settingsMap['mtbf_total_machines']        || '1')
   const totalHoursPerYear  = parseFloat(settingsMap['mtbf_total_hours_per_year']  || '8760')
 
-  // KPIs principaux
+  // KPIs principaux (interventions correctives)
   const stats = await c.env.DB.prepare(`
     SELECT
       COUNT(*) as total_interventions,
@@ -61,20 +61,48 @@ app.get('/', async (c) => {
     FROM interventions ${where}
   `).bind(...params).first<any>()
 
+  // Compter les interventions préventives depuis le planning_preventif
+  // Chaque ligne = 1 plan, on compte le nombre de mois cochés (mois_1..mois_12) comme occurrences préventives
+  // Filtres appliqués : client, technician (pas de ville/date car planning_preventif n'a pas ces champs)
+  const planningConditions: string[] = []
+  const planningParams: any[] = []
+  if (client) { planningConditions.push("client LIKE ?"); planningParams.push(`%${client}%`) }
+
+  const planningWhere = planningConditions.length > 0 ? `WHERE ${planningConditions.join(' AND ')}` : ''
+
+  const preventifStats = await c.env.DB.prepare(`
+    SELECT
+      COUNT(*) as plan_count,
+      SUM(
+        mois_1 + mois_2 + mois_3 + mois_4 + mois_5 + mois_6 +
+        mois_7 + mois_8 + mois_9 + mois_10 + mois_11 + mois_12
+      ) as total_occurrences,
+      SUM(CASE WHEN fait = 1 THEN 1 ELSE 0 END) as fait_count,
+      SUM(CASE WHEN fait = 0 THEN 1 ELSE 0 END) as non_fait_count
+    FROM planning_preventif ${planningWhere}
+  `).bind(...planningParams).first<any>()
+
+  // Total préventif = occurrences planifiées dans le calendrier
+  const preventiveFromPlanning = preventifStats?.total_occurrences || 0
+  // Ajouter au compteur de preventive_count déjà dans interventions
+  const totalPreventive = (stats?.preventive_count || 0) + preventiveFromPlanning
+  const totalCorrective = stats?.corrective_count || 0
+  const grandTotal = (stats?.total_interventions || 0) + preventiveFromPlanning
+
   // MTTR : Temps moyen de réparation (en heures) — préférer duration_real
   const mttr = stats?.avg_repair_time || 0
 
-  // Taux de résolution
-  const resolutionRate = stats?.total_interventions > 0
-    ? parseFloat(((stats.resolved_count / stats.total_interventions) * 100).toFixed(1))
+  // Taux de résolution (basé sur correctives uniquement)
+  const resolutionRate = totalCorrective > 0
+    ? parseFloat(((( stats?.resolved_count || 0) / totalCorrective) * 100).toFixed(1))
     : 0
 
-  // % Préventif vs Correctif
-  const preventivePct = stats?.total_interventions > 0
-    ? parseFloat(((stats.preventive_count / stats.total_interventions) * 100).toFixed(1))
+  // % Préventif vs Correctif (sur grand total)
+  const preventivePct = grandTotal > 0
+    ? parseFloat(((totalPreventive / grandTotal) * 100).toFixed(1))
     : 0
-  const correctivePct = stats?.total_interventions > 0
-    ? parseFloat(((stats.corrective_count / stats.total_interventions) * 100).toFixed(1))
+  const correctivePct = grandTotal > 0
+    ? parseFloat(((totalCorrective / grandTotal) * 100).toFixed(1))
     : 0
 
   // MTBF (Mean Time Between Failures)
@@ -216,12 +244,15 @@ app.get('/', async (c) => {
 
   return c.json({
     kpis: {
-      total_interventions: stats?.total_interventions || 0,
+      total_interventions: grandTotal,
       resolved_count: stats?.resolved_count || 0,
       in_progress_count: stats?.in_progress_count || 0,
       planned_count: stats?.planned_count || 0,
-      preventive_count: stats?.preventive_count || 0,
-      corrective_count: stats?.corrective_count || 0,
+      preventive_count: totalPreventive,
+      corrective_count: totalCorrective,
+      preventive_from_planning: preventiveFromPlanning,
+      plan_count: preventifStats?.plan_count || 0,
+      fait_count: preventifStats?.fait_count || 0,
       downtime_count: stats?.downtime_count || 0,
       critical_count: stats?.critical_count || 0,
       high_count: stats?.high_count || 0,

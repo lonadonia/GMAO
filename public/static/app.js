@@ -420,11 +420,46 @@ function renderKPISection(data) {
         <div class="kpi-value">${kpis.availability}<span class="kpi-unit">%</span></div>
         <div class="progress-bar"><div class="progress-fill" style="width:${kpis.availability}%;background:var(--accent-green)"></div></div>
       </div>
-      <div class="kpi-card" style="--kpi-color:var(--accent-orange)">
-        <i class="fas fa-shield-alt kpi-icon"></i>
-        <div class="kpi-label"><i class="fas fa-tools"></i> Préventif / Correctif</div>
-        <div class="kpi-value">${kpis.preventive_pct}<span class="kpi-unit">%</span></div>
-        <div class="kpi-trend">${kpis.preventive_count} préventives · ${kpis.corrective_count} correctives</div>
+      <div class="kpi-card" style="--kpi-color:var(--accent-orange);padding-bottom:0.75rem">
+        <i class="fas fa-tools kpi-icon"></i>
+        <div class="kpi-label"><i class="fas fa-tools"></i> Corrective / Préventive</div>
+        <!-- deux compteurs côte à côte -->
+        <div style="display:flex;gap:0.75rem;margin-top:0.5rem;align-items:flex-end">
+          <div style="flex:1;text-align:center;background:rgba(248,113,113,0.1);
+                      border:1px solid rgba(248,113,113,0.25);border-radius:8px;padding:0.4rem 0.25rem">
+            <div style="font-size:1.6rem;font-weight:800;color:#f87171;line-height:1">
+              ${kpis.corrective_count}
+            </div>
+            <div style="font-size:0.6rem;color:rgba(255,255,255,0.5);margin-top:3px;letter-spacing:.5px">
+              CORRECTIVE
+            </div>
+          </div>
+          <div style="flex:1;text-align:center;background:rgba(52,211,153,0.1);
+                      border:1px solid rgba(52,211,153,0.25);border-radius:8px;padding:0.4rem 0.25rem">
+            <div style="font-size:1.6rem;font-weight:800;color:#34d399;line-height:1">
+              ${kpis.preventive_count}
+            </div>
+            <div style="font-size:0.6rem;color:rgba(255,255,255,0.5);margin-top:3px;letter-spacing:.5px">
+              PRÉVENTIVE
+            </div>
+          </div>
+        </div>
+        <!-- barre de proportion -->
+        <div style="margin-top:0.6rem;height:4px;border-radius:2px;background:rgba(255,255,255,0.08);overflow:hidden">
+          <div style="height:100%;width:${kpis.corrective_pct}%;background:#f87171;border-radius:2px;
+                      transition:width .4s"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.6rem;
+                    color:rgba(255,255,255,0.4);margin-top:3px">
+          <span>${kpis.corrective_pct}% correctif</span>
+          <span>${kpis.preventive_pct}% préventif</span>
+        </div>
+        ${kpis.preventive_from_planning > 0 ? `
+        <div style="margin-top:0.4rem;font-size:0.6rem;color:rgba(52,211,153,0.6);
+                    text-align:center;border-top:1px solid rgba(52,211,153,0.1);padding-top:0.3rem">
+          <i class="fas fa-calendar-check"></i>
+          ${kpis.preventive_from_planning} depuis le planning (${kpis.plan_count} plans)
+        </div>` : ''}
       </div>
       <div class="kpi-card" style="--kpi-color:var(--accent-red)">
         <i class="fas fa-power-off kpi-icon"></i>
