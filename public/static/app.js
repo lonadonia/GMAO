@@ -1518,118 +1518,105 @@ async function renderPlanning() {
     <div class="page-header">
       <div>
         <h1 style="font-size:1.2rem;font-weight:700">Planning</h1>
-        <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px">Planning préventif 2026 &amp; calendrier de maintenance</p>
+        <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px">Calendrier de maintenance préventive</p>
       </div>
-      <div style="display:flex;gap:0.5rem">
-        <button class="btn btn-ghost btn-sm" id="btn-tab-preventif" onclick="switchPlanningTab('preventif')">
-          <i class="fas fa-file-contract"></i> Préventif Contractuel
+      <div style="display:flex;gap:0.5rem;align-items:center">
+        <button class="btn btn-ghost btn-sm" onclick="togglePreventifSection()" id="btn-toggle-gantt">
+          <i class="fas fa-table"></i> Planning Contractuel
         </button>
-        <button class="btn btn-ghost btn-sm" id="btn-tab-calendar" onclick="switchPlanningTab('calendar')">
-          <i class="fas fa-calendar-alt"></i> Calendrier
-        </button>
-        <button class="btn btn-primary" id="btn-add-plan" onclick="openPlanModal()" style="display:none">
-          <i class="fas fa-plus"></i> Nouveau plan
-        </button>
-        <button class="btn btn-primary" id="btn-add-preventif" onclick="openPreventifModal()">
+        <button class="btn btn-ghost btn-sm" onclick="openPreventifModal()">
           <i class="fas fa-plus"></i> Ajouter
+        </button>
+        <button class="btn btn-primary" onclick="openPlanModal()">
+          <i class="fas fa-plus"></i> Nouveau plan
         </button>
       </div>
     </div>
     <div class="page-content">
-      <!-- ===== ONGLET : PLANNING PRÉVENTIF CONTRACTUEL ===== -->
-      <div id="tab-preventif">
-        <!-- Stats bar -->
-        <div id="preventif-stats" style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1rem"></div>
 
+      <!-- ===== CALENDRIER (toujours visible) ===== -->
+      <!-- Navigation mois -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem">
+        <div style="display:flex;gap:0.4rem;align-items:center">
+          <button class="btn btn-ghost btn-sm" onclick="prevMonth()"><i class="fas fa-chevron-left"></i></button>
+          <span id="calendar-title" style="font-size:1rem;font-weight:700;min-width:170px;text-align:center"></span>
+          <button class="btn btn-ghost btn-sm" onclick="nextMonth()"><i class="fas fa-chevron-right"></i></button>
+          <button class="btn btn-ghost btn-sm" onclick="goToday()">Aujourd'hui</button>
+        </div>
+        <!-- Légende -->
+        <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
+          <span class="calendar-event preventive" style="padding:2px 7px;font-size:0.66rem">🔧 Préventif</span>
+          <span class="calendar-event corrective" style="padding:2px 7px;font-size:0.66rem">⚠️ Correctif planifié</span>
+          <span class="calendar-event contrat"    style="padding:2px 7px;font-size:0.66rem">📄 Contrat</span>
+          <span class="calendar-event bdc"        style="padding:2px 7px;font-size:0.66rem">📋 Bon de commande</span>
+        </div>
+      </div>
+
+      <!-- Résumé mensuel -->
+      <div id="calendar-month-summary" style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.75rem;min-height:26px;flex-wrap:wrap"></div>
+
+      <!-- Grille calendrier -->
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:1rem;margin-bottom:1.5rem">
+        <div class="calendar-grid" id="calendar-grid">
+          <div class="loading-overlay" style="grid-column:1/-1"><span class="loader"></span></div>
+        </div>
+      </div>
+
+      <!-- ===== SECTION PLANNING PRÉVENTIF CONTRACTUEL (collapsible) ===== -->
+      <div id="section-preventif">
+        <!-- Stats bar -->
+        <div id="preventif-stats" style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.75rem"></div>
         <!-- Filtres -->
-        <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:1rem;flex-wrap:wrap">
-          <select id="filter-nature" class="select" style="width:200px;height:32px;font-size:0.78rem" onchange="loadPreventifTable()">
+        <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.75rem;flex-wrap:wrap">
+          <select id="filter-nature" class="select" style="width:190px;height:32px;font-size:0.77rem" onchange="loadPreventifTable()">
             <option value="">Toutes les natures</option>
             <option value="Contrat de maintenance">Contrat de maintenance</option>
             <option value="Bon de commande">Bon de commande</option>
           </select>
-          <select id="filter-frequence" class="select" style="width:160px;height:32px;font-size:0.78rem" onchange="loadPreventifTable()">
+          <select id="filter-frequence" class="select" style="width:155px;height:32px;font-size:0.77rem" onchange="loadPreventifTable()">
             <option value="">Toutes fréquences</option>
             <option value="Annuelle">Annuelle</option>
             <option value="Semestrielle">Semestrielle</option>
             <option value="Trimestrielle">Trimestrielle</option>
           </select>
-          <select id="filter-fait" class="select" style="width:150px;height:32px;font-size:0.78rem" onchange="loadPreventifTable()">
+          <select id="filter-fait" class="select" style="width:145px;height:32px;font-size:0.77rem" onchange="loadPreventifTable()">
             <option value="">Tous les statuts</option>
             <option value="true">✓ Fait</option>
             <option value="false">✗ Non fait</option>
           </select>
-          <input type="text" id="filter-client" class="input" style="width:200px;height:32px;font-size:0.78rem" placeholder="🔍 Rechercher client..." oninput="loadPreventifTable()">
+          <input type="text" id="filter-client" class="input" style="width:195px;height:32px;font-size:0.77rem" placeholder="🔍 Rechercher client..." oninput="loadPreventifTable()">
         </div>
-
-        <!-- Tableau Gantt annuel -->
+        <!-- Tableau Gantt -->
         <div class="table-card">
           <div class="table-header">
-            <div class="table-title"><i class="fas fa-file-contract" style="color:var(--accent-blue)"></i> Planning Préventif 2026</div>
+            <div class="table-title"><i class="fas fa-file-contract" style="color:var(--accent-blue)"></i> Planning Préventif Contractuel 2026</div>
             <div id="preventif-counter" style="font-size:0.75rem;color:var(--text-secondary)"></div>
           </div>
           <div id="preventif-table"><div class="loading-overlay"><span class="loader"></span></div></div>
         </div>
       </div>
 
-      <!-- ===== ONGLET : CALENDRIER ===== -->
-      <div id="tab-calendar" style="display:none">
-        <!-- Calendar Navigation -->
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem">
-          <div style="display:flex;gap:0.5rem;align-items:center">
-            <button class="btn btn-ghost btn-sm" onclick="prevMonth()"><i class="fas fa-chevron-left"></i></button>
-            <span id="calendar-title" style="font-size:1rem;font-weight:700;min-width:170px;text-align:center"></span>
-            <button class="btn btn-ghost btn-sm" onclick="nextMonth()"><i class="fas fa-chevron-right"></i></button>
-            <button class="btn btn-ghost btn-sm" onclick="goToday()"><i class="fas fa-crosshairs"></i> Aujourd'hui</button>
-          </div>
-          <!-- Légende étendue -->
-          <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
-            <span class="calendar-event preventive" style="padding:3px 8px;font-size:0.68rem">🔧 Préventif</span>
-            <span class="calendar-event corrective" style="padding:3px 8px;font-size:0.68rem">⚠️ Correctif</span>
-            <span class="calendar-event contrat" style="padding:3px 8px;font-size:0.68rem">📄 Contrat</span>
-            <span class="calendar-event bdc" style="padding:3px 8px;font-size:0.68rem">📋 Bon de commande</span>
-          </div>
-        </div>
-
-        <!-- Résumé du mois -->
-        <div id="calendar-month-summary" style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.75rem;min-height:28px;flex-wrap:wrap"></div>
-
-        <!-- Grille calendrier -->
-        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:1rem;margin-bottom:1.5rem">
-          <div class="calendar-grid" id="calendar-grid">
-            <div class="loading-overlay" style="grid-column:1/-1"><span class="loader"></span></div>
-          </div>
-        </div>
-
-        <!-- Plans de maintenance existants -->
-        <div class="table-card">
-          <div class="table-header">
-            <div class="table-title"><i class="fas fa-list" style="color:var(--accent-green)"></i> Plans de maintenance préventive</div>
-          </div>
-          <div id="plans-list"><div class="loading-overlay"><span class="loader"></span></div></div>
-        </div>
-      </div>
     </div>
   `
 
-  // Démarrer sur l'onglet préventif
-  switchPlanningTab('preventif')
+  // Charger les deux sections
+  renderCalendar()
+  loadPreventifTable()
 }
 
-function switchPlanningTab(tab) {
-  document.getElementById('tab-preventif').style.display = tab === 'preventif' ? '' : 'none'
-  document.getElementById('tab-calendar').style.display  = tab === 'calendar'  ? '' : 'none'
-  document.getElementById('btn-add-preventif').style.display = tab === 'preventif' ? '' : 'none'
-  document.getElementById('btn-add-plan').style.display       = tab === 'calendar'  ? '' : 'none'
-
-  const btnP = document.getElementById('btn-tab-preventif')
-  const btnC = document.getElementById('btn-tab-calendar')
-  if (btnP) { btnP.className = tab==='preventif' ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm' }
-  if (btnC) { btnC.className = tab==='calendar'  ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm' }
-
-  if (tab === 'preventif') loadPreventifTable()
-  if (tab === 'calendar')  { renderCalendar(); loadPlansList() }
+function togglePreventifSection() {
+  const sec = document.getElementById('section-preventif')
+  const btn = document.getElementById('btn-toggle-gantt')
+  if (!sec) return
+  const hidden = sec.style.display === 'none'
+  sec.style.display = hidden ? '' : 'none'
+  if (btn) btn.innerHTML = hidden
+    ? '<i class="fas fa-table"></i> Planning Contractuel'
+    : '<i class="fas fa-table"></i> Afficher Contractuel'
 }
+
+// switchPlanningTab kept for compatibility (no-op now)
+function switchPlanningTab(tab) {}
 
 // ============================================================
 // PLANNING PRÉVENTIF CONTRACTUEL
@@ -1971,26 +1958,28 @@ async function renderCalendar() {
       events[day].push({ ...i, kind: 'corrective', source: 'intervention' })
     })
 
-    // Planning préventif contractuel — distribués sur les jours ouvrés du mois
-    // (on les place sur le 1er jour ouvré de chaque semaine du mois par groupe)
+    // Planning préventif contractuel — répartis sur les jours ouvrés (lun-ven) du mois
     const contractItems = preventifData.data || []
     if (contractItems.length > 0) {
-      // Trouver tous les lundis du mois
-      const mondays = []
-      for (let d = 1; d <= new Date(year, month, 0).getDate(); d++) {
+      // Collecter tous les jours ouvrés du mois (lun à ven)
+      const workDays = []
+      const dInMonth = new Date(year, month, 0).getDate()
+      for (let d = 1; d <= dInMonth; d++) {
         const dow = new Date(year, month-1, d).getDay()
-        if (dow === 1) mondays.push(d) // Lundi
+        if (dow >= 1 && dow <= 5) workDays.push(d) // Lundi à Vendredi
       }
-      // Répartir les contrats sur les lundis disponibles
+      // Répartir uniformément sur les jours ouvrés
       contractItems.forEach((item, idx) => {
-        const targetDay = mondays[idx % mondays.length] || 1
+        // Espacer les contrats sur toute la largeur du mois
+        const step = Math.max(1, Math.floor(workDays.length / contractItems.length))
+        const targetDay = workDays[Math.min(idx * step, workDays.length - 1)] || workDays[idx % workDays.length] || 1
         if (!events[targetDay]) events[targetDay] = []
         events[targetDay].push({
           ...item,
           kind: item.nature === 'Bon de commande' ? 'bdc' : 'contrat',
           source: 'preventif',
           displayName: item.client,
-          tooltip: `[${item.nature}] ${item.description} — ${item.client}`
+          tooltip: `[${item.nature}]\n${item.description}\nClient : ${item.client}\nFréquence : ${item.frequence}`
         })
       })
     }
@@ -2243,18 +2232,18 @@ function formatFrequency(f) {
 function prevMonth() {
   state.planning.currentMonth--
   if (state.planning.currentMonth < 1) { state.planning.currentMonth = 12; state.planning.currentYear-- }
-  renderCalendar(); loadPlansList()
+  renderCalendar()
 }
 function nextMonth() {
   state.planning.currentMonth++
   if (state.planning.currentMonth > 12) { state.planning.currentMonth = 1; state.planning.currentYear++ }
-  renderCalendar(); loadPlansList()
+  renderCalendar()
 }
 function goToday() {
   const n = new Date()
   state.planning.currentYear = n.getFullYear()
   state.planning.currentMonth = n.getMonth() + 1
-  renderCalendar(); loadPlansList()
+  renderCalendar()
 }
 
 async function openPlanModal(id = null) {
