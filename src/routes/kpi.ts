@@ -77,13 +77,18 @@ app.get('/', async (c) => {
         mois_1 + mois_2 + mois_3 + mois_4 + mois_5 + mois_6 +
         mois_7 + mois_8 + mois_9 + mois_10 + mois_11 + mois_12
       ) as total_occurrences,
+      -- Compter uniquement les occurrences FAITES (fait = 1)
+      SUM(CASE WHEN fait = 1 THEN (
+        mois_1 + mois_2 + mois_3 + mois_4 + mois_5 + mois_6 +
+        mois_7 + mois_8 + mois_9 + mois_10 + mois_11 + mois_12
+      ) ELSE 0 END) as fait_occurrences,
       SUM(CASE WHEN fait = 1 THEN 1 ELSE 0 END) as fait_count,
       SUM(CASE WHEN fait = 0 THEN 1 ELSE 0 END) as non_fait_count
     FROM planning_preventif ${planningWhere}
   `).bind(...planningParams).first<any>()
 
-  // Total préventif = occurrences planifiées dans le calendrier
-  const preventiveFromPlanning = preventifStats?.total_occurrences || 0
+  // Total préventif = seulement les occurrences FAITES (fait = 1)
+  const preventiveFromPlanning = preventifStats?.fait_occurrences || 0
   // Ajouter au compteur de preventive_count déjà dans interventions
   const totalPreventive = (stats?.preventive_count || 0) + preventiveFromPlanning
   const totalCorrective = stats?.corrective_count || 0
