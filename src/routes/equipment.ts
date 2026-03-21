@@ -5,12 +5,14 @@ const app = new Hono<{ Bindings: Bindings }>()
 
 // GET /api/equipment
 app.get('/', async (c) => {
-  const { city, client, status } = c.req.query()
+  const { q, city, client, status, category } = c.req.query()
   let conditions: string[] = []
   let params: any[] = []
-  if (city) { conditions.push("city LIKE ?"); params.push(`%${city}%`) }
-  if (client) { conditions.push("client LIKE ?"); params.push(`%${client}%`) }
-  if (status) { conditions.push("status = ?"); params.push(status) }
+  if (q)        { conditions.push("(name LIKE ? OR reference LIKE ?)"); params.push(`%${q}%`, `%${q}%`) }
+  if (category) { conditions.push("category LIKE ?"); params.push(`%${category}%`) }
+  if (city)     { conditions.push("city LIKE ?"); params.push(`%${city}%`) }
+  if (client)   { conditions.push("client LIKE ?"); params.push(`%${client}%`) }
+  if (status)   { conditions.push("status = ?"); params.push(status) }
   const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
   const rows = await c.env.DB.prepare(`SELECT * FROM equipment ${where} ORDER BY name ASC`).bind(...params).all()
   return c.json({ data: rows.results })

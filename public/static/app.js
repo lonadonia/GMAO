@@ -1441,72 +1441,314 @@ async function deleteTechnician(id) {
 // ============================================================
 // EQUIPMENT PAGE
 // ============================================================
+// ============================================================
+// EQUIPMENT PAGE
+// ============================================================
 async function renderEquipment() {
   const container = document.getElementById('page-container')
   container.innerHTML = `
     <div class="page-header">
-      <div><h1 style="font-size:1.2rem;font-weight:700">Équipements</h1>
-      <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px">Parc machines et équipements</p></div>
-      <button class="btn btn-primary" onclick="openEquipmentModal()"><i class="fas fa-plus"></i> Ajouter équipement</button>
+      <div>
+        <h1 style="font-size:1.2rem;font-weight:700;display:flex;align-items:center;gap:8px">
+          <i class="fas fa-cogs" style="color:var(--accent-blue)"></i>
+          Équipements
+          <span id="eq-count-badge" style="background:var(--accent-blue);color:#fff;font-size:0.7rem;padding:2px 8px;border-radius:999px;font-weight:600">…</span>
+        </h1>
+        <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px">Parc machines et équipements</p>
+      </div>
+      <button class="btn btn-primary" onclick="openEquipmentModal()">
+        <i class="fas fa-plus"></i> Ajouter équipement
+      </button>
     </div>
+
+    <!-- Filter bar -->
+    <div style="background:var(--bg-secondary);border-bottom:1px solid var(--border);padding:0.75rem 1.5rem;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <input id="eq-search" type="text" class="input input-sm" placeholder="🔍 Nom / référence..." style="width:220px" oninput="debounceEqLoad()">
+      <select id="eq-filter-category" class="select input-sm" style="width:160px" onchange="loadEquipment()">
+        <option value="">Catégorie</option>
+      </select>
+      <select id="eq-filter-client" class="select input-sm" style="width:180px" onchange="loadEquipment()">
+        <option value="">Tous les clients</option>
+        ${(state.clients?.data||[]).map(c=>`<option value="${escHtml(c.name)}">${escHtml(c.name)}</option>`).join('')}
+      </select>
+      <input id="eq-filter-city" type="text" class="input input-sm" placeholder="Ville…" style="width:130px" oninput="debounceEqLoad()">
+      <select id="eq-filter-status" class="select input-sm" style="width:150px" onchange="loadEquipment()">
+        <option value="">Tous les statuts</option>
+        <option value="operational">Opérationnel</option>
+        <option value="out_of_service">Hors service</option>
+        <option value="maintenance">En maintenance</option>
+      </select>
+      <button class="btn btn-ghost btn-sm" onclick="resetEqFilters()" id="eq-reset-btn" style="display:none">
+        <i class="fas fa-times"></i> Réinitialiser
+      </button>
+    </div>
+
     <div class="page-content">
-      <div class="table-card">
-        <div class="table-header">
-          <div class="table-title" id="equipment-count">Chargement...</div>
+      <div id="equipment-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem;padding:1.25rem 1.5rem">
+        <div class="loading-overlay"><span class="loader"></span></div>
+      </div>
+    </div>
+  `
+  // Populate category options after load
+  await loadEquipment()
+}
+
+let _eqDebTimer = null
+function debounceEqLoad() {
+  clearTimeout(_eqDebTimer)
+  _eqDebTimer = setTimeout(loadEquipment, 350)
+}
+
+function resetEqFilters() {
+  document.getElementById('eq-search').value = ''
+  document.getElementById('eq-filter-category').value = ''
+  document.getElementById('eq-filter-client').value = ''
+  document.getElementById('eq-filter-city').value = ''
+  document.getElementById('eq-filter-status').value = ''
+  loadEquipment()
+}
+
+async function loadEquipment() {
+  const el = document.getElementById('equipment-grid')
+  if (!el) return
+
+  const q        = document.getElementById('eq-search')?.value || ''
+  const category = document.getElementById('eq-filter-category')?.value || ''
+  const client   = document.getElementById('eq-filter-client')?.value || ''
+  const city     = document.getElementById('eq-filter-city')?.value || ''
+  const status   = document.getElementById('eq-filter-status')?.value || ''
+
+  // Show/hide reset button
+  const activeFilters = [q, category, client, city, status].filter(Boolean).length
+  const resetBtn = document.getElementById('eq-reset-btn')
+  if (resetBtn) resetBtn.style.display = activeFilters > 0 ? '' : 'none'
+
+  try {
+    const params = new URLSearchParams()
+    if (q)        params.set('q', q)
+    if (category) params.set('category', category)
+    if (client)   params.set('client', client)
+    if (city)     params.set('city', city)
+    if (status)   params.set('status', status)
+    const url = `${API.equipment}${params.toString() ? '?' + params.toString() : ''}`
+    const data = await http.get(url)
+    state.equipment.data = data.data || []
+
+    // Update count badge
+    const badge = document.getElementById('eq-count-badge')
+    if (badge) badge.textContent = state.equipment.data.length
+
+    // Populate category dropdown dynamically
+    const catSel = document.getElementById('eq-filter-category')
+    if (catSel && catSel.options.length <= 1) {
+      const cats = [...new Set(state.equipment.data.map(e => e.category).filter(Boolean))]
+      cats.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; catSel.appendChild(o) })
+    }
+
+    if (!state.equipment.data.length) {
+      el.innerHTML = `
+        <div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-secondary)">
+          <i class="fas fa-cogs" style="font-size:2.5rem;opacity:0.3;display:block;margin-bottom:1rem"></i>
+          <p style="font-size:0.95rem">Aucun équipement trouvé</p>
+        </div>`
+      return
+    }
+    el.innerHTML = state.equipment.data.map(eq => renderEquipmentCard(eq)).join('')
+  } catch(e) {
+    el.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-secondary)"><i class="fas fa-exclamation-circle"></i><p>Erreur de chargement</p></div>`
+  }
+}
+
+function renderEquipmentCard(eq) {
+  const statusConfig = {
+    operational:   { label: 'Opérationnel',   color: '#16a34a', bg: 'rgba(22,163,74,0.12)',  icon: 'fa-check-circle' },
+    out_of_service:{ label: 'Hors service',    color: '#dc2626', bg: 'rgba(220,38,38,0.12)',  icon: 'fa-times-circle' },
+    maintenance:   { label: 'En maintenance',  color: '#ca8a04', bg: 'rgba(202,138,4,0.12)',  icon: 'fa-tools' },
+  }
+  const sc = statusConfig[eq.status] || statusConfig.operational
+  const categoryColor = getCategoryColor(eq.category)
+
+  return `
+    <div class="eq-card" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:all 0.18s;display:flex;flex-direction:column"
+         onclick="openEquipmentDetail(${eq.id})"
+         onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.15)'"
+         onmouseleave="this.style.transform='';this.style.boxShadow=''">
+      <!-- Card top accent -->
+      <div style="height:4px;background:${categoryColor}"></div>
+      <div style="padding:1rem;flex:1;display:flex;flex-direction:column;gap:0.6rem">
+        <!-- Header row -->
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:0.92rem;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${escHtml(eq.name)}">${escHtml(eq.name)}</div>
+            ${eq.reference ? `<div style="font-size:0.72rem;color:var(--text-secondary);margin-top:2px;font-family:monospace">${escHtml(eq.reference)}</div>` : ''}
+          </div>
+          <span style="background:${sc.bg};color:${sc.color};font-size:0.68rem;font-weight:600;padding:3px 8px;border-radius:999px;white-space:nowrap;flex-shrink:0">
+            <i class="fas ${sc.icon}" style="margin-right:3px"></i>${sc.label}
+          </span>
         </div>
-        <div id="equipment-table">
-          <div class="loading-overlay"><span class="loader"></span></div>
+
+        <!-- Category chip -->
+        ${eq.category ? `
+          <div style="display:inline-flex;align-items:center;gap:5px;background:${categoryColor}22;color:${categoryColor};font-size:0.7rem;font-weight:600;padding:3px 9px;border-radius:5px;align-self:flex-start">
+            <i class="fas fa-tag" style="font-size:0.65rem"></i>${escHtml(eq.category)}
+          </div>` : ''}
+
+        <!-- Info rows -->
+        <div style="display:flex;flex-direction:column;gap:5px;margin-top:2px">
+          ${eq.client ? `
+            <div style="display:flex;align-items:center;gap:6px;font-size:0.75rem;color:var(--text-secondary)">
+              <i class="fas fa-building" style="width:14px;color:var(--accent-blue);opacity:0.8"></i>
+              <span style="color:var(--text-primary);font-weight:500">${escHtml(eq.client)}</span>
+            </div>` : ''}
+          ${eq.city ? `
+            <div style="display:flex;align-items:center;gap:6px;font-size:0.75rem;color:var(--text-secondary)">
+              <i class="fas fa-map-marker-alt" style="width:14px;color:var(--accent-orange);opacity:0.8"></i>
+              <span>${escHtml(eq.city)}</span>
+            </div>` : ''}
+          ${eq.location ? `
+            <div style="display:flex;align-items:center;gap:6px;font-size:0.75rem;color:var(--text-secondary)">
+              <i class="fas fa-map-pin" style="width:14px;opacity:0.6"></i>
+              <span>${escHtml(eq.location)}</span>
+            </div>` : ''}
+        </div>
+      </div>
+
+      <!-- Card footer -->
+      <div style="padding:0.55rem 1rem;border-top:1px solid var(--border);background:var(--bg-tertiary,var(--bg-primary));display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:0.7rem;color:var(--text-secondary)">
+          ${eq.last_maintenance_date
+            ? `<i class="fas fa-wrench" style="margin-right:4px;color:var(--accent-blue)"></i>Maint.: ${prettyDate(eq.last_maintenance_date)}`
+            : eq.installation_date
+              ? `<i class="fas fa-calendar-plus" style="margin-right:4px;opacity:0.5"></i>Inst.: ${prettyDate(eq.installation_date)}`
+              : `<span style="opacity:0.4">Pas de date</span>`}
+        </div>
+        <div style="display:flex;gap:4px" onclick="event.stopPropagation()">
+          <button class="btn btn-ghost btn-sm btn-icon" title="Modifier" onclick="openEquipmentModal(${eq.id})">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="btn btn-danger btn-sm btn-icon" title="Supprimer" onclick="confirmDeleteEquipment(${eq.id},'${escHtml(eq.name)}')">
+            <i class="fas fa-trash"></i>
+          </button>
         </div>
       </div>
     </div>
   `
-  await loadEquipment()
 }
 
-async function loadEquipment() {
-  const el = document.getElementById('equipment-table')
-  if (!el) return
+function getCategoryColor(cat) {
+  if (!cat) return '#6b7280'
+  const map = {
+    'pompe': '#2563eb', 'pump': '#2563eb',
+    'compresseur': '#7c3aed', 'variateur': '#0891b2',
+    'électrique': '#ca8a04', 'electrique': '#ca8a04',
+    'moteur': '#ea580c', 'coffret': '#16a34a',
+    'hydraulique': '#0284c7', 'pneumatique': '#6d28d9',
+  }
+  const key = cat.toLowerCase()
+  for (const [k, v] of Object.entries(map)) if (key.includes(k)) return v
+  // Generate stable color from string
+  let h = 0; for (let i=0;i<cat.length;i++) h = (h*31+cat.charCodeAt(i))&0xffff
+  const hue = h % 360
+  return `hsl(${hue},55%,45%)`
+}
+
+async function openEquipmentDetail(id) {
+  let eq, interventions
   try {
-    const data = await http.get(API.equipment)
-    state.equipment.data = data.data || []
-    document.getElementById('equipment-count').textContent = `${data.data.length} équipement${data.data.length!==1?'s':''}`
-    if (!data.data.length) {
-      el.innerHTML = `<div class="empty-state"><i class="fas fa-cogs"></i><p>Aucun équipement enregistré</p></div>`
-      return
-    }
-    el.innerHTML = `
-      <div class="table-container">
-        <table>
-          <thead><tr><th>Nom</th><th>Référence</th><th>Catégorie</th><th>Client</th><th>Ville</th><th>Lieu</th><th>Statut</th><th>Installation</th><th>Actions</th></tr></thead>
-          <tbody>
-            ${data.data.map(eq => `
-              <tr>
-                <td><strong>${escHtml(eq.name)}</strong></td>
-                <td class="text-secondary">${escHtml(eq.reference||'—')}</td>
-                <td class="text-secondary">${escHtml(eq.category||'—')}</td>
-                <td class="text-secondary">${escHtml(eq.client||'—')}</td>
-                <td class="text-secondary">${escHtml(eq.city||'—')}</td>
-                <td class="text-secondary">${escHtml(eq.location||'—')}</td>
-                <td>${eq.status === 'operational' ? `<span class="badge badge-resolved">Opérationnel</span>` : `<span class="badge badge-corrective">Hors service</span>`}</td>
-                <td class="text-secondary">${formatDate(eq.installation_date)}</td>
-                <td>
-                  <div style="display:flex;gap:4px">
-                    <button class="btn btn-ghost btn-sm btn-icon" onclick="openEquipmentModal(${eq.id})"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-danger btn-sm btn-icon" onclick="confirmDeleteEquipment(${eq.id},'${escHtml(eq.name)}')"><i class="fas fa-trash"></i></button>
-                  </div>
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
+    eq = await http.get(`${API.equipment}/${id}`)
+    const r = await http.get(`${API.interventions}?q=${encodeURIComponent(eq.name)}&limit=50`)
+    interventions = r.data || []
+  } catch(e) { showToast('Erreur de chargement', 'error'); return }
+
+  const sc = { operational:{l:'Opérationnel',c:'#16a34a',ic:'fa-check-circle'}, out_of_service:{l:'Hors service',c:'#dc2626',ic:'fa-times-circle'}, maintenance:{l:'En maintenance',c:'#ca8a04',ic:'fa-tools'} }
+  const s = sc[eq.status] || sc.operational
+  const catColor = getCategoryColor(eq.category)
+
+  const modal = document.getElementById('modal-container')
+  modal.innerHTML = `
+    <div class="modal-overlay" onclick="closeModal(event)">
+      <div class="modal modal-lg" style="max-width:680px">
+        <div class="modal-header" style="background:var(--bg-secondary);border-bottom:1px solid var(--border);padding:1.25rem 1.5rem">
+          <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
+            <div style="width:44px;height:44px;border-radius:10px;background:${catColor}22;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <i class="fas fa-cog" style="color:${catColor};font-size:1.2rem"></i>
+            </div>
+            <div style="min-width:0">
+              <div style="font-weight:700;font-size:1rem;color:var(--text-primary)">${escHtml(eq.name)}</div>
+              <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
+                ${eq.reference ? `<span style="font-size:0.7rem;background:var(--bg-primary);border:1px solid var(--border);padding:1px 7px;border-radius:4px;font-family:monospace;color:var(--text-secondary)">${escHtml(eq.reference)}</span>` : ''}
+                ${eq.category ? `<span style="font-size:0.7rem;background:${catColor}22;color:${catColor};padding:1px 8px;border-radius:4px;font-weight:600">${escHtml(eq.category)}</span>` : ''}
+                <span style="font-size:0.7rem;background:${s.c}22;color:${s.c};padding:1px 8px;border-radius:999px;font-weight:600"><i class="fas ${s.ic}" style="margin-right:3px"></i>${s.l}</span>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button class="btn btn-ghost btn-sm" onclick="openEquipmentModal(${eq.id})"><i class="fas fa-edit"></i> Modifier</button>
+            <button class="btn btn-ghost btn-sm btn-icon" onclick="closeModalAll()"><i class="fas fa-times"></i></button>
+          </div>
+        </div>
+        <div class="modal-body" style="padding:1.25rem 1.5rem;overflow-y:auto;max-height:65vh">
+          <!-- Info grid -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem">
+            ${infoBlock('fa-building','Client', eq.client || '—')}
+            ${infoBlock('fa-map-marker-alt','Ville', eq.city || '—')}
+            ${infoBlock('fa-map-pin','Emplacement', eq.location || '—')}
+            ${infoBlock('fa-calendar-plus','Date d\'installation', prettyDate(eq.installation_date) || '—')}
+            ${infoBlock('fa-wrench','Dernière maintenance', prettyDate(eq.last_maintenance_date) || '—')}
+          </div>
+          ${eq.notes ? `
+            <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:0.85rem 1rem;margin-bottom:1.5rem;font-size:0.82rem;color:var(--text-secondary);line-height:1.6">
+              <div style="font-weight:600;color:var(--text-primary);margin-bottom:4px"><i class="fas fa-sticky-note" style="margin-right:5px;color:var(--accent-blue)"></i>Notes</div>
+              ${escHtml(eq.notes)}
+            </div>` : ''}
+
+          <!-- Interventions -->
+          <div style="margin-top:0.5rem">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:0.75rem">
+              <span style="font-weight:700;font-size:0.88rem;color:var(--text-primary)"><i class="fas fa-tools" style="margin-right:6px;color:var(--accent-orange)"></i>Interventions</span>
+              <span style="background:var(--accent-orange);color:#fff;font-size:0.68rem;padding:2px 8px;border-radius:999px;font-weight:600">${interventions.length}</span>
+            </div>
+            ${!interventions.length ? `<div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:0.82rem;opacity:0.6"><i class="fas fa-inbox" style="display:block;font-size:1.5rem;margin-bottom:6px"></i>Aucune intervention liée</div>` :
+              interventions.map(i => {
+                const sc2 = {resolved:'#16a34a',in_progress:'#2563eb',planned:'#7c3aed',cancelled:'#6b7280'}
+                const sl2 = {resolved:'Résolu',in_progress:'En cours',planned:'Planifié',cancelled:'Annulé'}
+                const pc2 = {critical:'#dc2626',high:'#ea580c',medium:'#ca8a04',low:'#16a34a'}
+                return `
+                  <div style="display:flex;align-items:center;gap:10px;padding:0.6rem 0;border-bottom:1px solid var(--border)" onclick="openInterventionDetail(${JSON.stringify(i).replace(/"/g,'&quot;')})">
+                    <div style="width:8px;height:8px;border-radius:50%;background:${pc2[i.priority]||'#6b7280'};flex-shrink:0"></div>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:0.78rem;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(i.title)}</div>
+                      <div style="font-size:0.68rem;color:var(--text-secondary);margin-top:2px">${escHtml(i.reference||'')} • ${prettyDate(i.start_date||i.failure_date)}</div>
+                    </div>
+                    <span style="font-size:0.68rem;background:${sc2[i.status]||'#6b7280'}22;color:${sc2[i.status]||'#6b7280'};padding:2px 8px;border-radius:999px;font-weight:600;flex-shrink:0">${sl2[i.status]||i.status}</span>
+                  </div>`
+              }).join('')}
+          </div>
+        </div>
       </div>
-    `
-  } catch(e) { el.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Erreur de chargement</p></div>` }
+    </div>
+  `
+}
+
+function infoBlock(icon, label, value) {
+  return `
+    <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:0.7rem 0.9rem">
+      <div style="font-size:0.68rem;color:var(--text-secondary);margin-bottom:3px;text-transform:uppercase;letter-spacing:0.04em">
+        <i class="fas ${icon}" style="margin-right:4px;opacity:0.6"></i>${label}
+      </div>
+      <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary)">${value}</div>
+    </div>`
 }
 
 async function openEquipmentModal(id = null) {
   let eq = null
   if (id) { try { eq = await http.get(`${API.equipment}/${id}`) } catch(e) { showToast('Erreur', 'error'); return } }
+
+  // Build client options
+  const clientOpts = (state.clients?.data||[]).map(c =>
+    `<option value="${escHtml(c.name)}" ${eq?.client===c.name?'selected':''}>${escHtml(c.name)}</option>`
+  ).join('')
+
   const modal = document.getElementById('modal-container')
   modal.innerHTML = `
     <div class="modal-overlay" onclick="closeModal(event)">
@@ -1530,12 +1772,13 @@ async function openEquipmentModal(id = null) {
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Catégorie</label>
-                <input type="text" name="category" class="input" placeholder="Ex: Compresseur, CVC..." value="${escHtml(eq?.category||'')}">
+                <input type="text" name="category" class="input" placeholder="Ex: Pompe, Variateur, Compresseur..." value="${escHtml(eq?.category||'')}">
               </div>
               <div class="form-group">
                 <label class="form-label">Statut</label>
                 <select name="status" class="select">
-                  <option value="operational" ${eq?.status!=='out_of_service'?'selected':''}>Opérationnel</option>
+                  <option value="operational" ${(eq?.status||'operational')==='operational'?'selected':''}>Opérationnel</option>
+                  <option value="maintenance" ${eq?.status==='maintenance'?'selected':''}>En maintenance</option>
                   <option value="out_of_service" ${eq?.status==='out_of_service'?'selected':''}>Hors service</option>
                 </select>
               </div>
@@ -1543,7 +1786,10 @@ async function openEquipmentModal(id = null) {
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Client</label>
-                <input type="text" name="client" class="input" placeholder="Nom du client" value="${escHtml(eq?.client||'')}">
+                <select name="client" class="select">
+                  <option value="">— Sélectionner —</option>
+                  ${clientOpts}
+                </select>
               </div>
               <div class="form-group">
                 <label class="form-label">Ville</label>
@@ -1553,12 +1799,16 @@ async function openEquipmentModal(id = null) {
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Emplacement</label>
-                <input type="text" name="location" class="input" placeholder="Bâtiment, atelier..." value="${escHtml(eq?.location||'')}">
+                <input type="text" name="location" class="input" placeholder="Bâtiment, atelier, salle..." value="${escHtml(eq?.location||'')}">
               </div>
               <div class="form-group">
                 <label class="form-label">Date d'installation</label>
-                <input type="date" name="installation_date" class="input" value="${eq?.installation_date||''}">
+                <input type="date" name="installation_date" class="input" value="${eq?.installation_date?.split('T')[0]||''}">
               </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Dernière maintenance</label>
+              <input type="date" name="last_maintenance_date" class="input" value="${eq?.last_maintenance_date?.split('T')[0]||''}">
             </div>
             <div class="form-group">
               <label class="form-label">Notes</label>
@@ -1581,6 +1831,8 @@ async function saveEquipment(e, id) {
   e.preventDefault()
   const data = Object.fromEntries(new FormData(e.target))
   if (!data.installation_date) delete data.installation_date
+  if (!data.last_maintenance_date) delete data.last_maintenance_date
+  if (!data.client) delete data.client
   try {
     if (id) { await http.put(`${API.equipment}/${id}`, data); showToast('Équipement modifié', 'success') }
     else { await http.post(API.equipment, data); showToast('Équipement ajouté', 'success') }
@@ -1598,7 +1850,7 @@ function confirmDeleteEquipment(id, name) {
           <button class="btn btn-ghost btn-sm btn-icon" onclick="closeModalAll()"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body">
-          <p style="color:var(--text-secondary)">Supprimer <strong>"${escHtml(name)}"</strong> ?</p>
+          <p style="color:var(--text-secondary)">Supprimer <strong>"${escHtml(name)}"</strong> ? Cette action est irréversible.</p>
         </div>
         <div class="modal-footer">
           <button class="btn btn-ghost" onclick="closeModalAll()">Annuler</button>
