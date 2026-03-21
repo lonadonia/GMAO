@@ -1,11 +1,9 @@
 -- Seed : données réelles PPrime (data pprime.xlsx)
 -- Insérées via INSERT OR IGNORE sur reference_num unique
 
--- Techniciens
-INSERT OR IGNORE INTO technicians (name, specialty) VALUES ('Tahar', 'Électrotechnique');
-INSERT OR IGNORE INTO technicians (name, specialty) VALUES ('Hassan', 'Électrotechnique');
-INSERT OR IGNORE INTO technicians (name, specialty) VALUES ('Ali', 'Mécanique');
-INSERT OR IGNORE INTO technicians (name, specialty) VALUES ('Mohamed', 'Mécanique');
+-- Techniciens (Ali et Mohamed = responsables principaux)
+INSERT OR IGNORE INTO technicians (name, specialty) VALUES ('Ali',     'Mécanique');
+INSERT OR IGNORE INTO technicians (name, specialty) VALUES ('Mohamed', 'Électrique');
 
 -- Clients
 INSERT OR IGNORE INTO clients (name, city) VALUES ('SI2A', 'Sidi Kacem');
@@ -28,7 +26,7 @@ INSERT OR IGNORE INTO interventions (
   'Nettoyage intérieur du coffret et amélioration de l''étanchéité.',
   'corrective', 'resolved', 'high',
   'SI2A', 'Sidi Kacem', 'Sidi Kacem', 'agricole',
-  'Coffret principal station 3', 'Tahar', 'Ali',
+  'Coffret principal station 3', 'Ali', 'Tahar',
   0, 5, 7.5,
   '2026-02-17 08:30:00', '2026-02-17 16:00:00', '2026-02-15',
   3, 'étanchéité — infiltration eau de pluie', 9,
@@ -51,7 +49,7 @@ INSERT OR IGNORE INTO interventions (
   NULL,
   'corrective', 'pending', 'medium',
   'ABM FARMS', 'Agadir', 'Agadir', 'agricole',
-  'Pompe de surface', 'Tahar', 'Mohamed',
+  'Pompe de surface', 'Mohamed', 'Tahar',
   0, 1, 1.0,
   '2026-02-18 14:00:00', '2026-02-18 15:00:00', '2026-02-18',
   1, 'Anomalie mécanique — rotor et éléments internes', 8,
@@ -74,7 +72,7 @@ INSERT OR IGNORE INTO interventions (
   'Diagnostic électrique — Remplacement du capteur de pression — Test de fonctionnement concluant',
   'corrective', 'resolved', 'high',
   'ABM FARMS', 'Agadir', 'Agadir', 'agricole',
-  'Variateur de vitesse', 'Tahar', 'Mohamed',
+  'Variateur de vitesse', 'Mohamed', 'Tahar',
   1, 1, 1.0,
   '2026-02-18 15:00:00', '2026-03-18 16:00:00', '2026-02-18',
   1, 'Défaut capteur de pression (absence de signal correct)', 9,
@@ -98,7 +96,7 @@ INSERT OR IGNORE INTO interventions (
   'Diagnostic électrique — Remplacement relais de niveau — Test de fonctionnement',
   'corrective', 'pending', 'high',
   'ZALAR ALPAGRI', 'Guelmim', 'Guelmim', 'agricole',
-  'Pompe immergée dans le puits', 'Hassan', 'Mohamed',
+  'Pompe immergée dans le puits', 'Mohamed', 'Hassan',
   1, 4, 4.0,
   '2026-02-26 13:00:00', '2026-02-26 17:00:00', '2026-02-25',
   1, 'Cause mécanique probable', 6,
@@ -121,7 +119,7 @@ INSERT OR IGNORE INTO interventions (
   'Vérification câblage — Réglage et reparamétrage du variateur — Test OK',
   'corrective', 'resolved', 'medium',
   'ABM FARMS', 'Agadir', 'Agadir', 'agricole',
-  'Variateur de vitesse', 'Tahar', 'Mohamed',
+  'Variateur de vitesse', 'Mohamed', 'Tahar',
   1, 1, 1.0,
   '2026-02-18 16:00:00', '2026-02-18 17:00:00', '2026-02-18',
   1, 'Dérèglement des paramètres du variateur', 10,
