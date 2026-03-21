@@ -140,6 +140,21 @@ function initials(name) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 }
 
+// Returns a stable color for a technician name
+function getTechColor(name) {
+  const palette = ['#3b82f6','#8b5cf6','#ec4899','#14b8a6','#f59e0b','#10b981','#ef4444','#6366f1','#f97316','#06b6d4']
+  if (!name) return palette[0]
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) & 0xffff
+  return palette[hash % palette.length]
+}
+
+// Returns uppercase initials from a name string
+function getInitials(name) {
+  if (!name) return '?'
+  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+}
+
 // ============================================================
 // SIDEBAR & NAVIGATION
 // ============================================================
@@ -465,13 +480,19 @@ function renderKPISection(data) {
         <i class="fas fa-power-off kpi-icon"></i>
         <div class="kpi-label"><i class="fas fa-exclamation-triangle"></i> Arrêts machine</div>
         <div class="kpi-value">${kpis.downtime_count}</div>
-        <div class="kpi-trend">Interventions avec arrêt</div>
+        <div class="kpi-trend">Interventions avec arrêt production</div>
       </div>
       <div class="kpi-card" style="--kpi-color:var(--accent-red)">
         <i class="fas fa-fire kpi-icon"></i>
         <div class="kpi-label"><i class="fas fa-exclamation"></i> Critiques / Hautes</div>
         <div class="kpi-value">${kpis.critical_count + kpis.high_count}</div>
         <div class="kpi-trend">${kpis.critical_count} critiques · ${kpis.high_count} hautes</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color:var(--accent-orange)">
+        <i class="fas fa-hourglass-half kpi-icon"></i>
+        <div class="kpi-label"><i class="fas fa-clock"></i> Temps d'attente moyen</div>
+        <div class="kpi-value">${kpis.avg_wait_hours ? kpis.avg_wait_hours : '–'}<span class="kpi-unit"> h</span></div>
+        <div class="kpi-trend">Panne → début d'intervention${kpis.wait_sample_count > 0 ? ` · ${kpis.wait_sample_count} cas` : ''}</div>
       </div>
       <div class="kpi-card" style="--kpi-color:var(--accent-green)">
         <i class="fas fa-star kpi-icon"></i>
@@ -516,6 +537,124 @@ function renderKPISection(data) {
       <div class="chart-card">
         <div class="chart-title"><i class="fas fa-cogs"></i> Équipements en panne</div>
         <canvas id="chart-equipment" height="180"></canvas>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         SECTION TECHNICIENS — temps moyen + ranking
+    ═══════════════════════════════════════════════════ -->
+    <div style="margin-top:1.5rem;padding:0 0.25rem">
+      <div style="font-weight:700;font-size:0.9rem;color:var(--text-primary);margin-bottom:1rem;display:flex;align-items:center;gap:8px">
+        <i class="fas fa-users-cog" style="color:var(--accent-blue)"></i>
+        Analyse par technicien
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+
+        <!-- Temps moyen par technicien -->
+        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:1.1rem 1.25rem">
+          <div style="font-weight:600;font-size:0.8rem;color:var(--text-primary);margin-bottom:0.9rem;display:flex;align-items:center;gap:7px">
+            <i class="fas fa-stopwatch" style="color:var(--accent-yellow)"></i>
+            Temps moyen de réparation par technicien
+          </div>
+          ${(charts.avg_time_per_tech||[]).length === 0
+            ? `<div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:0.78rem;opacity:0.5">Données insuffisantes</div>`
+            : (charts.avg_time_per_tech||[]).map((t, idx) => {
+                const maxTime = Math.max(...(charts.avg_time_per_tech||[]).map(x => x.avg_repair_time || 0), 1)
+                const pct = t.avg_repair_time ? Math.min(100, (t.avg_repair_time / maxTime) * 100) : 0
+                const barColor = pct < 40 ? '#34d399' : pct < 70 ? '#fbbf24' : '#f87171'
+                const initials = (t.technician_name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)
+                const techColor = getTechColor(t.technician_name)
+                return `
+                  <div style="margin-bottom:0.85rem">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                      <div style="width:26px;height:26px;border-radius:50%;background:${techColor};display:flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:700;color:#fff;flex-shrink:0">${initials}</div>
+                      <div style="flex:1;font-size:0.78rem;font-weight:600;color:var(--text-primary)">${escHtml(t.technician_name||'—')}</div>
+                      <div style="font-size:0.75rem;font-weight:700;color:${barColor}">${t.avg_repair_time != null ? t.avg_repair_time + 'h' : '—'}</div>
+                      <div style="font-size:0.65rem;color:var(--text-secondary)">${t.total} interv.</div>
+                    </div>
+                    <div style="height:5px;background:var(--bg-primary);border-radius:3px;overflow:hidden">
+                      <div style="height:100%;width:${pct}%;background:${barColor};border-radius:3px;transition:width 0.4s"></div>
+                    </div>
+                  </div>`
+              }).join('')
+          }
+          <div style="margin-top:0.5rem;padding-top:0.6rem;border-top:1px solid var(--border);font-size:0.68rem;color:var(--text-secondary);display:flex;align-items:center;gap:12px">
+            <span style="color:#34d399">■</span> Rapide (&lt;40%)
+            <span style="color:#fbbf24">■</span> Moyen
+            <span style="color:#f87171">■</span> Long (&gt;70%)
+          </div>
+        </div>
+
+        <!-- Ranking technicien (score composite) -->
+        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:1.1rem 1.25rem">
+          <div style="font-weight:600;font-size:0.8rem;color:var(--text-primary);margin-bottom:0.9rem;display:flex;align-items:center;gap:7px">
+            <i class="fas fa-trophy" style="color:#fbbf24"></i>
+            Classement techniciens
+            <span style="font-size:0.65rem;color:var(--text-secondary);margin-left:auto;font-weight:400">Résolution 40% · Qualité 30% · Rapidité 30%</span>
+          </div>
+          ${(charts.tech_ranking||[]).length === 0
+            ? `<div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:0.78rem;opacity:0.5">Données insuffisantes</div>`
+            : (charts.tech_ranking||[]).map((t, idx) => {
+                const medals = ['🥇','🥈','🥉']
+                const medal = medals[idx] || `<span style="color:var(--text-secondary);font-size:0.8rem">#${idx+1}</span>`
+                const score = t.composite_score || 0
+                const scoreColor = score >= 70 ? '#34d399' : score >= 40 ? '#fbbf24' : '#f87171'
+                const initials = (t.technician_name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)
+                const techColor = getTechColor(t.technician_name)
+                return `
+                  <div style="display:flex;align-items:center;gap:9px;padding:0.6rem 0.5rem;margin-bottom:0.3rem;border-radius:8px;background:${idx===0?'rgba(251,191,36,0.06)':idx===1?'rgba(148,163,184,0.06)':idx===2?'rgba(205,127,50,0.06)':'transparent'}">
+                    <div style="font-size:${idx<3?'1.1rem':'0.8rem'};width:24px;text-align:center;flex-shrink:0">${medal}</div>
+                    <div style="width:28px;height:28px;border-radius:50%;background:${techColor};display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;color:#fff;flex-shrink:0">${initials}</div>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:0.8rem;font-weight:600;color:var(--text-primary)">${escHtml(t.technician_name||'—')}</div>
+                      <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:1px">
+                        ${t.total} interv. · ${t.resolution_rate||0}% résol. · ${t.avg_quality ? t.avg_quality+'/10' : '—'}
+                      </div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0">
+                      <div style="font-size:1rem;font-weight:800;color:${scoreColor};line-height:1">${score}</div>
+                      <div style="font-size:0.6rem;color:var(--text-secondary);margin-top:1px">score</div>
+                    </div>
+                  </div>`
+              }).join('')
+          }
+        </div>
+
+        <!-- Temps d'attente par technicien -->
+        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:1.1rem 1.25rem;grid-column:1/-1">
+          <div style="font-weight:600;font-size:0.8rem;color:var(--text-primary);margin-bottom:0.9rem;display:flex;align-items:center;gap:7px">
+            <i class="fas fa-hourglass-start" style="color:var(--accent-orange)"></i>
+            Temps d'attente par technicien
+            <span style="font-size:0.65rem;color:var(--text-secondary);margin-left:auto;font-weight:400">Délai moyen panne → début intervention</span>
+          </div>
+          ${(charts.wait_time_per_tech||[]).filter(t => t.avg_wait_hours != null && t.sample_count > 0).length === 0
+            ? `<div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:0.78rem;opacity:0.5">
+                <i class="fas fa-info-circle" style="margin-right:4px"></i>
+                Données insuffisantes (les interventions doivent avoir une date de panne ET une date de début)
+               </div>`
+            : `<div style="display:flex;gap:1.5rem;flex-wrap:wrap">
+                ${(charts.wait_time_per_tech||[]).filter(t => t.avg_wait_hours != null && t.sample_count > 0).map(t => {
+                  const initials = (t.technician_name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)
+                  const techColor = getTechColor(t.technician_name)
+                  const h = t.avg_wait_hours || 0
+                  const waitColor = h < 4 ? '#34d399' : h < 12 ? '#fbbf24' : '#f87171'
+                  return `
+                    <div style="display:flex;align-items:center;gap:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:0.6rem 0.85rem;min-width:180px;flex:1">
+                      <div style="width:32px;height:32px;border-radius:50%;background:${techColor};display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;color:#fff">${initials}</div>
+                      <div>
+                        <div style="font-size:0.78rem;font-weight:600;color:var(--text-primary)">${escHtml(t.technician_name||'—')}</div>
+                        <div style="font-size:0.68rem;color:var(--text-secondary)">${t.sample_count} cas mesurés</div>
+                      </div>
+                      <div style="margin-left:auto;text-align:right">
+                        <div style="font-size:1.1rem;font-weight:800;color:${waitColor};line-height:1">${h.toFixed(1)}<span style="font-size:0.65rem;font-weight:400"> h</span></div>
+                        <div style="font-size:0.6rem;color:${waitColor};margin-top:1px">${h < 4 ? 'Rapide' : h < 12 ? 'Acceptable' : 'Lent'}</div>
+                      </div>
+                    </div>`
+                }).join('')}
+              </div>`
+          }
+        </div>
+
       </div>
     </div>
 

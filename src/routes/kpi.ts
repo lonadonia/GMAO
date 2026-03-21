@@ -247,9 +247,91 @@ app.get('/', async (c) => {
     FROM interventions ${where}
   `).bind(...params).first<any>()
 
+  // ─── NEW KPIs ─────────────────────────────────────────────────────────────
+
+  // 1. Temps moyen de réparation PAR TECHNICIEN
+  const avgTimePerTech = await c.env.DB.prepare(`
+    SELECT
+      technician_name,
+      technician_id,
+      COUNT(*) as total,
+      SUM(CASE WHEN status='resolved' THEN 1 ELSE 0 END) as resolved,
+      ROUND(AVG(
+        CASE WHEN status='resolved'
+          THEN COALESCE(NULLIF(duration_real,0), NULLIF(duration_hours,0))
+        END
+      ), 2) as avg_repair_time,
+      ROUND(AVG(CASE WHEN quality_score > 0 THEN quality_score END), 1) as avg_quality,
+      ROUND(
+        CASE WHEN COUNT(*) > 0
+          THEN SUM(CASE WHEN status='resolved' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)
+          ELSE 0
+        END, 1
+      ) as resolution_rate
+    FROM interventions ${whereTech}
+    GROUP BY technician_name, technician_id
+    ORDER BY avg_repair_time ASC NULLS LAST
+  `).bind(...params).all<any>()
+
+  // 2. Temps d'attente moyen (failure_date → start_date) en heures
+  const waitTimeData = await c.env.DB.prepare(`
+    SELECT
+      ROUND(AVG(
+        CASE
+          WHEN failure_date IS NOT NULL AND start_date IS NOT NULL
+            AND start_date > failure_date
+          THEN (julianday(start_date) - julianday(failure_date)) * 24
+        END
+      ), 2) as avg_wait_hours,
+      COUNT(CASE
+        WHEN failure_date IS NOT NULL AND start_date IS NOT NULL
+          AND start_date > failure_date
+        THEN 1 END) as wait_sample_count
+    FROM interventions ${where}
+  `).bind(...params).first<any>()
+
+  // Temps d'attente PAR TECHNICIEN
+  const waitTimePerTech = await c.env.DB.prepare(`
+    SELECT
+      technician_name,
+      ROUND(AVG(
+        CASE
+          WHEN failure_date IS NOT NULL AND start_date IS NOT NULL
+            AND start_date > failure_date
+          THEN (julianday(start_date) - julianday(failure_date)) * 24
+        END
+      ), 2) as avg_wait_hours,
+      COUNT(CASE
+        WHEN failure_date IS NOT NULL AND start_date IS NOT NULL
+          AND start_date > failure_date
+        THEN 1 END) as sample_count
+    FROM interventions ${whereTech}
+    GROUP BY technician_name
+    ORDER BY avg_wait_hours ASC NULLS LAST
+  `).bind(...params).all<any>()
+
+  // 3. Ranking technicien (score composite)
+  // Score = resolution_rate * 0.4 + quality_score_normalized * 0.3 + speed_score * 0.3
+  // speed_score = inverse de avg_repair_time normalisé (plus vite = meilleur)
+  const techRanking = avgTimePerTech.results.map((t: any) => {
+    const resScore  = (t.resolution_rate || 0) / 100           // 0-1
+    const qualScore = (t.avg_quality     || 0) / 10            // 0-1
+    // speed: max 20h → score 0, 0h → score 1
+    const maxTime   = 20
+    const speed     = t.avg_repair_time != null
+      ? Math.max(0, 1 - (t.avg_repair_time / maxTime))
+      : 0
+    const score = parseFloat(((resScore * 0.4 + qualScore * 0.3 + speed * 0.3) * 100).toFixed(1))
+    return { ...t, composite_score: score }
+  }).sort((a: any, b: any) => b.composite_score - a.composite_score)
+
+  const avgWaitHours = waitTimeData?.avg_wait_hours || 0
+
   return c.json({
     kpis: {
       total_interventions: grandTotal,
+      avg_wait_hours: avgWaitHours,
+      wait_sample_count: waitTimeData?.wait_sample_count || 0,
       resolved_count: stats?.resolved_count || 0,
       in_progress_count: stats?.in_progress_count || 0,
       planned_count: stats?.planned_count || 0,
@@ -280,6 +362,9 @@ app.get('/', async (c) => {
       by_client: byClient.results,
       by_equipment: byEquipment.results,
       recurring: recurringStats,
+      avg_time_per_tech: avgTimePerTech.results,
+      wait_time_per_tech: waitTimePerTech.results,
+      tech_ranking: techRanking,
     }
   })
 })
