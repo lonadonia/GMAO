@@ -13,6 +13,7 @@ const API = {
   equipment: '/api/equipment',
   clients: '/api/clients',
   planning: '/api/planning',
+  planningPreventif: '/api/planning/preventif',
   kpi: '/api/kpi',
   settings: '/api/settings',
 }
@@ -1515,44 +1516,416 @@ async function renderPlanning() {
   const container = document.getElementById('page-container')
   container.innerHTML = `
     <div class="page-header">
-      <div><h1 style="font-size:1.2rem;font-weight:700">Planning</h1>
-      <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px">Calendrier de maintenance préventive</p></div>
-      <button class="btn btn-primary" onclick="openPlanModal()"><i class="fas fa-plus"></i> Nouveau plan</button>
+      <div>
+        <h1 style="font-size:1.2rem;font-weight:700">Planning</h1>
+        <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px">Planning préventif 2026 &amp; calendrier de maintenance</p>
+      </div>
+      <div style="display:flex;gap:0.5rem">
+        <button class="btn btn-ghost btn-sm" id="btn-tab-preventif" onclick="switchPlanningTab('preventif')">
+          <i class="fas fa-file-contract"></i> Préventif Contractuel
+        </button>
+        <button class="btn btn-ghost btn-sm" id="btn-tab-calendar" onclick="switchPlanningTab('calendar')">
+          <i class="fas fa-calendar-alt"></i> Calendrier
+        </button>
+        <button class="btn btn-primary" id="btn-add-plan" onclick="openPlanModal()" style="display:none">
+          <i class="fas fa-plus"></i> Nouveau plan
+        </button>
+        <button class="btn btn-primary" id="btn-add-preventif" onclick="openPreventifModal()">
+          <i class="fas fa-plus"></i> Ajouter
+        </button>
+      </div>
     </div>
     <div class="page-content">
-      <!-- Calendar Navigation -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
-        <div style="display:flex;gap:0.5rem;align-items:center">
-          <button class="btn btn-ghost btn-sm" onclick="prevMonth()"><i class="fas fa-chevron-left"></i></button>
-          <span id="calendar-title" style="font-size:1rem;font-weight:700;min-width:160px;text-align:center"></span>
-          <button class="btn btn-ghost btn-sm" onclick="nextMonth()"><i class="fas fa-chevron-right"></i></button>
-          <button class="btn btn-ghost btn-sm" onclick="goToday()">Aujourd'hui</button>
+      <!-- ===== ONGLET : PLANNING PRÉVENTIF CONTRACTUEL ===== -->
+      <div id="tab-preventif">
+        <!-- Stats bar -->
+        <div id="preventif-stats" style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1rem"></div>
+
+        <!-- Filtres -->
+        <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:1rem;flex-wrap:wrap">
+          <select id="filter-nature" class="select" style="width:200px;height:32px;font-size:0.78rem" onchange="loadPreventifTable()">
+            <option value="">Toutes les natures</option>
+            <option value="Contrat de maintenance">Contrat de maintenance</option>
+            <option value="Bon de commande">Bon de commande</option>
+          </select>
+          <select id="filter-frequence" class="select" style="width:160px;height:32px;font-size:0.78rem" onchange="loadPreventifTable()">
+            <option value="">Toutes fréquences</option>
+            <option value="Annuelle">Annuelle</option>
+            <option value="Semestrielle">Semestrielle</option>
+            <option value="Trimestrielle">Trimestrielle</option>
+          </select>
+          <select id="filter-fait" class="select" style="width:150px;height:32px;font-size:0.78rem" onchange="loadPreventifTable()">
+            <option value="">Tous les statuts</option>
+            <option value="true">✓ Fait</option>
+            <option value="false">✗ Non fait</option>
+          </select>
+          <input type="text" id="filter-client" class="input" style="width:200px;height:32px;font-size:0.78rem" placeholder="🔍 Rechercher client..." oninput="loadPreventifTable()">
         </div>
-        <div style="display:flex;gap:0.5rem;align-items:center;font-size:0.75rem;color:var(--text-secondary)">
-          <span class="calendar-event preventive" style="padding:3px 8px">Préventif</span>
-          <span class="calendar-event corrective" style="padding:3px 8px">Correctif planifié</span>
+
+        <!-- Tableau Gantt annuel -->
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-title"><i class="fas fa-file-contract" style="color:var(--accent-blue)"></i> Planning Préventif 2026</div>
+            <div id="preventif-counter" style="font-size:0.75rem;color:var(--text-secondary)"></div>
+          </div>
+          <div id="preventif-table"><div class="loading-overlay"><span class="loader"></span></div></div>
         </div>
       </div>
 
-      <!-- Calendar -->
-      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:1rem;margin-bottom:1.5rem">
-        <div class="calendar-grid" id="calendar-grid">
-          <div class="loading-overlay" style="grid-column:1/-1"><span class="loader"></span></div>
+      <!-- ===== ONGLET : CALENDRIER ===== -->
+      <div id="tab-calendar" style="display:none">
+        <!-- Calendar Navigation -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+          <div style="display:flex;gap:0.5rem;align-items:center">
+            <button class="btn btn-ghost btn-sm" onclick="prevMonth()"><i class="fas fa-chevron-left"></i></button>
+            <span id="calendar-title" style="font-size:1rem;font-weight:700;min-width:160px;text-align:center"></span>
+            <button class="btn btn-ghost btn-sm" onclick="nextMonth()"><i class="fas fa-chevron-right"></i></button>
+            <button class="btn btn-ghost btn-sm" onclick="goToday()">Aujourd'hui</button>
+          </div>
+          <div style="display:flex;gap:0.5rem;align-items:center;font-size:0.75rem;color:var(--text-secondary)">
+            <span class="calendar-event preventive" style="padding:3px 8px">Préventif</span>
+            <span class="calendar-event corrective" style="padding:3px 8px">Correctif planifié</span>
+          </div>
         </div>
-      </div>
 
-      <!-- Plans List -->
-      <div class="table-card">
-        <div class="table-header">
-          <div class="table-title"><i class="fas fa-list" style="color:var(--accent-green)"></i> Plans de maintenance préventive (2026)</div>
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:1rem;margin-bottom:1.5rem">
+          <div class="calendar-grid" id="calendar-grid">
+            <div class="loading-overlay" style="grid-column:1/-1"><span class="loader"></span></div>
+          </div>
         </div>
-        <div id="plans-list"><div class="loading-overlay"><span class="loader"></span></div></div>
+
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-title"><i class="fas fa-list" style="color:var(--accent-green)"></i> Plans de maintenance préventive</div>
+          </div>
+          <div id="plans-list"><div class="loading-overlay"><span class="loader"></span></div></div>
+        </div>
       </div>
     </div>
   `
-  renderCalendar()
-  loadPlansList()
+
+  // Démarrer sur l'onglet préventif
+  switchPlanningTab('preventif')
 }
+
+function switchPlanningTab(tab) {
+  document.getElementById('tab-preventif').style.display = tab === 'preventif' ? '' : 'none'
+  document.getElementById('tab-calendar').style.display  = tab === 'calendar'  ? '' : 'none'
+  document.getElementById('btn-add-preventif').style.display = tab === 'preventif' ? '' : 'none'
+  document.getElementById('btn-add-plan').style.display       = tab === 'calendar'  ? '' : 'none'
+
+  const btnP = document.getElementById('btn-tab-preventif')
+  const btnC = document.getElementById('btn-tab-calendar')
+  if (btnP) { btnP.className = tab==='preventif' ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm' }
+  if (btnC) { btnC.className = tab==='calendar'  ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm' }
+
+  if (tab === 'preventif') loadPreventifTable()
+  if (tab === 'calendar')  { renderCalendar(); loadPlansList() }
+}
+
+// ============================================================
+// PLANNING PRÉVENTIF CONTRACTUEL
+// ============================================================
+const MOIS_LABELS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc']
+const MOIS_FULL   = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']
+
+async function loadPreventifTable() {
+  const el = document.getElementById('preventif-table')
+  if (!el) return
+
+  const nature    = document.getElementById('filter-nature')?.value    || ''
+  const frequence = document.getElementById('filter-frequence')?.value || ''
+  const fait      = document.getElementById('filter-fait')?.value      || ''
+  const client    = document.getElementById('filter-client')?.value    || ''
+
+  let url = `${API.planningPreventif}?annee=2026`
+  if (nature)    url += `&nature=${encodeURIComponent(nature)}`
+  if (frequence) url += `&frequence=${encodeURIComponent(frequence)}`
+  if (fait)      url += `&fait=${fait}`
+  if (client)    url += `&client=${encodeURIComponent(client)}`
+
+  el.innerHTML = '<div class="loading-overlay"><span class="loader"></span></div>'
+
+  try {
+    const res = await http.get(url)
+    const rows  = res.data || []
+    const stats = res.stats || {}
+
+    // Stats bar
+    const statsEl = document.getElementById('preventif-stats')
+    if (statsEl) {
+      const pct = stats.total > 0 ? Math.round((stats.fait_count/stats.total)*100) : 0
+      statsEl.innerHTML = `
+        <div class="stat-mini"><span class="stat-mini-val">${stats.total||0}</span><span class="stat-mini-lbl">Total</span></div>
+        <div class="stat-mini" style="color:var(--accent-green)"><span class="stat-mini-val">${stats.fait_count||0}</span><span class="stat-mini-lbl">Fait ✓</span></div>
+        <div class="stat-mini" style="color:var(--accent-yellow)"><span class="stat-mini-val">${stats.en_attente_count||0}</span><span class="stat-mini-lbl">En attente</span></div>
+        <div class="stat-mini" style="color:var(--accent-blue)"><span class="stat-mini-val">${stats.contrats||0}</span><span class="stat-mini-lbl">Contrats</span></div>
+        <div class="stat-mini" style="color:var(--accent-purple)"><span class="stat-mini-val">${stats.bons_commande||0}</span><span class="stat-mini-lbl">Bons commande</span></div>
+        <div style="flex:1"></div>
+        <div style="display:flex;align-items:center;gap:0.75rem;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:0.5rem 1rem">
+          <span style="font-size:0.75rem;color:var(--text-secondary)">Avancement 2026</span>
+          <div style="width:120px;height:8px;background:var(--bg-secondary);border-radius:4px;overflow:hidden">
+            <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,var(--accent-blue),var(--accent-green));border-radius:4px;transition:width .4s"></div>
+          </div>
+          <strong style="font-size:0.85rem;color:${pct>=80?'var(--accent-green)':pct>=40?'var(--accent-yellow)':'var(--accent-red)'}">${pct}%</strong>
+        </div>
+      `
+    }
+
+    const counter = document.getElementById('preventif-counter')
+    if (counter) counter.textContent = `${rows.length} entrée${rows.length>1?'s':''}`
+
+    if (!rows.length) {
+      el.innerHTML = `<div class="empty-state"><i class="fas fa-calendar-check"></i><p>Aucun planning préventif trouvé</p></div>`
+      return
+    }
+
+    // Tableau avec colonne par mois (style Gantt)
+    const currentMonth = new Date().getMonth() + 1
+
+    el.innerHTML = `
+      <div style="overflow-x:auto">
+        <table style="min-width:1200px">
+          <thead>
+            <tr>
+              <th style="min-width:140px">Nature</th>
+              <th style="min-width:260px">Description / Intervention</th>
+              <th style="min-width:180px">Client</th>
+              <th style="min-width:110px;text-align:center">Fréquence</th>
+              ${MOIS_LABELS.map((m,i) => {
+                const isCurrent = (i+1) === currentMonth
+                return `<th style="width:52px;text-align:center;font-size:0.68rem;padding:6px 4px;${isCurrent?'color:var(--accent-blue);background:rgba(79,158,248,0.06)':''}">${m}</th>`
+              }).join('')}
+              <th style="min-width:80px;text-align:center">Statut</th>
+              <th style="min-width:60px;text-align:center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r => {
+              const isContrat = r.nature === 'Contrat de maintenance'
+              const natureBadge = isContrat
+                ? `<span class="badge" style="background:rgba(79,158,248,0.12);color:var(--accent-blue);border:1px solid rgba(79,158,248,0.2);font-size:0.6rem;white-space:nowrap">Contrat</span>`
+                : `<span class="badge" style="background:rgba(167,139,250,0.12);color:var(--accent-purple);border:1px solid rgba(167,139,250,0.2);font-size:0.6rem;white-space:nowrap">Bon de commande</span>`
+
+              const freqColor = {
+                'Trimestrielle':'var(--accent-green)',
+                'Semestrielle': 'var(--accent-blue)',
+                'Annuelle':     'var(--accent-yellow)'
+              }[r.frequence] || 'var(--text-secondary)'
+
+              const moisCells = Array.from({length:12},(_,i) => {
+                const mKey = `mois_${i+1}`
+                const planned = r[mKey] === 1
+                const isCurrent = (i+1) === currentMonth
+                if (!planned) return `<td style="text-align:center;background:${isCurrent?'rgba(79,158,248,0.04)':''}"></td>`
+                const color = r.fait
+                  ? 'var(--accent-green)'
+                  : (i+1) < currentMonth ? 'var(--accent-red)' : 'var(--accent-blue)'
+                const icon  = r.fait ? '✓' : '●'
+                return `<td style="text-align:center;background:${isCurrent?'rgba(79,158,248,0.06)':''}">
+                  <div style="width:28px;height:28px;border-radius:50%;background:${color}22;border:2px solid ${color};display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;color:${color};font-weight:700;cursor:pointer" 
+                       title="${MOIS_FULL[i]} — ${r.client}"
+                       onclick="toggleFait(${r.id},${r.fait})">${icon}</div>
+                </td>`
+              }).join('')
+
+              return `
+                <tr style="${r.fait ? 'opacity:0.7' : ''}">
+                  <td>${natureBadge}</td>
+                  <td>
+                    <div style="font-size:0.78rem;color:var(--text-primary);line-height:1.4">${escHtml(r.description.length>65?r.description.slice(0,65)+'…':r.description)}</div>
+                  </td>
+                  <td>
+                    <div style="font-weight:600;font-size:0.78rem;color:var(--text-primary)">${escHtml(r.client)}</div>
+                  </td>
+                  <td style="text-align:center">
+                    <span style="font-size:0.68rem;font-weight:600;color:${freqColor}">${r.frequence}</span>
+                  </td>
+                  ${moisCells}
+                  <td style="text-align:center">
+                    ${r.fait
+                      ? `<span style="color:var(--accent-green);font-size:0.7rem;font-weight:700">✓ Fait</span>`
+                      : `<span style="color:var(--accent-yellow);font-size:0.7rem">En attente</span>`
+                    }
+                  </td>
+                  <td style="text-align:center">
+                    <div style="display:flex;gap:3px;justify-content:center">
+                      <button class="btn btn-ghost btn-sm btn-icon" onclick="openPreventifModal(${r.id})" title="Modifier"><i class="fas fa-edit"></i></button>
+                      <button class="btn btn-danger btn-sm btn-icon" onclick="confirmDeletePreventif(${r.id},'${escHtml(r.client)}')" title="Supprimer"><i class="fas fa-trash"></i></button>
+                    </div>
+                  </td>
+                </tr>
+              `
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `
+  } catch(e) {
+    el.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Erreur de chargement</p></div>`
+  }
+}
+
+async function toggleFait(id, currentFait) {
+  try {
+    await http.patch ? 
+      axios.patch(`${API.planningPreventif}/${id}/fait`) :
+      axios({ method:'PATCH', url:`${API.planningPreventif}/${id}/fait` })
+    loadPreventifTable()
+    showToast(currentFait ? 'Marqué Non fait' : 'Marqué Fait ✓', 'success')
+  } catch(e) { showToast('Erreur', 'error') }
+}
+
+async function openPreventifModal(id = null) {
+  let entry = null
+  if (id) {
+    try { 
+      const res = await http.get(`${API.planningPreventif}?annee=2026`)
+      entry = res.data?.find(r => r.id === id) || null
+    } catch(e) {}
+  }
+
+  const moisChecks = MOIS_FULL.map((m, i) => {
+    const k = `mois_${i+1}`
+    const checked = entry?.[k] === 1
+    return `<label style="display:flex;align-items:center;gap:4px;font-size:0.75rem;cursor:pointer;user-select:none">
+      <input type="checkbox" name="${k}" value="1" ${checked?'checked':''} style="accent-color:var(--accent-blue)">
+      <span>${m.slice(0,3)}</span>
+    </label>`
+  }).join('')
+
+  const modal = document.getElementById('modal-container')
+  modal.innerHTML = `
+    <div class="modal-overlay" onclick="closeModal(event)">
+      <div class="modal modal-lg">
+        <div class="modal-header">
+          <div class="modal-title"><i class="fas fa-file-contract" style="color:var(--accent-blue)"></i> ${id?'Modifier':'Nouvelle'} intervention préventive</div>
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="closeModalAll()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <form id="preventif-form" onsubmit="savePreventif(event,${id||'null'})">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Nature *</label>
+                <select name="nature" class="select">
+                  <option value="Contrat de maintenance" ${!entry||entry.nature==='Contrat de maintenance'?'selected':''}>Contrat de maintenance</option>
+                  <option value="Bon de commande" ${entry?.nature==='Bon de commande'?'selected':''}>Bon de commande</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Fréquence *</label>
+                <select name="frequence" class="select" onchange="autoSelectMois(this)">
+                  <option value="Annuelle"      ${!entry||entry.frequence==='Annuelle'?'selected':''}>Annuelle</option>
+                  <option value="Semestrielle"  ${entry?.frequence==='Semestrielle'?'selected':''}>Semestrielle</option>
+                  <option value="Trimestrielle" ${entry?.frequence==='Trimestrielle'?'selected':''}>Trimestrielle</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Client *</label>
+              <input type="text" name="client" class="input" required placeholder="Nom du client" value="${escHtml(entry?.client||'')}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Description de l'intervention *</label>
+              <textarea name="description" class="textarea" rows="2" required placeholder="Ex: Entretien du poste de transformation et des tableaux électriques">${escHtml(entry?.description||'')}</textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="margin-bottom:0.5rem">Mois planifiés <span style="font-size:0.7rem;color:var(--text-muted)">(cocher les mois d'intervention)</span></label>
+              <div id="mois-grid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px 12px;padding:10px 14px;background:var(--bg-secondary);border-radius:8px;border:1px solid var(--border)">
+                ${moisChecks}
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Statut</label>
+                <select name="fait" class="select">
+                  <option value="0" ${!entry?.fait?'selected':''}>✗ Non fait</option>
+                  <option value="1" ${entry?.fait?'selected':''}>✓ Fait</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Notes</label>
+                <input type="text" name="notes" class="input" placeholder="Remarques..." value="${escHtml(entry?.notes||'')}">
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="closeModalAll()">Annuler</button>
+          <button class="btn btn-primary" onclick="document.getElementById('preventif-form').dispatchEvent(new Event('submit',{cancelable:true}))">
+            <i class="fas fa-save"></i> ${id?'Enregistrer':'Créer'}
+          </button>
+        </div>
+      </div>
+    </div>
+  `
+}
+
+function autoSelectMois(sel) {
+  const freq = sel.value
+  const form = sel.closest('form')
+  // Décocher tous
+  for (let i=1;i<=12;i++) {
+    const cb = form.querySelector(`[name="mois_${i}"]`)
+    if (cb) cb.checked = false
+  }
+  // Cocher selon fréquence
+  if (freq === 'Annuelle')      { [6].forEach(m => { const cb = form.querySelector(`[name="mois_${m}"]`); if(cb) cb.checked=true }) }
+  if (freq === 'Semestrielle')  { [6,12].forEach(m => { const cb = form.querySelector(`[name="mois_${m}"]`); if(cb) cb.checked=true }) }
+  if (freq === 'Trimestrielle') { [3,6,9,12].forEach(m => { const cb = form.querySelector(`[name="mois_${m}"]`); if(cb) cb.checked=true }) }
+}
+
+async function savePreventif(e, id) {
+  e.preventDefault()
+  const fd = new FormData(e.target)
+  const data = {
+    nature:      fd.get('nature'),
+    description: fd.get('description'),
+    client:      fd.get('client'),
+    frequence:   fd.get('frequence'),
+    fait:        parseInt(fd.get('fait')) || 0,
+    notes:       fd.get('notes') || null,
+    annee:       2026,
+  }
+  for (let i=1;i<=12;i++) data[`mois_${i}`] = fd.get(`mois_${i}`) === '1' ? 1 : 0
+
+  try {
+    if (id) { await axios.put(`${API.planningPreventif}/${id}`, data); showToast('Modifié ✓', 'success') }
+    else    { await axios.post(API.planningPreventif, data);           showToast('Créé ✓', 'success') }
+    closeModalAll()
+    loadPreventifTable()
+  } catch(err) { showToast(err.response?.data?.error || 'Erreur', 'error') }
+}
+
+function confirmDeletePreventif(id, client) {
+  const modal = document.getElementById('modal-container')
+  modal.innerHTML = `
+    <div class="modal-overlay" onclick="closeModal(event)">
+      <div class="modal" style="max-width:440px">
+        <div class="modal-header">
+          <div class="modal-title"><i class="fas fa-exclamation-triangle" style="color:var(--accent-red)"></i> Supprimer l'entrée</div>
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="closeModalAll()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body"><p style="color:var(--text-secondary)">Supprimer le planning préventif de <strong>"${escHtml(client)}"</strong> ?</p></div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="closeModalAll()">Annuler</button>
+          <button class="btn btn-confirm-delete" onclick="deletePreventif(${id})"><i class="fas fa-trash"></i> Supprimer</button>
+        </div>
+      </div>
+    </div>
+  `
+}
+
+async function deletePreventif(id) {
+  try {
+    await axios.delete(`${API.planningPreventif}/${id}`)
+    showToast('Supprimé', 'success')
+    closeModalAll()
+    loadPreventifTable()
+  } catch(e) { showToast('Erreur', 'error') }
+}
+
+
 
 async function renderCalendar() {
   const { currentYear: year, currentMonth: month } = state.planning

@@ -921,3 +921,31 @@ tbody td {
   color: var(--accent-blue);
   font-family: monospace;
 }
+
+/* ============================================================
+   Planning Préventif Contractuel — Gantt / Stats
+   ============================================================ */
+.stat-mini {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  min-width: 72px;
+  color: var(--text-primary);
+}
+.stat-mini-val {
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.stat-mini-lbl {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+  white-space: nowrap;
+}
