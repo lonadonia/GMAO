@@ -44,19 +44,22 @@ app.get('/', async (c) => {
     SELECT
       COUNT(*) as total_interventions,
       SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) as resolved_count,
-      SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress_count,
+      SUM(CASE WHEN status IN ('in_progress','pending') THEN 1 ELSE 0 END) as in_progress_count,
       SUM(CASE WHEN status = 'planned' THEN 1 ELSE 0 END) as planned_count,
       SUM(CASE WHEN type = 'preventive' THEN 1 ELSE 0 END) as preventive_count,
       SUM(CASE WHEN type = 'corrective' THEN 1 ELSE 0 END) as corrective_count,
       SUM(CASE WHEN downtime = 1 THEN 1 ELSE 0 END) as downtime_count,
       SUM(CASE WHEN priority = 'critical' THEN 1 ELSE 0 END) as critical_count,
       SUM(CASE WHEN priority = 'high' THEN 1 ELSE 0 END) as high_count,
-      ROUND(AVG(CASE WHEN status = 'resolved' AND duration_hours > 0 THEN duration_hours END), 2) as avg_repair_time,
-      ROUND(SUM(CASE WHEN status = 'resolved' THEN duration_hours ELSE 0 END), 2) as total_repair_hours
+      ROUND(AVG(CASE WHEN status = 'resolved' AND duration_real > 0 THEN duration_real
+                     WHEN status = 'resolved' AND duration_hours > 0 THEN duration_hours END), 2) as avg_repair_time,
+      ROUND(SUM(CASE WHEN status = 'resolved' THEN COALESCE(duration_real, duration_hours, 0) ELSE 0 END), 2) as total_repair_hours,
+      ROUND(AVG(CASE WHEN quality_score > 0 THEN quality_score END), 1) as avg_quality,
+      SUM(CASE WHEN recurring = 1 THEN 1 ELSE 0 END) as recurring_count
     FROM interventions ${where}
   `).bind(...params).first<any>()
 
-  // MTTR : Temps moyen de réparation (en heures)
+  // MTTR : Temps moyen de réparation (en heures) — préférer duration_real
   const mttr = stats?.avg_repair_time || 0
 
   // Taux de résolution
@@ -182,6 +185,33 @@ app.get('/', async (c) => {
     ORDER BY count DESC
   `).bind(...params).all()
 
+  // Top clients
+  const byClient = await c.env.DB.prepare(`
+    SELECT client, COUNT(*) as total,
+      SUM(CASE WHEN status='resolved' THEN 1 ELSE 0 END) as resolved,
+      ROUND(AVG(CASE WHEN quality_score > 0 THEN quality_score END), 1) as avg_quality
+    FROM interventions
+    WHERE client IS NOT NULL ${conditions.length ? 'AND ' + conditions.join(' AND ') : ''}
+    GROUP BY client ORDER BY total DESC LIMIT 10
+  `).bind(...params).all()
+
+  // Top équipements en panne
+  const byEquipment = await c.env.DB.prepare(`
+    SELECT equipment, COUNT(*) as total,
+      SUM(CASE WHEN downtime=1 THEN 1 ELSE 0 END) as with_downtime
+    FROM interventions
+    WHERE equipment IS NOT NULL ${conditions.length ? 'AND ' + conditions.join(' AND ') : ''}
+    GROUP BY equipment ORDER BY total DESC LIMIT 8
+  `).bind(...params).all()
+
+  // Répartition récurrentes vs non récurrentes
+  const recurringStats = await c.env.DB.prepare(`
+    SELECT
+      SUM(CASE WHEN recurring=1 THEN 1 ELSE 0 END) as recurring,
+      SUM(CASE WHEN recurring=0 OR recurring IS NULL THEN 1 ELSE 0 END) as non_recurring
+    FROM interventions ${where}
+  `).bind(...params).first<any>()
+
   return c.json({
     kpis: {
       total_interventions: stats?.total_interventions || 0,
@@ -200,6 +230,8 @@ app.get('/', async (c) => {
       preventive_pct: preventivePct,
       corrective_pct: correctivePct,
       total_repair_hours: stats?.total_repair_hours || 0,
+      avg_quality: stats?.avg_quality || 0,
+      recurring_count: stats?.recurring_count || 0,
     },
     charts: {
       by_city: byCity.results,
@@ -207,6 +239,9 @@ app.get('/', async (c) => {
       top_technicians: topTechnicians.results,
       by_priority: byPriority.results,
       by_status: byStatus.results,
+      by_client: byClient.results,
+      by_equipment: byEquipment.results,
+      recurring: recurringStats,
     }
   })
 })

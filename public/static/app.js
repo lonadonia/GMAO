@@ -152,18 +152,8 @@ function renderApp() {
            with your own <img>, <svg>, or HTML logo.
            Do not modify the outer wrappers.
            ============================================= -->
-      <div class="sidebar-logo" id="logo-wrapper">
-        <!--
-          #logo-slot — logo zone
-          • Par défaut : SVG PPrime intégré (qualité maximale, transparent)
-          • Remplacé automatiquement si un logo est uploadé dans Paramètres
-        -->
-        <div id="logo-slot">
-          <img src="/static/logo-pprime-white.svg"
-               alt="PPrime"
-               class="sidebar-logo-img"
-               onerror="this.style.display='none'" />
-        </div>
+      <div class="sidebar-logo" id="logo-wrapper" style="display:none">
+        <div id="logo-slot"></div>
       </div>
       <nav class="sidebar-nav">
         <div class="nav-section-title">Principal</div>
@@ -338,6 +328,18 @@ function renderKPISection(data) {
         <div class="kpi-value">${kpis.critical_count + kpis.high_count}</div>
         <div class="kpi-trend">${kpis.critical_count} critiques · ${kpis.high_count} hautes</div>
       </div>
+      <div class="kpi-card" style="--kpi-color:var(--accent-green)">
+        <i class="fas fa-star kpi-icon"></i>
+        <div class="kpi-label"><i class="fas fa-award"></i> Note qualité moyenne</div>
+        <div class="kpi-value">${kpis.avg_quality || '–'}<span class="kpi-unit"> /10</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${(kpis.avg_quality||0)*10}%;background:var(--accent-green)"></div></div>
+      </div>
+      <div class="kpi-card" style="--kpi-color:var(--accent-yellow)">
+        <i class="fas fa-redo kpi-icon"></i>
+        <div class="kpi-label"><i class="fas fa-sync"></i> Pannes récurrentes</div>
+        <div class="kpi-value">${kpis.recurring_count}</div>
+        <div class="kpi-trend">sur ${kpis.total_interventions} interventions</div>
+      </div>
     </div>
 
     <!-- Charts -->
@@ -361,6 +363,14 @@ function renderKPISection(data) {
       <div class="chart-card">
         <div class="chart-title"><i class="fas fa-user-cog"></i> Performance techniciens</div>
         <canvas id="chart-technicians" height="180"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title"><i class="fas fa-building"></i> Top clients</div>
+        <canvas id="chart-clients" height="180"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title"><i class="fas fa-cogs"></i> Équipements en panne</div>
+        <canvas id="chart-equipment" height="180"></canvas>
       </div>
     </div>
 
@@ -497,6 +507,47 @@ function renderCharts(kpis, charts) {
         responsive: true,
         plugins: { legend: { position: 'top' } },
         scales: { x: { grid: { display: false } }, y: { grid: { color: gridColor }, beginAtZero: true } }
+      }
+    })
+  }
+
+  // Top clients bar
+  const clientEl = document.getElementById('chart-clients')
+  if (clientEl && charts.by_client?.length > 0) {
+    state.charts.clients = new Chart(clientEl, {
+      type: 'bar',
+      data: {
+        labels: charts.by_client.map(c => c.client || 'N/A'),
+        datasets: [
+          { label: 'Total', data: charts.by_client.map(c => c.total), backgroundColor: 'rgba(167,139,250,0.7)', borderRadius: 4 },
+          { label: 'Résolues', data: charts.by_client.map(c => c.resolved), backgroundColor: 'rgba(52,211,153,0.7)', borderRadius: 4 },
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'top' } },
+        scales: { x: { grid: { display: false } }, y: { grid: { color: gridColor }, beginAtZero: true, ticks: { stepSize: 1 } } }
+      }
+    })
+  }
+
+  // Top équipements bar
+  const equipEl = document.getElementById('chart-equipment')
+  if (equipEl && charts.by_equipment?.length > 0) {
+    state.charts.equipment = new Chart(equipEl, {
+      type: 'bar',
+      data: {
+        labels: charts.by_equipment.map(e => (e.equipment || 'N/A').slice(0,22)),
+        datasets: [
+          { label: 'Pannes', data: charts.by_equipment.map(e => e.total), backgroundColor: 'rgba(251,146,60,0.7)', borderRadius: 4 },
+          { label: 'Arrêts prod.', data: charts.by_equipment.map(e => e.with_downtime), backgroundColor: 'rgba(248,113,113,0.7)', borderRadius: 4 },
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        plugins: { legend: { position: 'top' } },
+        scales: { x: { grid: { color: gridColor }, beginAtZero: true }, y: { grid: { display: false } } }
       }
     })
   }
