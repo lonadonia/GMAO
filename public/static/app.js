@@ -1242,8 +1242,17 @@ async function loadTechnicians() {
     }
     grid.innerHTML = `
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem">
-        ${data.data.map(t => `
+        ${data.data.map(t => {
+          const total     = t.total_interventions || 0
+          const assistant = t.assistant_interventions || 0
+          const resolved  = t.resolved_count || 0
+          const rate      = t.resolution_rate || 0
+          const quality   = t.avg_quality || 0
+          const duration  = t.avg_duration || 0
+          const rateColor = rate >= 75 ? 'var(--accent-green)' : rate >= 50 ? 'var(--accent-yellow)' : 'var(--accent-red)'
+          return `
           <div class="tech-card">
+            <!-- Header -->
             <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem">
               <div class="tech-avatar">${initials(t.name)}</div>
               <div style="flex:1">
@@ -1256,29 +1265,77 @@ async function loadTechnicians() {
                 <button class="btn btn-danger btn-sm btn-icon" onclick="confirmDeleteTechnician(${t.id},'${escHtml(t.name)}')" title="Supprimer"><i class="fas fa-trash"></i></button>
               </div>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
-              <div style="background:var(--bg-primary);border-radius:8px;padding:0.65rem;text-align:center">
-                <div style="font-size:1.3rem;font-weight:700;color:var(--accent-blue)">${t.total_interventions||0}</div>
-                <div style="font-size:0.68rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.06em">Interventions</div>
+
+            <!-- Stats grid 2x2 -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:0.75rem">
+
+              <!-- Interventions responsable -->
+              <div style="background:var(--bg-primary);border-radius:8px;padding:0.65rem;text-align:center;
+                          border:1px solid rgba(79,158,248,0.15)">
+                <div style="font-size:1.5rem;font-weight:800;color:var(--accent-blue);line-height:1">${total}</div>
+                <div style="font-size:0.6rem;color:var(--text-secondary);text-transform:uppercase;
+                            letter-spacing:.5px;margin-top:3px">Interventions</div>
+                ${assistant > 0 ? `<div style="font-size:0.6rem;color:rgba(79,158,248,0.5);margin-top:2px">
+                  +${assistant} assistant</div>` : ''}
               </div>
-              <div style="background:var(--bg-primary);border-radius:8px;padding:0.65rem;text-align:center">
-                <div style="font-size:1.3rem;font-weight:700;color:var(--accent-green)">${t.resolution_rate||0}%</div>
-                <div style="font-size:0.68rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.06em">Résolution</div>
+
+              <!-- Taux de résolution -->
+              <div style="background:var(--bg-primary);border-radius:8px;padding:0.65rem;text-align:center;
+                          border:1px solid rgba(52,211,153,0.15)">
+                <div style="font-size:1.5rem;font-weight:800;color:${rateColor};line-height:1">${rate}%</div>
+                <div style="font-size:0.6rem;color:var(--text-secondary);text-transform:uppercase;
+                            letter-spacing:.5px;margin-top:3px">Résolution</div>
+                <div style="font-size:0.6rem;color:rgba(255,255,255,0.3);margin-top:2px">
+                  ${resolved}/${total} résolues</div>
+              </div>
+
+              <!-- Note qualité -->
+              <div style="background:var(--bg-primary);border-radius:8px;padding:0.65rem;text-align:center;
+                          border:1px solid rgba(251,191,36,0.15)">
+                <div style="font-size:1.5rem;font-weight:800;color:var(--accent-yellow);line-height:1">
+                  ${quality > 0 ? quality : '—'}</div>
+                <div style="font-size:0.6rem;color:var(--text-secondary);text-transform:uppercase;
+                            letter-spacing:.5px;margin-top:3px">Qualité /10</div>
+                ${quality > 0 ? `
+                <div style="margin-top:4px;height:3px;border-radius:2px;background:rgba(255,255,255,0.08)">
+                  <div style="height:100%;width:${quality*10}%;background:var(--accent-yellow);border-radius:2px"></div>
+                </div>` : ''}
+              </div>
+
+              <!-- Durée moy -->
+              <div style="background:var(--bg-primary);border-radius:8px;padding:0.65rem;text-align:center;
+                          border:1px solid rgba(167,139,250,0.15)">
+                <div style="font-size:1.5rem;font-weight:800;color:var(--accent-purple);line-height:1">
+                  ${duration > 0 ? duration : '—'}</div>
+                <div style="font-size:0.6rem;color:var(--text-secondary);text-transform:uppercase;
+                            letter-spacing:.5px;margin-top:3px">Durée moy (h)</div>
               </div>
             </div>
-            ${t.total_interventions > 0 ? `
-            <div style="margin-top:0.75rem">
-              <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--text-secondary);margin-bottom:3px">
-                <span>Taux de résolution</span><span>${t.resolution_rate||0}%</span>
+
+            <!-- Barre résolution -->
+            ${total > 0 ? `
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:0.68rem;
+                          color:var(--text-secondary);margin-bottom:3px">
+                <span><i class="fas fa-chart-line"></i> Taux de résolution</span>
+                <span style="color:${rateColor};font-weight:600">${rate}%</span>
               </div>
               <div class="progress-bar">
-                <div class="progress-fill" style="width:${t.resolution_rate||0}%;background:${(t.resolution_rate||0)>75?'var(--accent-green)':(t.resolution_rate||0)>50?'var(--accent-yellow)':'var(--accent-red)'}"></div>
+                <div class="progress-fill" style="width:${rate}%;background:${rateColor}"></div>
               </div>
-            </div>` : ''}
-            ${t.email ? `<div style="margin-top:0.6rem;font-size:0.75rem;color:var(--text-secondary)"><i class="fas fa-envelope" style="width:14px"></i> ${escHtml(t.email)}</div>` : ''}
-            ${t.phone ? `<div style="font-size:0.75rem;color:var(--text-secondary)"><i class="fas fa-phone" style="width:14px"></i> ${escHtml(t.phone)}</div>` : ''}
-          </div>
-        `).join('')}
+            </div>` : `
+            <div style="text-align:center;padding:0.5rem;font-size:0.72rem;
+                        color:rgba(255,255,255,0.2);font-style:italic">
+              Aucune intervention assignée
+            </div>`}
+
+            <!-- Contact -->
+            ${t.email ? `<div style="margin-top:0.5rem;font-size:0.72rem;color:var(--text-secondary)">
+              <i class="fas fa-envelope" style="width:14px;opacity:.6"></i> ${escHtml(t.email)}</div>` : ''}
+            ${t.phone ? `<div style="font-size:0.72rem;color:var(--text-secondary)">
+              <i class="fas fa-phone" style="width:14px;opacity:.6"></i> ${escHtml(t.phone)}</div>` : ''}
+          </div>`
+        }).join('')}
       </div>
     `
   } catch(e) {

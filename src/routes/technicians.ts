@@ -8,17 +8,25 @@ app.get('/', async (c) => {
   const rows = await c.env.DB.prepare(`
     SELECT 
       t.*,
-      COUNT(i.id) as total_interventions,
+      -- Interventions comme responsable
+      COUNT(DISTINCT i.id) as total_interventions,
       SUM(CASE WHEN i.status = 'resolved' THEN 1 ELSE 0 END) as resolved_count,
-      ROUND(AVG(i.duration_hours), 2) as avg_duration,
+      -- Interventions comme assistant
+      COUNT(DISTINCT ia.id) as assistant_interventions,
+      -- Durée réelle moyenne (préférer duration_real)
+      ROUND(AVG(COALESCE(i.duration_real, i.duration_hours)), 2) as avg_duration,
+      -- Taux de résolution
       ROUND(
-        CASE WHEN COUNT(i.id) > 0 
-          THEN (SUM(CASE WHEN i.status = 'resolved' THEN 1 ELSE 0 END) * 100.0 / COUNT(i.id))
+        CASE WHEN COUNT(DISTINCT i.id) > 0 
+          THEN (SUM(CASE WHEN i.status = 'resolved' THEN 1 ELSE 0 END) * 100.0 / COUNT(DISTINCT i.id))
           ELSE 0 
         END, 1
-      ) as resolution_rate
+      ) as resolution_rate,
+      -- Note qualité moyenne
+      ROUND(AVG(CASE WHEN i.quality_score > 0 THEN i.quality_score END), 1) as avg_quality
     FROM technicians t
-    LEFT JOIN interventions i ON t.id = i.technician_id
+    LEFT JOIN interventions i  ON t.id = i.technician_id
+    LEFT JOIN interventions ia ON t.name = ia.technician_assistant
     GROUP BY t.id
     ORDER BY t.name ASC
   `).all()
