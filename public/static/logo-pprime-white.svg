@@ -1,48 +1,61 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 68" width="260" height="68" role="img" aria-label="PPrime – Power Your Future">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 90" width="320" height="90"
+     role="img" aria-label="PPrime – Power Your Future">
   <!--
-    PPrime — logo fidèle à l'identité officielle
-    ─────────────────────────────────────────────
-    ICON (barres + apostrophe) aligné par le bas à y=62
-    Bar1 : x=4  w=14  h=58  rx=5   top=4
-    Bar2 : x=25 w=11  h=36  rx=4   top=26  (ratio h=0.62)
-    Apos : x=40 h=14  w=3.5 rx=1.75 rot=-22° centred (41.75,13)
-    Gap bar1→bar2 = 7px
-    Gap bar2→apos = 4px (bord gauche apos = 40)
+    Mesures pixel-perfect (image 1024×440, contenu 689×271)
+    Scale: 88/271 = 0.3247
+    ─────────────────────────────────────────────────────
+    Barre 1  : px w=61 h=194  → SVG w=20  h=63   x=5   top=y5
+    Barre 2  : px w=49 h=125  → SVG w=16  h=41   x=27  top=y4
+    Apostrophe: px w=38 h=64  inclinée -27° top-right→bottom-left
+                position: juste au-dessus & à droite de barre2
+    Bottom alignment: barre1 bottom >> barre2 bottom
+      barre1 bot = 5+63 = 68
+      barre2 bot = 4+41 = 45  (23px plus haut que barre1)
+      apostrophe top = 0 (tout en haut)
   -->
 
-  <!-- BAR 1 — grande barre gauche, arrondie -->
-  <rect x="4" y="4" width="14" height="58" rx="5" ry="5" fill="white"/>
+  <!-- ===== ICÔNE ===== -->
+  <!-- BAR 1 — Grande barre gauche, coins arrondis -->
+  <rect x="5" y="5" width="20" height="63" rx="6" ry="6" fill="white"/>
 
-  <!-- BAR 2 — petite barre droite (alignée par le bas) -->
-  <rect x="25" y="26" width="11" height="36" rx="4" ry="4" fill="white"/>
+  <!-- BAR 2 — Barre centrale, plus courte, coins arrondis -->
+  <rect x="29" y="4" width="16" height="41" rx="5" ry="5" fill="white"/>
 
-  <!-- APOSTROPHE — fine tige diagonale juste en haut à droite de Bar2 -->
-  <rect x="39.5" y="6" width="3.5" height="14" rx="1.75" ry="1.75"
-        fill="white"
-        transform="rotate(-22, 41.25, 13)"/>
+  <!--
+    APOSTROPHE — barre inclinée -27°, top-right vers bottom-left
+    Dans l'image: large (~28px scaled→9px), hauteur 64px scaled→21px
+    Position: à droite de bar2, tout en haut du logo
+    Tracée comme un parallelogramme incliné via polygon
+  -->
+  <polygon
+    points="57,0  66,0  52,21  43,21"
+    fill="white"
+  />
 
-  <!-- "PPrime" — gras, blanc, centré verticalement sur la hauteur de l'icône -->
+  <!-- ===== TEXTE ===== -->
+  <!-- "PPrime" — centré verticalement sur l'icône, italic bold -->
   <text
-    x="52"
-    y="33"
+    x="78"
+    y="44"
     font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
-    font-size="25"
+    font-size="48"
     font-weight="800"
+    font-style="italic"
     fill="white"
     dominant-baseline="middle"
-    letter-spacing="0.3"
+    letter-spacing="-0.5"
   >PPrime</text>
 
-  <!-- Tagline -->
+  <!-- Tagline "POWER YOUR FUTURE" — alignée sous "PPrime" -->
   <text
-    x="53"
-    y="52"
+    x="80"
+    y="72"
     font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
-    font-size="6.5"
-    font-weight="400"
+    font-size="11"
+    font-weight="700"
     fill="white"
-    opacity="0.70"
-    letter-spacing="2.5"
+    opacity="0.90"
+    letter-spacing="3.5"
   >POWER YOUR FUTURE</text>
 
 </svg>
