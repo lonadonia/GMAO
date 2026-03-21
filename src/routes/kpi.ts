@@ -15,14 +15,16 @@ function buildWhereAnd(conditions: string[], extraCondition: string): string {
 
 // GET /api/kpi — KPIs calculés dynamiquement
 app.get('/', async (c) => {
-  const { date_from, date_to, city, technician_id } = c.req.query()
+  const { date_from, date_to, city, technician_id, technician_name, client } = c.req.query()
 
   const conditions: string[] = []
   const params: any[] = []
-  if (date_from) { conditions.push("created_at >= ?"); params.push(date_from) }
-  if (date_to) { conditions.push("created_at <= ?"); params.push(date_to) }
-  if (city) { conditions.push("city LIKE ?"); params.push(`%${city}%`) }
-  if (technician_id) { conditions.push("technician_id = ?"); params.push(technician_id) }
+  if (date_from)       { conditions.push("start_date >= ?");              params.push(date_from) }
+  if (date_to)         { conditions.push("start_date <= ?");              params.push(date_to + ' 23:59:59') }
+  if (city)            { conditions.push("city LIKE ?");                  params.push(`%${city}%`) }
+  if (technician_id)   { conditions.push("technician_id = ?");            params.push(technician_id) }
+  if (technician_name) { conditions.push("technician_name LIKE ?");       params.push(`%${technician_name}%`) }
+  if (client)          { conditions.push("client LIKE ?");                params.push(`%${client}%`) }
 
   const where = buildWhere(conditions)
   const whereCorrectif = buildWhereAnd(conditions, "type = 'corrective'")

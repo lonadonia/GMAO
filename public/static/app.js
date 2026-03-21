@@ -220,23 +220,97 @@ function navigate(page) {
 // DASHBOARD
 // ============================================================
 async function renderDashboard() {
+  // Pré-charger techniciens et clients pour les selects
+  if (!state.technicians.data.length) {
+    try { const d = await http.get(API.technicians); state.technicians.data = d.data || [] } catch(e) {}
+  }
+  if (!state.clients.data.length) {
+    try { const d = await http.get(API.clients); state.clients.data = d.data || [] } catch(e) {}
+  }
+
+  // Options techniciens
+  const techOptions = state.technicians.data
+    .map(t => `<option value="${escHtml(t.name)}">${escHtml(t.name)}</option>`)
+    .join('')
+
+  // Options clients
+  const clientOptions = state.clients.data
+    .map(c => `<option value="${escHtml(c.name)}">${escHtml(c.name)}</option>`)
+    .join('')
+
+  // Restaurer filtres sauvegardés
+  const f = state.kpi.filters
+
   const container = document.getElementById('page-container')
   container.innerHTML = `
-    <div class="page-header">
-      <div>
-        <h1 style="font-size:1.2rem;font-weight:700">Tableau de bord</h1>
-        <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px">
-          Vue d'ensemble — KPIs en temps réel
-        </p>
+    <div class="page-header" style="flex-direction:column;align-items:stretch;gap:0.75rem">
+
+      <!-- Ligne 1 : titre + bouton actualiser -->
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <h1 style="font-size:1.2rem;font-weight:700">Tableau de bord</h1>
+          <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px">
+            Vue d'ensemble — KPIs en temps réel
+          </p>
+        </div>
+        <div style="display:flex;gap:0.5rem;align-items:center">
+          <button class="btn btn-ghost btn-sm" onclick="resetKpiFilters()" title="Réinitialiser les filtres">
+            <i class="fas fa-times"></i> Réinitialiser
+          </button>
+          <button class="btn btn-primary btn-sm" onclick="reloadKPI()">
+            <i class="fas fa-sync-alt"></i> Actualiser
+          </button>
+        </div>
       </div>
-      <div style="display:flex;gap:0.5rem">
-        <input type="date" id="kpi-date-from" class="input input-sm" style="width:140px" placeholder="Date début" 
-               onchange="reloadKPI()">
-        <input type="date" id="kpi-date-to" class="input input-sm" style="width:140px" placeholder="Date fin"
-               onchange="reloadKPI()">
-        <button class="btn btn-ghost btn-sm" onclick="reloadKPI()">
-          <i class="fas fa-sync-alt"></i> Actualiser
-        </button>
+
+      <!-- Ligne 2 : filtres -->
+      <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center">
+
+        <!-- Date début -->
+        <div style="display:flex;align-items:center;gap:0.3rem">
+          <i class="fas fa-calendar-alt" style="color:var(--text-secondary);font-size:0.75rem"></i>
+          <input type="date" id="kpi-date-from" class="input input-sm" style="width:145px"
+                 value="${f.date_from||''}" onchange="reloadKPI()" title="Date début">
+        </div>
+
+        <span style="color:var(--text-secondary);font-size:0.8rem">→</span>
+
+        <!-- Date fin -->
+        <div style="display:flex;align-items:center;gap:0.3rem">
+          <input type="date" id="kpi-date-to" class="input input-sm" style="width:145px"
+                 value="${f.date_to||''}" onchange="reloadKPI()" title="Date fin">
+        </div>
+
+        <div style="width:1px;height:22px;background:var(--border-color);margin:0 0.25rem"></div>
+
+        <!-- Technicien -->
+        <div style="display:flex;align-items:center;gap:0.3rem">
+          <i class="fas fa-user-cog" style="color:var(--text-secondary);font-size:0.75rem"></i>
+          <select id="kpi-technician" class="select input-sm" style="width:150px" onchange="reloadKPI()">
+            <option value="">Tous techniciens</option>
+            ${techOptions}
+          </select>
+        </div>
+
+        <!-- Ville -->
+        <div style="display:flex;align-items:center;gap:0.3rem">
+          <i class="fas fa-map-marker-alt" style="color:var(--text-secondary);font-size:0.75rem"></i>
+          <input type="text" id="kpi-city" class="input input-sm" style="width:130px"
+                 placeholder="Ville..." value="${f.city||''}"
+                 oninput="debounceKpiFilter()" title="Filtrer par ville">
+        </div>
+
+        <!-- Client -->
+        <div style="display:flex;align-items:center;gap:0.3rem">
+          <i class="fas fa-building" style="color:var(--text-secondary);font-size:0.75rem"></i>
+          <select id="kpi-client" class="select input-sm" style="width:160px" onchange="reloadKPI()">
+            <option value="">Tous clients</option>
+            ${clientOptions}
+          </select>
+        </div>
+
+        <!-- Badge filtres actifs -->
+        <div id="kpi-active-badge"></div>
       </div>
     </div>
     <div class="page-content">
@@ -249,12 +323,48 @@ async function renderDashboard() {
 }
 
 async function reloadKPI() {
-  const dateFrom = document.getElementById('kpi-date-from')?.value
-  const dateTo = document.getElementById('kpi-date-to')?.value
+  const dateFrom   = document.getElementById('kpi-date-from')?.value
+  const dateTo     = document.getElementById('kpi-date-to')?.value
+  const technician = document.getElementById('kpi-technician')?.value
+  const city       = document.getElementById('kpi-city')?.value?.trim()
+  const client     = document.getElementById('kpi-client')?.value
+
   state.kpi.filters = {}
-  if (dateFrom) state.kpi.filters.date_from = dateFrom
-  if (dateTo) state.kpi.filters.date_to = dateTo
+  if (dateFrom)   state.kpi.filters.date_from        = dateFrom
+  if (dateTo)     state.kpi.filters.date_to          = dateTo
+  if (technician) state.kpi.filters.technician_name  = technician
+  if (city)       state.kpi.filters.city             = city
+  if (client)     state.kpi.filters.client           = client
+
+  // Badge filtres actifs
+  const activeCount = Object.keys(state.kpi.filters).length
+  const badge = document.getElementById('kpi-active-badge')
+  if (badge) {
+    badge.innerHTML = activeCount > 0
+      ? `<span style="background:var(--accent-blue);color:#fff;font-size:0.65rem;
+                      padding:2px 8px;border-radius:20px;font-weight:600">
+           ${activeCount} filtre${activeCount>1?'s':''} actif${activeCount>1?'s':''}
+         </span>`
+      : ''
+  }
+
   await loadKPI()
+}
+
+function resetKpiFilters() {
+  const ids = ['kpi-date-from','kpi-date-to','kpi-city']
+  ids.forEach(id => { const el = document.getElementById(id); if(el) el.value = '' })
+  const selects = ['kpi-technician','kpi-client']
+  selects.forEach(id => { const el = document.getElementById(id); if(el) el.value = '' })
+  state.kpi.filters = {}
+  loadKPI()
+}
+
+// debounce pour le champ texte ville
+let _kpiFilterTimer = null
+function debounceKpiFilter() {
+  clearTimeout(_kpiFilterTimer)
+  _kpiFilterTimer = setTimeout(() => reloadKPI(), 400)
 }
 
 async function loadKPI() {
