@@ -1575,25 +1575,33 @@ async function renderPlanning() {
       <!-- ===== ONGLET : CALENDRIER ===== -->
       <div id="tab-calendar" style="display:none">
         <!-- Calendar Navigation -->
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem">
           <div style="display:flex;gap:0.5rem;align-items:center">
             <button class="btn btn-ghost btn-sm" onclick="prevMonth()"><i class="fas fa-chevron-left"></i></button>
-            <span id="calendar-title" style="font-size:1rem;font-weight:700;min-width:160px;text-align:center"></span>
+            <span id="calendar-title" style="font-size:1rem;font-weight:700;min-width:170px;text-align:center"></span>
             <button class="btn btn-ghost btn-sm" onclick="nextMonth()"><i class="fas fa-chevron-right"></i></button>
-            <button class="btn btn-ghost btn-sm" onclick="goToday()">Aujourd'hui</button>
+            <button class="btn btn-ghost btn-sm" onclick="goToday()"><i class="fas fa-crosshairs"></i> Aujourd'hui</button>
           </div>
-          <div style="display:flex;gap:0.5rem;align-items:center;font-size:0.75rem;color:var(--text-secondary)">
-            <span class="calendar-event preventive" style="padding:3px 8px">Préventif</span>
-            <span class="calendar-event corrective" style="padding:3px 8px">Correctif planifié</span>
+          <!-- Légende étendue -->
+          <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
+            <span class="calendar-event preventive" style="padding:3px 8px;font-size:0.68rem">🔧 Préventif</span>
+            <span class="calendar-event corrective" style="padding:3px 8px;font-size:0.68rem">⚠️ Correctif</span>
+            <span class="calendar-event contrat" style="padding:3px 8px;font-size:0.68rem">📄 Contrat</span>
+            <span class="calendar-event bdc" style="padding:3px 8px;font-size:0.68rem">📋 Bon de commande</span>
           </div>
         </div>
 
+        <!-- Résumé du mois -->
+        <div id="calendar-month-summary" style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.75rem;min-height:28px;flex-wrap:wrap"></div>
+
+        <!-- Grille calendrier -->
         <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:1rem;margin-bottom:1.5rem">
           <div class="calendar-grid" id="calendar-grid">
             <div class="loading-overlay" style="grid-column:1/-1"><span class="loader"></span></div>
           </div>
         </div>
 
+        <!-- Plans de maintenance existants -->
         <div class="table-card">
           <div class="table-header">
             <div class="table-title"><i class="fas fa-list" style="color:var(--accent-green)"></i> Plans de maintenance préventive</div>
@@ -1938,25 +1946,62 @@ async function renderCalendar() {
   grid.innerHTML = `<div class="loading-overlay" style="grid-column:1/-1"><span class="loader"></span></div>`
 
   try {
-    const data = await http.get(`${API.planning}/calendar/${year}/${month}`)
+    // Charger en parallèle : plans maintenance + interventions planifiées + préventif contractuel du mois
+    const [calData, preventifData] = await Promise.all([
+      http.get(`${API.planning}/calendar/${year}/${month}`),
+      http.get(`${API.planningPreventif}/mois/${month}`).catch(() => ({ data: [] }))
+    ])
 
     // Build events map
     const events = {}
-    data.maintenance_plans?.forEach(p => {
+
+    // Plans de maintenance existants
+    calData.maintenance_plans?.forEach(p => {
       const day = parseInt(p.next_date?.split('T')[0]?.split('-')[2] || p.next_date?.split('-')[2])
+      if (!day || isNaN(day)) return
       if (!events[day]) events[day] = []
-      events[day].push({ ...p, kind: 'preventive' })
+      events[day].push({ ...p, kind: 'preventive', source: 'plan' })
     })
-    data.planned_interventions?.forEach(i => {
+
+    // Interventions correctives planifiées
+    calData.planned_interventions?.forEach(i => {
       const day = parseInt(i.scheduled_date?.split('T')[0]?.split('-')[2] || i.scheduled_date?.split('-')[2])
+      if (!day || isNaN(day)) return
       if (!events[day]) events[day] = []
-      events[day].push({ ...i, kind: 'corrective' })
+      events[day].push({ ...i, kind: 'corrective', source: 'intervention' })
     })
+
+    // Planning préventif contractuel — distribués sur les jours ouvrés du mois
+    // (on les place sur le 1er jour ouvré de chaque semaine du mois par groupe)
+    const contractItems = preventifData.data || []
+    if (contractItems.length > 0) {
+      // Trouver tous les lundis du mois
+      const mondays = []
+      for (let d = 1; d <= new Date(year, month, 0).getDate(); d++) {
+        const dow = new Date(year, month-1, d).getDay()
+        if (dow === 1) mondays.push(d) // Lundi
+      }
+      // Répartir les contrats sur les lundis disponibles
+      contractItems.forEach((item, idx) => {
+        const targetDay = mondays[idx % mondays.length] || 1
+        if (!events[targetDay]) events[targetDay] = []
+        events[targetDay].push({
+          ...item,
+          kind: item.nature === 'Bon de commande' ? 'bdc' : 'contrat',
+          source: 'preventif',
+          displayName: item.client,
+          tooltip: `[${item.nature}] ${item.description} — ${item.client}`
+        })
+      })
+    }
 
     const daysInMonth = new Date(year, month, 0).getDate()
     const firstDay = new Date(year, month - 1, 1).getDay()
     const startOffset = (firstDay === 0 ? 6 : firstDay - 1)
     const today = new Date()
+
+    // Compteurs pour le résumé
+    let totalPreventif = 0, totalCorrectif = 0, totalContrats = 0
 
     const dayHeaders = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']
     let html = dayHeaders.map(d => `<div class="calendar-day-header">${d}</div>`).join('')
@@ -1966,17 +2011,42 @@ async function renderCalendar() {
 
     for (let d = 1; d <= daysInMonth; d++) {
       const isToday = today.getFullYear() === year && today.getMonth() + 1 === month && today.getDate() === d
+      const isPast  = new Date(year, month-1, d) < new Date(today.getFullYear(), today.getMonth(), today.getDate())
       const dayEvents = events[d] || []
-      html += `<div class="calendar-day ${isToday ? 'today' : ''}">
+
+      dayEvents.forEach(e => {
+        if (e.source === 'preventif') totalContrats++
+        else if (e.kind === 'preventive') totalPreventif++
+        else totalCorrectif++
+      })
+
+      const MAX_VISIBLE = 2
+      const visibleEvents = dayEvents.slice(0, MAX_VISIBLE)
+      const hiddenCount = dayEvents.length - MAX_VISIBLE
+
+      html += `<div class="calendar-day ${isToday ? 'today' : ''} ${isPast && !isToday ? 'past-day' : ''}">
         <div class="calendar-day-number">${d}</div>
-        ${dayEvents.slice(0, 3).map(e => {
-          // Pour les plans de maintenance, afficher le client (equipment_name) plutôt que le titre long
-          const displayName = e.equipment_name || e.client || e.title
-          const shortName = escHtml(displayName.length > 18 ? displayName.slice(0,18)+'…' : displayName)
-          const tooltip = escHtml(e.title || e.description || displayName)
-          return `<div class="calendar-event ${e.kind}" title="${tooltip}">${shortName}</div>`
+        ${visibleEvents.map(e => {
+          const raw = e.displayName || e.equipment_name || e.client || e.title || '—'
+          const shortName = escHtml(raw.length > 16 ? raw.slice(0,16)+'…' : raw)
+          const tooltip   = escHtml(e.tooltip || e.title || e.description || raw)
+          const cls = e.source === 'preventif'
+            ? (e.kind === 'bdc' ? 'calendar-event bdc' : 'calendar-event contrat')
+            : `calendar-event ${e.kind}`
+          const icon = e.source === 'preventif'
+            ? (e.kind === 'bdc' ? '📋' : '📄')
+            : e.kind === 'preventive' ? '🔧' : '⚠️'
+          return `<div class="${cls}" title="${tooltip}">${icon} ${shortName}</div>`
         }).join('')}
-        ${dayEvents.length > 3 ? `<div style="font-size:0.6rem;color:var(--text-muted)">+${dayEvents.length-3} autres</div>` : ''}
+        ${hiddenCount > 0 ? `
+          <div class="cal-more" onclick="showDayDetail(${d},${month},${year})">
+            +${hiddenCount} autre${hiddenCount>1?'s':''}
+          </div>` : ''}
+        ${dayEvents.length > 0 ? `<div class="cal-dot-row">${dayEvents.map(e => {
+          const c = e.source==='preventif' ? (e.kind==='bdc'?'var(--accent-purple)':'var(--accent-blue)')
+                  : e.kind==='preventive' ? 'var(--accent-green)' : 'var(--accent-yellow)'
+          return `<span style="width:5px;height:5px;border-radius:50%;background:${c};display:inline-block"></span>`
+        }).join('')}</div>` : ''}
       </div>`
     }
 
@@ -1986,9 +2056,76 @@ async function renderCalendar() {
     for (let i = 0; i < remaining; i++) html += `<div class="calendar-day other-month"></div>`
 
     grid.innerHTML = html
+
+    // Mettre à jour le résumé du mois
+    const summaryEl = document.getElementById('calendar-month-summary')
+    if (summaryEl) {
+      const total = totalPreventif + totalCorrectif + totalContrats
+      summaryEl.innerHTML = total === 0
+        ? `<span style="color:var(--text-muted);font-size:0.75rem">Aucune intervention ce mois</span>`
+        : `
+          ${totalPreventif > 0 ? `<span class="cal-badge cal-badge-prev">🔧 ${totalPreventif} Préventif</span>` : ''}
+          ${totalCorrectif > 0 ? `<span class="cal-badge cal-badge-corr">⚠️ ${totalCorrectif} Correctif</span>` : ''}
+          ${totalContrats  > 0 ? `<span class="cal-badge cal-badge-cont">📄 ${totalContrats} Contrat/BDC</span>` : ''}
+        `
+    }
+
   } catch(e) {
+    console.error(e)
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-calendar-times"></i><p>Erreur de chargement</p></div>`
   }
+}
+
+// Afficher le détail d'un jour (popup)
+function showDayDetail(day, month, year) {
+  const monthNames = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']
+  // Récupérer tous les events du jour depuis le DOM ou refaire un fetch
+  // Simple: recharger en filtrant
+  const modal = document.getElementById('modal-container')
+  modal.innerHTML = `
+    <div class="modal-overlay" onclick="closeModal(event)">
+      <div class="modal" style="max-width:500px">
+        <div class="modal-header">
+          <div class="modal-title"><i class="fas fa-calendar-day" style="color:var(--accent-blue)"></i> ${day} ${monthNames[month-1]} ${year}</div>
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="closeModalAll()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" id="day-detail-body">
+          <div class="loading-overlay"><span class="loader"></span></div>
+        </div>
+      </div>
+    </div>
+  `
+  // Charger les données du mois et filtrer le jour
+  Promise.all([
+    http.get(`${API.planning}/calendar/${year}/${month}`),
+    http.get(`${API.planningPreventif}/mois/${month}`).catch(() => ({ data: [] }))
+  ]).then(([cal, prev]) => {
+    const items = []
+    cal.maintenance_plans?.forEach(p => {
+      const d = parseInt(p.next_date?.split('T')[0]?.split('-')[2] || 0)
+      if (d === day) items.push({ label: p.title || p.equipment_name, sub: `Préventif — ${p.frequency||''}`, color: 'var(--accent-green)', icon: '🔧' })
+    })
+    cal.planned_interventions?.forEach(i => {
+      const d = parseInt(i.scheduled_date?.split('T')[0]?.split('-')[2] || 0)
+      if (d === day) items.push({ label: i.title || i.client, sub: `Correctif planifié — ${i.city||''}`, color: 'var(--accent-yellow)', icon: '⚠️' })
+    })
+    // Pour le préventif on ne filtre pas par jour exact (distribué)
+    const body = document.getElementById('day-detail-body')
+    if (!body) return
+    if (!items.length) {
+      body.innerHTML = `<p style="color:var(--text-secondary);text-align:center;padding:1rem">Aucune intervention enregistrée ce jour</p>`
+      return
+    }
+    body.innerHTML = items.map(it => `
+      <div style="display:flex;gap:0.75rem;align-items:flex-start;padding:0.6rem 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:1.2rem">${it.icon}</span>
+        <div>
+          <div style="font-weight:600;font-size:0.85rem;color:${it.color}">${escHtml(it.label||'—')}</div>
+          <div style="font-size:0.72rem;color:var(--text-secondary)">${escHtml(it.sub||'')}</div>
+        </div>
+      </div>
+    `).join('')
+  })
 }
 
 async function loadPlansList() {

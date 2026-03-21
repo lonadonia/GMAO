@@ -949,3 +949,92 @@ tbody td {
   margin-top: 2px;
   white-space: nowrap;
 }
+
+/* ============================================================
+   Calendrier amélioré — événements contractuels + dots
+   ============================================================ */
+
+/* Jour passé légèrement estompé */
+.calendar-day.past-day {
+  opacity: 0.55;
+}
+
+/* Événement — Contrat de maintenance */
+.calendar-event.contrat {
+  background: rgba(79, 158, 248, 0.18);
+  color: var(--accent-blue);
+  border-left: 2px solid var(--accent-blue);
+  font-size: 0.62rem;
+  padding: 2px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+/* Événement — Bon de commande */
+.calendar-event.bdc {
+  background: rgba(167, 139, 250, 0.18);
+  color: var(--accent-purple);
+  border-left: 2px solid var(--accent-purple);
+  font-size: 0.62rem;
+  padding: 2px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+/* Indicateur "plus d'événements" */
+.cal-more {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 1px 3px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.05);
+  text-align: center;
+  margin-top: 1px;
+}
+.cal-more:hover {
+  background: rgba(255,255,255,0.12);
+  color: var(--text-primary);
+}
+
+/* Rangée de points indicateurs */
+.cal-dot-row {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+  margin-top: 3px;
+  padding: 0 1px;
+}
+
+/* Badges résumé mensuel */
+.cal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border: 1px solid;
+}
+.cal-badge-prev {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--accent-green);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+.cal-badge-corr {
+  background: rgba(251, 191, 36, 0.1);
+  color: var(--accent-yellow);
+  border-color: rgba(251, 191, 36, 0.3);
+}
+.cal-badge-cont {
+  background: rgba(79, 158, 248, 0.1);
+  color: var(--accent-blue);
+  border-color: rgba(79, 158, 248, 0.3);
+}
