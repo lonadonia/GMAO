@@ -658,6 +658,23 @@ function renderKPISection(data) {
       </div>
     </div>
 
+    <!-- Map: Interventions par ville au Maroc -->
+    <div style="margin-top:1.5rem;background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <div style="font-weight:700;font-size:0.88rem;color:var(--text-primary);display:flex;align-items:center;gap:8px">
+          <i class="fas fa-map-marked-alt" style="color:var(--accent-blue)"></i>
+          Interventions par ville — Maroc
+        </div>
+        <span id="map-city-count" style="font-size:0.72rem;color:var(--text-secondary)"></span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 320px;min-height:360px">
+        <!-- Leaflet map -->
+        <div id="city-map" style="height:360px;z-index:0"></div>
+        <!-- City ranking list -->
+        <div style="border-left:1px solid var(--border);overflow-y:auto;max-height:360px" id="city-ranking-list"></div>
+      </div>
+    </div>
+
     <!-- Recent interventions in progress -->
     <div class="table-card">
       <div class="table-header">
@@ -668,10 +685,11 @@ function renderKPISection(data) {
     </div>
   `
 
-  // Render charts after DOM is ready
+  // Render charts + map after DOM is ready
   setTimeout(() => {
     renderCharts(kpis, charts)
     loadRecentInterventions()
+    renderCityMap(charts.by_city || [])
   }, 100)
 }
 
@@ -835,6 +853,198 @@ function renderCharts(kpis, charts) {
       }
     })
   }
+}
+
+// ============================================================
+// CITY MAP — Leaflet.js — Interventions par ville au Maroc
+// ============================================================
+
+// Coordonnées des principales villes marocaines
+const MOROCCO_CITIES_GEO = {
+  'agadir':          [30.4278, -9.5981],
+  'casablanca':      [33.5731, -7.5898],
+  'rabat':           [34.0209, -6.8416],
+  'fès':             [34.0181,  -5.0078],
+  'fes':             [34.0181,  -5.0078],
+  'marrakech':       [31.6295, -7.9811],
+  'tanger':          [35.7595, -5.8340],
+  'meknes':          [33.8935, -5.5473],
+  'oujda':           [34.6814, -1.9086],
+  'kénitra':         [34.2610, -6.5802],
+  'kenitra':         [34.2610, -6.5802],
+  'tétouan':         [35.5785, -5.3684],
+  'tetouan':         [35.5785, -5.3684],
+  'safi':            [32.2994, -9.2372],
+  'el jadida':       [33.2316, -8.5007],
+  'beni mellal':     [32.3372, -6.3498],
+  'nador':           [35.1740, -2.9287],
+  'settat':          [33.0011, -7.6167],
+  'berrechid':       [33.2655, -7.5893],
+  'khouribga':       [32.8811, -6.9063],
+  'ouarzazate':      [30.9335, -6.9370],
+  'laayoune':        [27.1536, -13.2033],
+  'dakhla':          [23.6847, -15.9572],
+  'essaouira':       [31.5125, -9.7700],
+  'ifrane':          [33.5228, -5.1128],
+  'khemisset':       [33.8239, -6.0659],
+  'errachidia':      [31.9314, -4.4249],
+  'guelmim':         [28.9864, -10.0572],
+  'guélmim':         [28.9864, -10.0572],
+  'taroudant':       [30.4702, -8.8774],
+  'tiznit':          [29.6974, -9.7316],
+  'azrou':           [33.4341, -5.2228],
+  'taza':            [34.2100, -4.0100],
+  'al hoceima':      [35.2517, -3.9372],
+  'larache':         [35.1932, -6.1561],
+  'sidi kacem':      [34.2231, -5.7071],
+  'sidi slimane':    [34.2639, -5.9244],
+  'souk el arbaa':   [34.6987, -5.9893],
+  'berkane':         [34.9200, -2.3200],
+  'taourirt':        [34.4076, -2.8938],
+  'figuig':          [32.1095,  1.2293],
+  'midelt':          [32.6800, -4.7300],
+  'tinghir':         [31.5228, -5.5325],
+  'zagora':          [30.3322, -5.8380],
+  'chefchaouen':     [35.1688, -5.2686],
+  'moulay idriss':   [34.0567, -5.5264],
+  'ifni':            [29.3797, -10.1729],
+  'tan tan':         [28.4380, -11.1030],
+  'sidi ifni':       [29.3797, -10.1729],
+  'ait melloul':     [30.3350, -9.4980],
+  'inezgane':        [30.3558, -9.5394],
+  'dcheira':         [30.3811, -9.5372],
+  'temara':          [33.9283, -6.9166],
+  'sale':            [34.0531, -6.7985],
+  'salé':            [34.0531, -6.7985],
+}
+
+function getCityCoords(cityName) {
+  if (!cityName) return null
+  const key = cityName.trim().toLowerCase()
+    .replace(/é/g,'e').replace(/è/g,'e').replace(/ê/g,'e')
+    .replace(/â/g,'a').replace(/î/g,'i').replace(/ô/g,'o').replace(/û/g,'u')
+    .replace(/ç/g,'c')
+  // Exact match
+  if (MOROCCO_CITIES_GEO[key]) return MOROCCO_CITIES_GEO[key]
+  // Normalized key
+  const normKey = cityName.trim().toLowerCase()
+  if (MOROCCO_CITIES_GEO[normKey]) return MOROCCO_CITIES_GEO[normKey]
+  // Partial match
+  for (const [k, v] of Object.entries(MOROCCO_CITIES_GEO)) {
+    if (k.includes(key) || key.includes(k)) return v
+  }
+  return null
+}
+
+let _leafletMap = null
+
+function renderCityMap(cityData) {
+  const mapEl = document.getElementById('city-map')
+  const listEl = document.getElementById('city-ranking-list')
+  if (!mapEl || !listEl) return
+
+  // Filter cities with coordinates
+  const cities = cityData
+    .map(c => ({ ...c, coords: getCityCoords(c.city) }))
+    .filter(c => c.coords)
+
+  // Update header count
+  const countEl = document.getElementById('map-city-count')
+  if (countEl) countEl.textContent = `${cityData.length} ville${cityData.length>1?'s':''} · ${cityData.reduce((s,c)=>s+c.count,0)} interventions`
+
+  // Destroy previous map instance
+  if (_leafletMap) { _leafletMap.remove(); _leafletMap = null }
+
+  // Init Leaflet map centered on Morocco
+  _leafletMap = L.map('city-map', {
+    center: [31.5, -7.0],
+    zoom: 5,
+    zoomControl: true,
+    scrollWheelZoom: false,
+  })
+
+  // Dark tile layer (CartoDB dark)
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 19
+  }).addTo(_leafletMap)
+
+  if (!cities.length) {
+    listEl.innerHTML = `<div style="padding:2rem;text-align:center;color:var(--text-secondary);font-size:0.8rem;opacity:0.5">Aucune ville géolocalisable</div>`
+    return
+  }
+
+  const maxCount = Math.max(...cities.map(c => c.count))
+  const total = cityData.reduce((s, c) => s + c.count, 0)
+
+  // Color scale: few = blue, many = red
+  function markerColor(count) {
+    const ratio = count / maxCount
+    if (ratio >= 0.8) return '#ef4444'
+    if (ratio >= 0.5) return '#f97316'
+    if (ratio >= 0.3) return '#fbbf24'
+    return '#3b82f6'
+  }
+
+  // Add circle markers
+  cities.forEach((c, idx) => {
+    const color = markerColor(c.count)
+    const radius = 10 + (c.count / maxCount) * 22
+
+    const circle = L.circleMarker(c.coords, {
+      radius,
+      fillColor: color,
+      color: '#fff',
+      weight: 2,
+      opacity: 0.9,
+      fillOpacity: 0.82,
+    }).addTo(_leafletMap)
+
+    circle.bindPopup(`
+      <div style="font-family:sans-serif;min-width:140px">
+        <div style="font-weight:700;font-size:0.9rem;margin-bottom:4px">${c.city}</div>
+        <div style="color:#666;font-size:0.8rem">
+          <span style="font-size:1.1rem;font-weight:800;color:${color}">${c.count}</span>
+          intervention${c.count>1?'s':''}
+        </div>
+        <div style="color:#999;font-size:0.72rem;margin-top:2px">${((c.count/total)*100).toFixed(1)}% du total</div>
+      </div>
+    `, { className: 'map-popup' })
+
+    circle.on('mouseover', function() { this.openPopup() })
+  })
+
+  // Ranking list
+  const colors = ['#ef4444','#f97316','#fbbf24','#3b82f6','#8b5cf6','#10b981','#06b6d4','#ec4899']
+  listEl.innerHTML = cityData.map((c, idx) => {
+    const pct = total > 0 ? ((c.count / total) * 100).toFixed(1) : 0
+    const col = colors[idx % colors.length]
+    const hasCoords = !!getCityCoords(c.city)
+    return `
+      <div style="display:flex;align-items:center;gap:10px;padding:0.75rem 1rem;border-bottom:1px solid var(--border);cursor:${hasCoords?'pointer':'default'}"
+           ${hasCoords ? `onclick="flyToCity('${c.city.replace(/'/g,"\\'")}',${getCityCoords(c.city)})"` : ''}>
+        <div style="width:28px;height:28px;border-radius:8px;background:${col};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.75rem;color:#fff;flex-shrink:0">${idx+1}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;font-size:0.82rem;color:var(--text-primary);display:flex;align-items:center;gap:5px">
+            ${escHtml(c.city)}
+            ${!hasCoords ? '<span style="font-size:0.6rem;color:var(--text-secondary);opacity:0.5">📍?</span>' : ''}
+          </div>
+          <div style="margin-top:3px;height:4px;background:var(--bg-primary);border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:${col};border-radius:2px;transition:width 0.5s"></div>
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-weight:800;font-size:0.88rem;color:${col}">${c.count}</div>
+          <div style="font-size:0.65rem;color:var(--text-secondary)">${pct}%</div>
+        </div>
+      </div>`
+  }).join('')
+}
+
+function flyToCity(name, lat, lng) {
+  if (!_leafletMap) return
+  _leafletMap.flyTo([lat, lng], 10, { duration: 1.2 })
 }
 
 async function loadRecentInterventions() {
