@@ -325,6 +325,56 @@ app.get('/', async (c) => {
     return { ...t, composite_score: score }
   }).sort((a: any, b: any) => b.composite_score - a.composite_score)
 
+  // 4. MTBF PAR TECHNICIEN
+  // Récupérer TOUTES les interventions correctives par technicien, triées par date
+  // puis calculer côté JS la moyenne des gaps entre interventions consécutives
+  const correctiveByTech = await c.env.DB.prepare(`
+    SELECT
+      technician_name,
+      COALESCE(start_date, failure_date, created_at) as event_date
+    FROM interventions
+    WHERE type = 'corrective'
+      AND technician_name IS NOT NULL
+      AND COALESCE(start_date, failure_date, created_at) IS NOT NULL
+      ${conditions.length ? 'AND ' + conditions.join(' AND ') : ''}
+    ORDER BY technician_name, event_date ASC
+  `).bind(...params).all<any>()
+
+  // Group by technician and compute MTBF per tech
+  const techDateMap: Record<string, number[]> = {}
+  for (const row of correctiveByTech.results) {
+    const name = row.technician_name as string
+    const ts = new Date(row.event_date as string).getTime()
+    if (!isNaN(ts)) {
+      if (!techDateMap[name]) techDateMap[name] = []
+      techDateMap[name].push(ts)
+    }
+  }
+
+  const mtbfPerTech: Array<{ technician_name: string; mtbf_hours: number; interventions_count: number }> = []
+  for (const [name, dates] of Object.entries(techDateMap)) {
+    if (dates.length < 2) {
+      mtbfPerTech.push({ technician_name: name, mtbf_hours: 0, interventions_count: dates.length })
+      continue
+    }
+    // Sort (already sorted from DB, but just in case)
+    dates.sort((a, b) => a - b)
+    // Calculate gaps in hours
+    let totalGapMs = 0
+    for (let i = 1; i < dates.length; i++) {
+      const gap = dates[i] - dates[i - 1]
+      if (gap > 0) totalGapMs += gap
+    }
+    const avgGapHours = totalGapMs / (dates.length - 1) / (1000 * 3600)
+    mtbfPerTech.push({
+      technician_name: name,
+      mtbf_hours: parseFloat(avgGapHours.toFixed(1)),
+      interventions_count: dates.length,
+    })
+  }
+  // Sort by MTBF descending (higher MTBF = better = more reliable)
+  mtbfPerTech.sort((a, b) => b.mtbf_hours - a.mtbf_hours)
+
   const avgWaitHours = waitTimeData?.avg_wait_hours || 0
 
   return c.json({
@@ -365,6 +415,7 @@ app.get('/', async (c) => {
       avg_time_per_tech: avgTimePerTech.results,
       wait_time_per_tech: waitTimePerTech.results,
       tech_ranking: techRanking,
+      mtbf_per_tech: mtbfPerTech,
     }
   })
 })

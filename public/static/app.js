@@ -155,6 +155,27 @@ function getInitials(name) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 }
 
+/**
+ * Format MTBF hours into a human-readable string.
+ * - < 48h   → hours  (ex: "36h")
+ * - < 720h  → days   (ex: "12j")
+ * - ≥ 720h  → months (ex: "2.5 mois")
+ * Returns { value, unit, raw_hours }
+ */
+function formatMtbf(hours) {
+  if (!hours || hours === 0) return { value: '0', unit: 'h', raw_hours: 0 }
+  const h = parseFloat(hours)
+  if (h < 48) {
+    return { value: h.toFixed(1), unit: 'h', raw_hours: h.toFixed(0) }
+  } else if (h < 720) {
+    const days = h / 24
+    return { value: days.toFixed(1), unit: 'j', raw_hours: h.toFixed(0) }
+  } else {
+    const months = h / 720
+    return { value: months.toFixed(1), unit: 'mois', raw_hours: h.toFixed(0) }
+  }
+}
+
 // ============================================================
 // SIDEBAR & NAVIGATION
 // ============================================================
@@ -425,8 +446,8 @@ function renderKPISection(data) {
       </div>
       <div class="kpi-card" style="--kpi-color:var(--accent-purple)">
         <i class="fas fa-history kpi-icon"></i>
-        <div class="kpi-label"><i class="fas fa-chart-area"></i> MTBF</div>
-        <div class="kpi-value">${kpis.mtbf || 0}<span class="kpi-unit"> h</span></div>
+        <div class="kpi-label"><i class="fas fa-chart-area"></i> MTBF global</div>
+        ${(() => { const f = formatMtbf(kpis.mtbf || 0); return `<div class="kpi-value">${kpis.mtbf ? f.value : '—'}<span class="kpi-unit"> ${kpis.mtbf ? f.unit : ''}</span></div>` })()}
         <div class="kpi-trend">Temps moyen entre pannes</div>
       </div>
       <div class="kpi-card" style="--kpi-color:var(--accent-green)">
@@ -653,6 +674,71 @@ function renderKPISection(data) {
                 }).join('')}
               </div>`
           }
+        </div>
+
+        <!-- MTBF par technicien -->
+        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:1.1rem 1.25rem;grid-column:1/-1">
+          <div style="font-weight:600;font-size:0.8rem;color:var(--text-primary);margin-bottom:0.3rem;display:flex;align-items:center;gap:7px">
+            <i class="fas fa-history" style="color:var(--accent-purple)"></i>
+            MTBF par technicien
+            <span style="font-size:0.65rem;color:var(--text-secondary);margin-left:auto;font-weight:400">Interventions correctives uniquement · Moyenne des écarts entre pannes</span>
+          </div>
+          <div style="font-size:0.68rem;color:var(--text-secondary);margin-bottom:0.9rem;opacity:0.7">
+            <i class="fas fa-info-circle" style="margin-right:4px"></i>
+            MTBF = moyenne(date<sub>i+1</sub> − date<sub>i</sub>) sur toutes les interventions correctives du technicien. Si &lt;2 interventions → MTBF = 0
+          </div>
+          ${(charts.mtbf_per_tech||[]).length === 0
+            ? `<div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:0.78rem;opacity:0.5">
+                <i class="fas fa-info-circle" style="margin-right:4px"></i>
+                Données insuffisantes (minimum 2 interventions correctives par technicien)
+               </div>`
+            : `<div style="display:flex;gap:1rem;flex-wrap:wrap">
+                ${(charts.mtbf_per_tech||[]).map((t, idx) => {
+                  const initials = getInitials(t.technician_name)
+                  const techColor = getTechColor(t.technician_name)
+                  const mtbf = t.mtbf_hours || 0
+                  const fmt = formatMtbf(mtbf)
+                  // Color: high MTBF = green (reliable), low = orange/red
+                  const mtbfColor = mtbf === 0 ? '#6b7280'
+                    : mtbf >= 720  ? '#34d399'   // ≥ 30 jours
+                    : mtbf >= 168  ? '#3b82f6'   // ≥ 7 jours
+                    : mtbf >= 48   ? '#fbbf24'   // ≥ 2 jours
+                    : '#f87171'                   // < 48h
+                  const label = mtbf === 0 ? 'Insuffisant'
+                    : mtbf >= 720  ? 'Très fiable'
+                    : mtbf >= 168  ? 'Fiable'
+                    : mtbf >= 48   ? 'Acceptable'
+                    : 'Fréquent'
+                  return `
+                    <div style="flex:1;min-width:200px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:0.9rem 1rem;display:flex;gap:12px;align-items:center;border-left:3px solid ${mtbfColor}">
+                      <div style="width:36px;height:36px;border-radius:50%;background:${techColor};display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;color:#fff;flex-shrink:0">${initials}</div>
+                      <div style="flex:1;min-width:0">
+                        <div style="font-weight:700;font-size:0.82rem;color:var(--text-primary)">${escHtml(t.technician_name)}</div>
+                        <div style="font-size:0.68rem;color:var(--text-secondary);margin-top:2px">
+                          ${t.interventions_count} interv. corrective${t.interventions_count>1?'s':''}
+                          ${t.interventions_count < 2 ? ' · <span style="color:#f87171">données insuffisantes</span>' : ''}
+                        </div>
+                      </div>
+                      <div style="text-align:right;flex-shrink:0">
+                        <div style="font-size:1.3rem;font-weight:800;color:${mtbfColor};line-height:1">
+                          ${mtbf === 0 ? '—' : fmt.value}
+                          <span style="font-size:0.65rem;font-weight:500;color:${mtbfColor}">${mtbf === 0 ? '' : fmt.unit}</span>
+                        </div>
+                        <div style="font-size:0.62rem;margin-top:3px;color:${mtbfColor};font-weight:600">${label}</div>
+                        ${mtbf > 0 ? `<div style="font-size:0.58rem;color:var(--text-secondary);margin-top:1px">(${fmt.raw_hours}h brut)</div>` : ''}
+                      </div>
+                    </div>`
+                }).join('')}
+              </div>`
+          }
+          <!-- Légende des couleurs MTBF -->
+          <div style="margin-top:0.85rem;padding-top:0.65rem;border-top:1px solid var(--border);display:flex;gap:1.25rem;flex-wrap:wrap;font-size:0.65rem;color:var(--text-secondary)">
+            <span style="color:#34d399">■ Très fiable</span><span style="opacity:0.6">≥ 30 jours</span>
+            <span style="color:#3b82f6">■ Fiable</span><span style="opacity:0.6">≥ 7 jours</span>
+            <span style="color:#fbbf24">■ Acceptable</span><span style="opacity:0.6">≥ 48h</span>
+            <span style="color:#f87171">■ Fréquent</span><span style="opacity:0.6">&lt; 48h</span>
+            <span style="color:#6b7280">■ —</span><span style="opacity:0.6">&lt; 2 interventions</span>
+          </div>
         </div>
 
       </div>
