@@ -313,21 +313,23 @@ function formatDate(d: string | null | undefined): string {
 
 /* ─────────────────────────────────────────────────────────────
    CORE CHECK FUNCTION — used by both cron and manual trigger
+   Checks:
+   1. interventions with scheduled_date in next 48h (24h/48h flags)
+   2. maintenance_plans with notification_date = today  (custom emails)
    ───────────────────────────────────────────────────────────── */
 export async function runNotificationCheck(env: Bindings): Promise<{
   checked: number
   sent: { id: number; ref: string; horizon: string }[]
   errors: { id: number; ref: string; error: string }[]
 }> {
-  const recipient = env.NOTIFICATION_EMAIL ?? 'mfs326467@gmail.com'
-  const apiKey    = env.RESEND_API_KEY ?? ''
+  const defaultRecipient = env.NOTIFICATION_EMAIL ?? 'mfs326467@gmail.com'
+  const apiKey           = env.RESEND_API_KEY ?? ''
+  const now              = Date.now()
 
-  const now    = Date.now()
-  const h24    = now + 24 * 3600 * 1000
-  const h48    = now + 48 * 3600 * 1000
+  const sent:   { id: number; ref: string; horizon: string }[] = []
+  const errors: { id: number; ref: string; error: string }[]   = []
 
-  // Fetch upcoming interventions not yet fully notified
-  // We look at scheduled_date within the next 48 h
+  /* ── 1. INTERVENTIONS — 24h / 48h window ── */
   const rows = await env.DB.prepare(`
     SELECT id, title, reference_num, type, priority, status,
            client, site, city, equipment, notes,
@@ -342,35 +344,27 @@ export async function runNotificationCheck(env: Bindings): Promise<{
     ORDER BY scheduled_date ASC
   `).all<any>()
 
-  const sent:   { id: number; ref: string; horizon: string }[] = []
-  const errors: { id: number; ref: string; error: string }[]   = []
-
   for (const row of rows.results) {
     const targetMs = new Date(row.scheduled_date as string).getTime()
-    const diffMs   = targetMs - now
-    const diffH    = diffMs / (1000 * 3600)
+    const diffH    = (targetMs - now) / (1000 * 3600)
 
-    // Determine which notification(s) to send
-    const tasks: Array<{ horizon: '24h' | '48h'; column: string; alreadySent: number }> = []
+    const tasks: Array<{ horizon: '24h' | '48h'; column: string }> = []
 
     if (diffH <= 24 && !row.email_sent_24h) {
-      tasks.push({ horizon: '24h', column: 'email_sent_24h', alreadySent: row.email_sent_24h })
+      tasks.push({ horizon: '24h', column: 'email_sent_24h' })
     }
     if (diffH > 24 && diffH <= 48 && !row.email_sent_48h) {
-      tasks.push({ horizon: '48h', column: 'email_sent_48h', alreadySent: row.email_sent_48h })
+      tasks.push({ horizon: '48h', column: 'email_sent_48h' })
     }
-    // Edge-case: row just crossed the 24h boundary but 48h was never sent — skip 48h, only send 24h
+    // crossed 24h boundary — mark 48h silently if never sent
     if (diffH <= 24 && !row.email_sent_48h) {
-      // mark 48h as sent too (skip that email, too late)
       await env.DB.prepare(`UPDATE interventions SET email_sent_48h = 1 WHERE id = ?`).bind(row.id).run()
     }
 
     for (const task of tasks) {
       const { subject, html } = buildEmailHtml(row, task.horizon)
-      const result = await sendResendEmail(apiKey, recipient, subject, html)
-
+      const result = await sendResendEmail(apiKey, defaultRecipient, subject, html)
       if (result.ok) {
-        // Mark flag in DB
         await env.DB.prepare(
           `UPDATE interventions SET ${task.column} = 1, updated_at = datetime('now') WHERE id = ?`
         ).bind(row.id).run()
@@ -381,7 +375,229 @@ export async function runNotificationCheck(env: Bindings): Promise<{
     }
   }
 
-  return { checked: rows.results.length, sent, errors }
+  /* ── 2. MAINTENANCE PLANS — notification_date = today ── */
+  const plans = await env.DB.prepare(`
+    SELECT id, title, description, equipment_name, priority,
+           next_date, start_date, start_time, frequency,
+           notification_date, notification_emails,
+           active
+    FROM maintenance_plans
+    WHERE active = 1
+      AND notification_date IS NOT NULL
+      AND date(notification_date) = date('now')
+  `).all<any>()
+
+  for (const plan of plans.results) {
+    // Build recipients list — plan has its own emails, fallback to default
+    const recipients: string[] = (plan.notification_emails as string || defaultRecipient)
+      .split(',')
+      .map((e: string) => e.trim())
+      .filter((e: string) => e.includes('@'))
+
+    if (recipients.length === 0) recipients.push(defaultRecipient)
+
+    const { subject, html } = buildPlanEmailHtml(plan)
+
+    let allOk = true
+    for (const to of recipients) {
+      const result = await sendResendEmail(apiKey, to, subject, html)
+      if (result.ok) {
+        sent.push({ id: plan.id as number, ref: `[PLAN] ${plan.title}`, horizon: 'plan' })
+      } else {
+        errors.push({ id: plan.id as number, ref: `[PLAN] ${plan.title}`, error: result.error ?? 'unknown' })
+        allOk = false
+      }
+    }
+
+    // Advance notification_date by one frequency period to avoid re-sending tomorrow
+    if (allOk) {
+      const nextNotif = advanceByFrequency(plan.notification_date as string, plan.frequency as string)
+      await env.DB.prepare(
+        `UPDATE maintenance_plans SET notification_date = ?, updated_at = datetime('now') WHERE id = ?`
+      ).bind(nextNotif, plan.id).run()
+    }
+  }
+
+  return { checked: rows.results.length + plans.results.length, sent, errors }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   PLAN EMAIL TEMPLATE — destinataire : responsable maintenance
+   ───────────────────────────────────────────────────────────── */
+function buildPlanEmailHtml(plan: any): { subject: string; html: string } {
+  const accentColor = '#6366f1'
+  const freqLabels: Record<string, string> = {
+    daily: 'Quotidien', weekly: 'Hebdomadaire', monthly: 'Mensuel',
+    quarterly: 'Trimestriel', yearly: 'Annuel'
+  }
+  const prioLabels: Record<string, string> = {
+    critical: 'Critique', high: 'Haute', medium: 'Moyenne', low: 'Basse'
+  }
+  const prioBg: Record<string, string> = {
+    critical: 'rgba(239,68,68,0.15)', high: 'rgba(249,115,22,0.15)',
+    medium: 'rgba(245,158,11,0.15)', low: 'rgba(34,197,94,0.15)'
+  }
+  const prioClr: Record<string, string> = {
+    critical: '#f87171', high: '#fb923c', medium: '#fbbf24', low: '#4ade80'
+  }
+  const prio     = plan.priority ?? 'medium'
+  const startStr = plan.start_date
+    ? `${formatDate(plan.start_date)} à ${plan.start_time ?? '08:00'}`
+    : (plan.next_date ? formatDate(plan.next_date) : '—')
+
+  const subject = `[PPrime GMAO] 📋 Maintenance planifiée — ${escapeHtml(plan.title)}`
+
+  const html = `<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>${subject}</title></head>
+<body style="margin:0;padding:0;background:#0f1117;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f1117;padding:40px 16px">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%">
+
+        <!-- badge -->
+        <tr><td style="padding-bottom:16px;text-align:center">
+          <span style="display:inline-block;background:${accentColor};color:#fff;
+                       font-size:11px;font-weight:800;letter-spacing:1.2px;
+                       text-transform:uppercase;padding:5px 16px;border-radius:20px">
+            📋 MAINTENANCE PLANIFIÉE
+          </span>
+        </td></tr>
+
+        <!-- banner -->
+        <tr><td style="background:${accentColor};border-radius:14px 14px 0 0;
+                       padding:24px 32px;text-align:center">
+          <div style="font-size:20px;font-weight:800;color:#fff;line-height:1.3">
+            🗓️ Rappel de maintenance préventive
+          </div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.75);margin-top:6px">
+            Notification automatique — PPrime GMAO
+          </div>
+        </td></tr>
+
+        <!-- body -->
+        <tr><td style="background:#1a1d2e;padding:28px 32px;
+                       border:1px solid #2d2f45;border-top:none">
+
+          <!-- titre -->
+          <div style="margin-bottom:24px">
+            <div style="font-size:18px;font-weight:700;color:#f1f5f9;line-height:1.35">
+              ${escapeHtml(plan.title)}
+            </div>
+            ${plan.description ? `<div style="font-size:13px;color:#94a3b8;margin-top:6px">${escapeHtml(plan.description)}</div>` : ''}
+          </div>
+
+          <!-- cards -->
+          <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">
+
+            <!-- Date/heure début -->
+            <tr><td style="padding:10px 0;border-bottom:1px solid #252840">
+              <table cellpadding="0" cellspacing="0"><tr>
+                <td style="width:32px;height:32px;background:rgba(99,102,241,0.15);
+                           border:1px solid rgba(99,102,241,0.3);
+                           border-radius:8px;text-align:center;vertical-align:middle">
+                  <span style="font-size:14px">📅</span>
+                </td>
+                <td style="padding-left:12px">
+                  <div style="font-size:10px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Date & heure de début</div>
+                  <div style="font-size:14px;font-weight:700;color:#818cf8;margin-top:2px">${startStr}</div>
+                </td>
+              </tr></table>
+            </td></tr>
+
+            <!-- Fréquence -->
+            <tr><td style="padding:10px 0;border-bottom:1px solid #252840">
+              <table cellpadding="0" cellspacing="0"><tr>
+                <td style="width:32px;height:32px;background:rgba(20,184,166,0.12);
+                           border-radius:8px;text-align:center;vertical-align:middle">
+                  <span style="font-size:14px">🔁</span>
+                </td>
+                <td style="padding-left:12px">
+                  <div style="font-size:10px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Fréquence</div>
+                  <div style="font-size:14px;font-weight:700;color:#2dd4bf;margin-top:2px">
+                    ${freqLabels[plan.frequency as string] ?? capitalize(plan.frequency)}
+                  </div>
+                </td>
+              </tr></table>
+            </td></tr>
+
+            ${plan.equipment_name ? `
+            <!-- Équipement -->
+            <tr><td style="padding:10px 0;border-bottom:1px solid #252840">
+              <table cellpadding="0" cellspacing="0"><tr>
+                <td style="width:32px;height:32px;background:rgba(245,158,11,0.12);
+                           border-radius:8px;text-align:center;vertical-align:middle">
+                  <span style="font-size:14px">⚙️</span>
+                </td>
+                <td style="padding-left:12px">
+                  <div style="font-size:10px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Équipement</div>
+                  <div style="font-size:14px;font-weight:700;color:#fbbf24;margin-top:2px">${escapeHtml(plan.equipment_name)}</div>
+                </td>
+              </tr></table>
+            </td></tr>` : ''}
+
+            <!-- Priorité -->
+            <tr><td style="padding:10px 0">
+              <table cellpadding="0" cellspacing="0"><tr>
+                <td style="width:32px;height:32px;background:${prioBg[prio] ?? 'rgba(107,114,128,0.15)'};
+                           border-radius:8px;text-align:center;vertical-align:middle">
+                  <span style="font-size:14px">🚦</span>
+                </td>
+                <td style="padding-left:12px;vertical-align:middle">
+                  <div style="font-size:10px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Priorité</div>
+                  <div style="margin-top:4px">
+                    <span style="background:${prioBg[prio] ?? 'rgba(107,114,128,0.15)'};
+                                 color:${prioClr[prio] ?? '#9ca3af'};
+                                 font-size:12px;font-weight:700;padding:3px 10px;border-radius:6px">
+                      ${prioLabels[prio] ?? capitalize(prio)}
+                    </span>
+                  </div>
+                </td>
+              </tr></table>
+            </td></tr>
+
+          </table>
+
+          <!-- CTA -->
+          <div style="margin-top:28px;text-align:center">
+            <a href="https://pprime-gmao.pages.dev"
+               style="display:inline-block;background:${accentColor};color:#fff;
+                      font-weight:700;font-size:14px;padding:13px 36px;
+                      border-radius:9px;text-decoration:none;letter-spacing:.3px">
+              Voir le planning →
+            </a>
+          </div>
+        </td></tr>
+
+        <!-- footer -->
+        <tr><td style="background:#13151f;border:1px solid #2d2f45;border-top:none;
+                       border-radius:0 0 14px 14px;padding:16px 32px;text-align:center">
+          <div style="font-size:11px;color:#4b5563;line-height:1.7">
+            Notification automatique planning PPrime GMAO — ne pas répondre.<br/>
+            <a href="https://pprime-gmao.pages.dev" style="color:#6366f1;text-decoration:none">pprime-gmao.pages.dev</a>
+          </div>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body></html>`
+
+  return { subject, html }
+}
+
+/* advance notification_date by one period */
+function advanceByFrequency(dateStr: string, frequency: string): string {
+  const d = new Date(dateStr)
+  switch (frequency) {
+    case 'daily':     d.setDate(d.getDate() + 1);       break
+    case 'weekly':    d.setDate(d.getDate() + 7);       break
+    case 'quarterly': d.setMonth(d.getMonth() + 3);     break
+    case 'yearly':    d.setFullYear(d.getFullYear() + 1); break
+    default:          d.setMonth(d.getMonth() + 1);     break // monthly
+  }
+  return d.toISOString().split('T')[0]
 }
 
 /* ─────────────────────────────────────────────────────────────

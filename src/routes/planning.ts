@@ -211,7 +211,8 @@ app.post('/', async (c) => {
   const body = await c.req.json()
   const {
     title, description, equipment_id, equipment_name, technician_id, technician_name,
-    frequency = 'monthly', next_date, duration_hours = 1, priority = 'medium', notes
+    frequency = 'monthly', next_date, duration_hours = 1, priority = 'medium', notes,
+    start_date, start_time = '08:00', notification_date, notification_emails
   } = body
   if (!title) return c.json({ error: 'Le titre est obligatoire' }, 400)
   if (!next_date) return c.json({ error: 'La prochaine date est obligatoire' }, 400)
@@ -219,12 +220,15 @@ app.post('/', async (c) => {
   const result = await c.env.DB.prepare(`
     INSERT INTO maintenance_plans 
     (title, description, equipment_id, equipment_name, technician_id, technician_name,
-     frequency, next_date, duration_hours, priority, notes, active)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+     frequency, next_date, duration_hours, priority, notes, active,
+     start_date, start_time, notification_date, notification_emails)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
   `).bind(
     title, description || null, equipment_id || null, equipment_name || null,
     technician_id || null, technician_name || null,
-    frequency, next_date, duration_hours, priority, notes || null
+    frequency, next_date, duration_hours, priority, notes || null,
+    start_date || null, start_time || '08:00',
+    notification_date || null, notification_emails || 'mfs326467@gmail.com'
   ).run()
 
   const newRow = await c.env.DB.prepare('SELECT * FROM maintenance_plans WHERE id = ?')
@@ -241,7 +245,8 @@ app.put('/:id', async (c) => {
   const body = await c.req.json()
   const {
     title, description, equipment_id, equipment_name, technician_id, technician_name,
-    frequency, next_date, last_done_date, duration_hours, priority, active, notes
+    frequency, next_date, last_done_date, duration_hours, priority, active, notes,
+    start_date, start_time, notification_date, notification_emails
   } = body
 
   await c.env.DB.prepare(`
@@ -249,6 +254,7 @@ app.put('/:id', async (c) => {
       title=?, description=?, equipment_id=?, equipment_name=?,
       technician_id=?, technician_name=?, frequency=?, next_date=?,
       last_done_date=?, duration_hours=?, priority=?, active=?, notes=?,
+      start_date=?, start_time=?, notification_date=?, notification_emails=?,
       updated_at=CURRENT_TIMESTAMP
     WHERE id=?
   `).bind(
@@ -258,7 +264,12 @@ app.put('/:id', async (c) => {
     frequency ?? (existing as any).frequency, next_date ?? (existing as any).next_date,
     last_done_date ?? (existing as any).last_done_date, duration_hours ?? (existing as any).duration_hours,
     priority ?? (existing as any).priority, active !== undefined ? (active ? 1 : 0) : (existing as any).active,
-    notes ?? (existing as any).notes, id
+    notes ?? (existing as any).notes,
+    start_date !== undefined ? (start_date || null) : (existing as any).start_date,
+    start_time ?? (existing as any).start_time ?? '08:00',
+    notification_date !== undefined ? (notification_date || null) : (existing as any).notification_date,
+    notification_emails ?? (existing as any).notification_emails ?? 'mfs326467@gmail.com',
+    id
   ).run()
 
   return c.json(await c.env.DB.prepare('SELECT * FROM maintenance_plans WHERE id = ?').bind(id).first())

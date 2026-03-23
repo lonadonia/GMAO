@@ -3255,6 +3255,55 @@ async function openPlanModal(id = null) {
                 </select>
               </div>
             </div>
+
+            <!-- ── DATE + HEURE DE DÉBUT ── -->
+            <div style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);
+                        border-radius:8px;padding:14px 16px;margin-bottom:12px">
+              <div style="font-size:0.72rem;font-weight:700;color:var(--accent-blue);
+                          text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">
+                <i class="fas fa-calendar-check" style="margin-right:6px"></i>Date & heure de début
+              </div>
+              <div class="form-row">
+                <div class="form-group" style="margin-bottom:0">
+                  <label class="form-label">Date de début</label>
+                  <input type="date" name="start_date" class="input"
+                         value="${plan?.start_date?.split('T')[0]||''}">
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                  <label class="form-label">Heure de début</label>
+                  <input type="time" name="start_time" class="input"
+                         value="${plan?.start_time||'08:00'}">
+                </div>
+              </div>
+            </div>
+
+            <!-- ── NOTIFICATIONS EMAIL ── -->
+            <div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);
+                        border-radius:8px;padding:14px 16px;margin-bottom:12px">
+              <div style="font-size:0.72rem;font-weight:700;color:var(--accent-yellow);
+                          text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">
+                <i class="fas fa-bell" style="margin-right:6px"></i>Notifications email
+              </div>
+              <div class="form-row">
+                <div class="form-group" style="margin-bottom:0">
+                  <label class="form-label">Date de notification <span style="color:var(--text-secondary);font-weight:400">(envoi email ce jour)</span></label>
+                  <input type="date" name="notification_date" class="input"
+                         value="${plan?.notification_date?.split('T')[0]||''}">
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                  <label class="form-label">Emails destinataires <span style="color:var(--text-secondary);font-weight:400">(séparés par virgule)</span></label>
+                  <input type="email" name="notification_emails" class="input"
+                         placeholder="ex: resp@pprime.ma, manager@client.com"
+                         value="${escHtml(plan?.notification_emails||'mfs326467@gmail.com')}">
+                </div>
+              </div>
+              <div style="margin-top:8px;font-size:0.7rem;color:var(--text-secondary);
+                          display:flex;align-items:center;gap:6px">
+                <i class="fas fa-info-circle" style="color:var(--accent-yellow);opacity:0.7"></i>
+                Le cron vérifie chaque heure — l'email sera envoyé automatiquement à la date choisie.
+              </div>
+            </div>
+
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Durée estimée (heures)</label>
@@ -3288,6 +3337,9 @@ async function savePlan(e, id) {
   data.duration_hours = parseFloat(data.duration_hours) || 1
   if (!data.technician_id) { delete data.technician_id; delete data.technician_name }
   if (!data.last_done_date) delete data.last_done_date
+  if (!data.start_date) delete data.start_date
+  if (!data.notification_date) delete data.notification_date
+  if (!data.notification_emails) data.notification_emails = 'mfs326467@gmail.com'
   try {
     if (id) { await http.put(`${API.planning}/${id}`, data); showToast('Plan modifié', 'success') }
     else { await http.post(API.planning, data); showToast('Plan créé', 'success') }
