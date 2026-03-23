@@ -356,12 +356,110 @@ async function renderDashboard() {
       </div>
     </div>
     <div class="page-content">
+      <div id="planning-alerts-banner"></div>
       <div id="kpi-section">
         <div class="loading-overlay"><span class="loader"></span> Chargement des KPIs...</div>
       </div>
     </div>
   `
   await loadKPI()
+  loadPlanningAlerts()
+}
+
+/* ── PLANNING ALERTS BANNER — affichage dashboard ── */
+async function loadPlanningAlerts() {
+  const banner = document.getElementById('planning-alerts-banner')
+  if (!banner) return
+  try {
+    const today = new Date()
+    const yyyy  = today.getFullYear()
+    const mm    = String(today.getMonth() + 1).padStart(2, '0')
+    const cal   = await http.get(`/api/planning/calendar/${yyyy}/${mm}`)
+
+    // Plans de maintenance du mois courant avec notification_date définie
+    const plans = cal.maintenance_plans || []
+    const todayStr = today.toISOString().split('T')[0]
+
+    // Catégoriser : aujourd'hui, dans 7j, dans 30j
+    const alerts = plans
+      .filter(p => p.active && p.notification_date)
+      .map(p => {
+        const nd   = p.notification_date?.split('T')[0]
+        const diff = Math.round((new Date(nd) - today) / 86400000)
+        return { ...p, notification_date_str: nd, diff }
+      })
+      .filter(p => p.diff >= -1 && p.diff <= 30)
+      .sort((a, b) => a.diff - b.diff)
+
+    if (alerts.length === 0) { banner.innerHTML = ''; return }
+
+    const items = alerts.map(p => {
+      const isToday    = p.diff === 0
+      const isPast     = p.diff < 0
+      const isUrgent   = p.diff <= 1
+      const isSoon     = p.diff <= 7
+
+      const dotColor   = isPast ? '#6b7280' : isToday ? '#ef4444' : isUrgent ? '#f97316' : isSoon ? '#f59e0b' : '#6366f1'
+      const bg         = isPast ? 'rgba(107,114,128,0.07)' : isToday ? 'rgba(239,68,68,0.09)' : isUrgent ? 'rgba(249,115,22,0.08)' : isSoon ? 'rgba(245,158,11,0.07)' : 'rgba(99,102,241,0.07)'
+      const border     = isPast ? 'rgba(107,114,128,0.2)' : isToday ? 'rgba(239,68,68,0.3)' : isUrgent ? 'rgba(249,115,22,0.25)' : isSoon ? 'rgba(245,158,11,0.2)' : 'rgba(99,102,241,0.2)'
+
+      const timeLabel  = isPast   ? `<span style="color:#6b7280;font-size:0.65rem">Passé</span>`
+                       : isToday  ? `<span style="color:#ef4444;font-weight:800;font-size:0.72rem">Aujourd'hui</span>`
+                       : p.diff === 1 ? `<span style="color:#f97316;font-weight:700;font-size:0.72rem">Demain</span>`
+                       : `<span style="color:${dotColor};font-weight:700;font-size:0.72rem">J-${p.diff}</span>`
+
+      const startInfo  = p.start_date
+        ? `${formatDate(p.start_date)} ${p.start_time ? 'à ' + p.start_time : ''}`
+        : (p.next_date ? formatDate(p.next_date) : '—')
+
+      const emails = (p.notification_emails || '').split(',').map(e => e.trim()).filter(Boolean)
+
+      return `
+        <div style="display:flex;align-items:flex-start;gap:10px;
+                    background:${bg};border:1px solid ${border};border-left:3px solid ${dotColor};
+                    border-radius:8px;padding:9px 12px;min-width:260px;max-width:340px;flex-shrink:0">
+          <!-- dot -->
+          <div style="width:8px;height:8px;border-radius:50%;background:${dotColor};
+                      margin-top:4px;flex-shrink:0;
+                      ${isToday ? 'box-shadow:0 0 6px '+dotColor : ''}"></div>
+          <div style="min-width:0;flex:1">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+              <div style="font-size:0.78rem;font-weight:700;color:var(--text-primary);
+                          white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                ${escHtml(p.title)}
+              </div>
+              ${timeLabel}
+            </div>
+            <div style="font-size:0.68rem;color:var(--text-secondary);margin-top:3px;line-height:1.5">
+              <span style="color:var(--text-secondary)"><i class="fas fa-calendar-alt" style="margin-right:3px;opacity:.6"></i>${startInfo}</span>
+            </div>
+            ${emails.length > 0 ? `
+            <div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:3px">
+              ${emails.map(em => `<span style="background:rgba(245,158,11,0.12);color:#fbbf24;
+                font-size:0.62rem;font-weight:600;padding:1px 7px;border-radius:20px">${escHtml(em)}</span>`).join('')}
+            </div>` : ''}
+          </div>
+        </div>`
+    }).join('')
+
+    banner.innerHTML = `
+      <div style="margin-bottom:1rem">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <i class="fas fa-calendar-check" style="color:var(--accent-yellow);font-size:0.85rem"></i>
+          <span style="font-size:0.75rem;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:.5px">
+            Alertes Planning
+          </span>
+          <span style="background:rgba(245,158,11,0.15);color:#fbbf24;font-size:0.65rem;
+                       font-weight:700;padding:1px 8px;border-radius:20px">${alerts.length}</span>
+        </div>
+        <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;
+                    scrollbar-width:thin;scrollbar-color:var(--border) transparent">
+          ${items}
+        </div>
+      </div>`
+  } catch(e) {
+    // silently fail — dashboard still works without alerts
+  }
 }
 
 async function reloadKPI() {
@@ -3291,10 +3389,40 @@ async function openPlanModal(id = null) {
                          value="${plan?.notification_date?.split('T')[0]||''}">
                 </div>
                 <div class="form-group" style="margin-bottom:0">
-                  <label class="form-label">Emails destinataires <span style="color:var(--text-secondary);font-weight:400">(séparés par virgule)</span></label>
-                  <input type="email" name="notification_emails" class="input"
-                         placeholder="ex: resp@pprime.ma, manager@client.com"
+                  <label class="form-label">Emails destinataires</label>
+                  <!-- Tags container -->
+                  <div id="email-tags-box"
+                       style="min-height:38px;background:var(--bg-primary);border:1px solid var(--border);
+                              border-radius:6px;padding:4px 8px;display:flex;flex-wrap:wrap;
+                              gap:5px;align-items:center;cursor:text"
+                       onclick="document.getElementById('email-tag-input').focus()">
+                    ${(plan?.notification_emails||'mfs326467@gmail.com').split(',').map(e=>e.trim()).filter(Boolean).map(e=>`
+                      <span class="email-tag" data-email="${escHtml(e)}"
+                            style="display:inline-flex;align-items:center;gap:4px;
+                                   background:rgba(245,158,11,0.15);color:#fbbf24;
+                                   font-size:0.72rem;font-weight:600;padding:2px 8px;
+                                   border-radius:20px;white-space:nowrap">
+                        ${escHtml(e)}
+                        <span onclick="removeEmailTag(this)" style="cursor:pointer;opacity:0.7;
+                               font-size:0.8rem;line-height:1">×</span>
+                      </span>`).join('')}
+                    <input id="email-tag-input" type="email" autocomplete="off"
+                           placeholder="+ Ajouter un email"
+                           style="border:none;outline:none;background:transparent;
+                                  color:var(--text-primary);font-size:0.78rem;
+                                  min-width:160px;flex:1;padding:2px 4px"
+                           onkeydown="handleEmailTagKey(event)"
+                           onblur="addEmailTagFromInput()">
+                  </div>
+                  <!-- hidden input that holds the CSV value for the form -->
+                  <input type="hidden" name="notification_emails" id="notification_emails_hidden"
                          value="${escHtml(plan?.notification_emails||'mfs326467@gmail.com')}">
+                  <div style="margin-top:5px;font-size:0.68rem;color:var(--text-secondary)">
+                    Appuyer sur <kbd style="background:var(--bg-secondary);border:1px solid var(--border);
+                    border-radius:3px;padding:0 4px;font-size:0.65rem">Entrée</kbd> ou
+                    <kbd style="background:var(--bg-secondary);border:1px solid var(--border);
+                    border-radius:3px;padding:0 4px;font-size:0.65rem">,</kbd> pour confirmer
+                  </div>
                 </div>
               </div>
               <div style="margin-top:8px;font-size:0.7rem;color:var(--text-secondary);
@@ -3329,6 +3457,56 @@ async function openPlanModal(id = null) {
       </div>
     </div>
   `
+}
+
+/* ── EMAIL TAGS helpers (modal planning) ── */
+function syncEmailHidden() {
+  const box = document.getElementById('email-tags-box')
+  const hidden = document.getElementById('notification_emails_hidden')
+  if (!box || !hidden) return
+  const tags = [...box.querySelectorAll('.email-tag')].map(t => t.dataset.email)
+  hidden.value = tags.join(',') || 'mfs326467@gmail.com'
+}
+
+function addEmailTag(email) {
+  const e = email.trim().toLowerCase()
+  if (!e || !e.includes('@')) return
+  const box = document.getElementById('email-tags-box')
+  if (!box) return
+  // avoid duplicates
+  if ([...box.querySelectorAll('.email-tag')].some(t => t.dataset.email === e)) return
+  const input = document.getElementById('email-tag-input')
+  const tag = document.createElement('span')
+  tag.className = 'email-tag'
+  tag.dataset.email = e
+  tag.style.cssText = 'display:inline-flex;align-items:center;gap:4px;background:rgba(245,158,11,0.15);color:#fbbf24;font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:20px;white-space:nowrap'
+  tag.innerHTML = `${e}<span onclick="removeEmailTag(this)" style="cursor:pointer;opacity:0.7;font-size:0.8rem;line-height:1;margin-left:2px">×</span>`
+  box.insertBefore(tag, input)
+  if (input) input.value = ''
+  syncEmailHidden()
+}
+
+function removeEmailTag(x) {
+  x.parentElement.remove()
+  syncEmailHidden()
+}
+
+function handleEmailTagKey(e) {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault()
+    addEmailTagFromInput()
+  } else if (e.key === 'Backspace' && !e.target.value) {
+    const box = document.getElementById('email-tags-box')
+    if (!box) return
+    const tags = box.querySelectorAll('.email-tag')
+    if (tags.length) tags[tags.length - 1].remove()
+    syncEmailHidden()
+  }
+}
+
+function addEmailTagFromInput() {
+  const input = document.getElementById('email-tag-input')
+  if (input && input.value.trim()) addEmailTag(input.value)
 }
 
 async function savePlan(e, id) {
