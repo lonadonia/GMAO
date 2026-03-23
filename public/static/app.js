@@ -218,6 +218,11 @@ function renderApp() {
         <div class="nav-item ${state.currentPage==='reports'?'active':''}" onclick="navigate('reports')">
           <i class="fas fa-chart-bar"></i> Rapports
         </div>
+        <div class="nav-section-title">Automatisation</div>
+        <div class="nav-item ${state.currentPage==='notifications'?'active':''}" onclick="navigate('notifications')">
+          <i class="fas fa-bell"></i> Notifications
+          <span id="nav-badge-notifications" class="nav-badge" style="display:none"></span>
+        </div>
         <div class="nav-section-title">Système</div>
         <div class="nav-item ${state.currentPage==='settings'?'active':''}" onclick="navigate('settings')">
           <i class="fas fa-sliders-h"></i> Paramètres
@@ -248,6 +253,7 @@ function navigate(page) {
     planning:      renderPlanning,
     reports:       renderReports,
     settings:      renderSettings,
+    notifications: renderNotifications,
   }
   if (pages[page]) pages[page]()
 }
@@ -3822,6 +3828,277 @@ function applyLogoPrefs() { /* no-op */ }
 /*
   To restore logo studio, uncomment the block above.
 */
+
+// ============================================================
+// NOTIFICATIONS — Centre de notifications automatiques
+// ============================================================
+async function renderNotifications() {
+  const pc = document.getElementById('page-container')
+  pc.innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1 style="font-size:1.2rem;font-weight:700;display:flex;align-items:center;gap:8px">
+          <i class="fas fa-bell" style="color:var(--accent-yellow)"></i>
+          Notifications automatiques
+        </h1>
+        <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px">
+          Emails envoyés automatiquement pour les interventions dans les 24h / 48h
+        </p>
+      </div>
+      <button class="btn-primary" onclick="triggerNotifCheck()" id="btn-trigger-check" style="gap:6px">
+        <i class="fas fa-paper-plane"></i> Lancer la vérification maintenant
+      </button>
+    </div>
+
+    <!-- Info banner -->
+    <div style="background:linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.08));
+                border:1px solid rgba(99,102,241,0.25);border-radius:10px;padding:1rem 1.25rem;
+                margin-bottom:1.25rem;display:flex;gap:12px;align-items:flex-start">
+      <i class="fas fa-info-circle" style="color:#818cf8;margin-top:2px;flex-shrink:0"></i>
+      <div style="font-size:0.8rem;color:var(--text-secondary);line-height:1.6">
+        <strong style="color:var(--text-primary)">Comment ça fonctionne :</strong><br/>
+        Le système vérifie automatiquement <strong>chaque heure</strong> (cron trigger Cloudflare) les interventions planifiées.<br/>
+        • <span style="color:#f59e0b">●</span> <strong>48h avant</strong> : email de rappel envoyé une seule fois.<br/>
+        • <span style="color:#ef4444">●</span> <strong>24h avant</strong> : email urgent envoyé une seule fois.<br/>
+        Destinataire : <code style="background:rgba(255,255,255,0.05);padding:1px 6px;border-radius:4px;color:#a5b4fc">mfs326467@gmail.com</code>
+      </div>
+    </div>
+
+    <!-- Result box -->
+    <div id="notif-result" style="display:none;margin-bottom:1.25rem"></div>
+
+    <!-- Two panels: preview + status -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem" id="notif-panels">
+      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:1.1rem 1.25rem">
+        <div style="font-weight:600;font-size:0.82rem;color:var(--text-primary);margin-bottom:1rem;
+                    display:flex;align-items:center;gap:7px">
+          <i class="fas fa-clock" style="color:var(--accent-yellow)"></i>
+          Interventions à notifier (prochaines 48h)
+        </div>
+        <div id="notif-preview-content">
+          <div style="text-align:center;padding:2rem;color:var(--text-secondary);font-size:0.78rem;opacity:0.6">
+            <i class="fas fa-sync fa-spin" style="margin-right:6px"></i> Chargement…
+          </div>
+        </div>
+      </div>
+      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:1.1rem 1.25rem">
+        <div style="font-weight:600;font-size:0.82rem;color:var(--text-primary);margin-bottom:1rem;
+                    display:flex;align-items:center;gap:7px">
+          <i class="fas fa-history" style="color:var(--accent-purple)"></i>
+          Statut de toutes les notifications
+        </div>
+        <div id="notif-status-content">
+          <div style="text-align:center;padding:2rem;color:var(--text-secondary);font-size:0.78rem;opacity:0.6">
+            <i class="fas fa-sync fa-spin" style="margin-right:6px"></i> Chargement…
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cron info -->
+    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;
+                padding:1rem 1.25rem">
+      <div style="font-weight:600;font-size:0.82rem;color:var(--text-primary);margin-bottom:0.75rem;
+                  display:flex;align-items:center;gap:7px">
+        <i class="fas fa-robot" style="color:var(--accent-green)"></i>
+        Cron trigger Cloudflare
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:0.75rem">
+        ${[
+          { icon:'fas fa-clock', label:'Fréquence', value:'Chaque heure (0 * * * *)', color:'var(--accent-yellow)' },
+          { icon:'fas fa-envelope', label:'Destinataire', value:'mfs326467@gmail.com', color:'var(--accent-blue)' },
+          { icon:'fas fa-paper-plane', label:'Service email', value:'Resend API', color:'var(--accent-purple)' },
+          { icon:'fas fa-shield-alt', label:'Anti-doublon', value:'email_sent_24h / email_sent_48h', color:'var(--accent-green)' },
+        ].map(item => `
+          <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;
+                      padding:0.75rem 1rem;display:flex;gap:10px;align-items:center">
+            <i class="${item.icon}" style="color:${item.color};font-size:1rem;flex-shrink:0"></i>
+            <div>
+              <div style="font-size:0.65rem;color:var(--text-secondary);text-transform:uppercase;
+                          letter-spacing:.5px;font-weight:600">${item.label}</div>
+              <div style="font-size:0.78rem;color:var(--text-primary);font-weight:500;margin-top:2px">${item.value}</div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>
+  `
+  // Load data
+  loadNotifPreview()
+  loadNotifStatus()
+}
+
+async function loadNotifPreview() {
+  try {
+    const data = await http.get('/api/notifications/preview')
+    const box = document.getElementById('notif-preview-content')
+    if (!box) return
+    if (!data.interventions || data.interventions.length === 0) {
+      box.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--text-secondary);font-size:0.78rem;opacity:0.6">
+        <i class="fas fa-check-circle" style="color:var(--accent-green);margin-right:6px"></i>
+        Aucune intervention à notifier dans les 48h
+      </div>`
+      return
+    }
+    box.innerHTML = data.interventions.map(i => {
+      const h = parseFloat(i.hours_until) || 0
+      const isUrgent = h <= 24
+      const color = isUrgent ? '#ef4444' : '#f59e0b'
+      const label = isUrgent ? `⚠️ ${h.toFixed(1)}h` : `🔔 ${h.toFixed(1)}h`
+      const will24 = i.will_send_24h ? '<span style="background:rgba(239,68,68,0.15);color:#f87171;padding:1px 6px;border-radius:4px;font-size:0.65rem;font-weight:600">EMAIL 24h</span>' : ''
+      const will48 = i.will_send_48h ? '<span style="background:rgba(245,158,11,0.15);color:#fbbf24;padding:1px 6px;border-radius:4px;font-size:0.65rem;font-weight:600">EMAIL 48h</span>' : ''
+      const done24 = i.email_sent_24h ? '<span style="background:rgba(52,211,153,0.1);color:#34d399;padding:1px 6px;border-radius:4px;font-size:0.65rem">✓ 24h</span>' : ''
+      const done48 = i.email_sent_48h ? '<span style="background:rgba(52,211,153,0.1);color:#34d399;padding:1px 6px;border-radius:4px;font-size:0.65rem">✓ 48h</span>' : ''
+      return `
+        <div style="border:1px solid var(--border);border-left:3px solid ${color};border-radius:8px;
+                    padding:0.7rem 0.85rem;margin-bottom:0.6rem;background:var(--bg-primary)">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+            <div style="min-width:0">
+              <div style="font-weight:600;font-size:0.82rem;color:var(--text-primary);
+                          white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                ${escHtml(i.reference_num || i.title)}
+              </div>
+              <div style="font-size:0.72rem;color:var(--text-secondary);margin-top:2px">
+                ${escHtml(i.client||'—')} · ${escHtml(i.technician_name||'—')}
+              </div>
+              <div style="font-size:0.7rem;color:var(--text-secondary);margin-top:2px">
+                ${formatDate(i.scheduled_date)}
+              </div>
+            </div>
+            <div style="flex-shrink:0;text-align:right">
+              <div style="font-size:1rem;font-weight:800;color:${color}">${label}</div>
+              <div style="display:flex;gap:4px;margin-top:4px;flex-wrap:wrap;justify-content:flex-end">
+                ${will48}${will24}${done48}${done24}
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:6px;text-align:right">
+            <button onclick="resetNotifFlags(${i.id})"
+              style="font-size:0.65rem;color:var(--text-secondary);background:none;border:1px solid var(--border);
+                     border-radius:4px;padding:2px 8px;cursor:pointer;opacity:0.7"
+              title="Réinitialiser les flags pour re-tester">
+              <i class="fas fa-redo" style="margin-right:3px"></i>Reset flags
+            </button>
+          </div>
+        </div>`
+    }).join('')
+  } catch(e) {
+    const box = document.getElementById('notif-preview-content')
+    if (box) box.innerHTML = `<div style="color:#f87171;font-size:0.78rem;padding:1rem">Erreur : ${e.message}</div>`
+  }
+}
+
+async function loadNotifStatus() {
+  try {
+    const data = await http.get('/api/notifications/status')
+    const box = document.getElementById('notif-status-content')
+    if (!box) return
+    if (!data.data || data.data.length === 0) {
+      box.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--text-secondary);font-size:0.78rem;opacity:0.6">
+        Aucune intervention avec date planifiée
+      </div>`
+      return
+    }
+    const rows = data.data.map(i => {
+      const h = i.hours_until
+      const timeLabel = h == null ? '—' : h < 0 ? `<span style="color:#6b7280">passé</span>` :
+        h <= 24 ? `<span style="color:#ef4444">${parseFloat(h).toFixed(0)}h</span>` :
+        h <= 48 ? `<span style="color:#f59e0b">${parseFloat(h).toFixed(0)}h</span>` :
+        `<span style="color:var(--text-secondary)">${parseFloat(h).toFixed(0)}h</span>`
+      const b24 = i.email_sent_24h
+        ? '<i class="fas fa-check-circle" style="color:#34d399" title="Email 24h envoyé"></i>'
+        : '<i class="fas fa-circle" style="color:#374151;font-size:0.6rem" title="Non envoyé"></i>'
+      const b48 = i.email_sent_48h
+        ? '<i class="fas fa-check-circle" style="color:#34d399" title="Email 48h envoyé"></i>'
+        : '<i class="fas fa-circle" style="color:#374151;font-size:0.6rem" title="Non envoyé"></i>'
+      return `<tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:7px 8px;font-size:0.75rem;color:var(--text-primary);font-weight:600">
+          ${escHtml(i.reference_num||i.title||'—')}
+        </td>
+        <td style="padding:7px 8px;font-size:0.72rem;color:var(--text-secondary)">${timeLabel}</td>
+        <td style="padding:7px 8px;text-align:center">${b48}</td>
+        <td style="padding:7px 8px;text-align:center">${b24}</td>
+      </tr>`
+    }).join('')
+    box.innerHTML = `
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border)">
+            <th style="padding:6px 8px;font-size:0.68rem;color:var(--text-secondary);
+                       text-align:left;font-weight:600;text-transform:uppercase;letter-spacing:.4px">Référence</th>
+            <th style="padding:6px 8px;font-size:0.68rem;color:var(--text-secondary);
+                       text-align:left;font-weight:600;text-transform:uppercase;letter-spacing:.4px">Dans</th>
+            <th style="padding:6px 8px;font-size:0.68rem;color:var(--text-secondary);
+                       text-align:center;font-weight:600;text-transform:uppercase;letter-spacing:.4px">48h</th>
+            <th style="padding:6px 8px;font-size:0.68rem;color:var(--text-secondary);
+                       text-align:center;font-weight:600;text-transform:uppercase;letter-spacing:.4px">24h</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`
+  } catch(e) {
+    const box = document.getElementById('notif-status-content')
+    if (box) box.innerHTML = `<div style="color:#f87171;font-size:0.78rem;padding:1rem">Erreur : ${e.message}</div>`
+  }
+}
+
+async function triggerNotifCheck() {
+  const btn = document.getElementById('btn-trigger-check')
+  const result = document.getElementById('notif-result')
+  if (!btn || !result) return
+  btn.disabled = true
+  btn.innerHTML = '<i class="fas fa-sync fa-spin"></i> Vérification en cours…'
+  result.style.display = 'none'
+  try {
+    const data = await http.get('/api/notifications/check')
+    const hasSent   = data.sent   && data.sent.length   > 0
+    const hasErrors = data.errors && data.errors.length > 0
+    const color = hasErrors ? '#ef4444' : hasSent ? '#34d399' : '#6b7280'
+    result.style.display = 'block'
+    result.innerHTML = `
+      <div style="background:rgba(${hasErrors?'239,68,68':'52,211,153'},0.08);
+                  border:1px solid rgba(${hasErrors?'239,68,68':'52,211,153'},0.25);
+                  border-radius:10px;padding:1rem 1.25rem">
+        <div style="font-weight:700;font-size:0.85rem;color:${color};margin-bottom:0.5rem;display:flex;gap:8px;align-items:center">
+          <i class="fas fa-${hasErrors?'exclamation-triangle':'check-circle'}"></i>
+          Résultat de la vérification — ${new Date().toLocaleTimeString('fr-FR')}
+        </div>
+        <div style="font-size:0.78rem;color:var(--text-secondary);line-height:1.8">
+          <span>📋 Interventions vérifiées : <strong style="color:var(--text-primary)">${data.checked}</strong></span><br/>
+          <span>📧 Emails envoyés : <strong style="color:#34d399">${data.sent ? data.sent.length : 0}</strong>
+            ${hasSent ? ' — ' + data.sent.map(s => `<span style="background:rgba(52,211,153,0.1);padding:1px 6px;border-radius:4px;font-size:0.7rem">${s.ref} (${s.horizon})</span>`).join(' ') : ''}
+          </span><br/>
+          ${hasErrors ? `<span>❌ Erreurs : <strong style="color:#ef4444">${data.errors.length}</strong> — 
+            ${data.errors.map(e => `<span style="color:#f87171">${e.ref}: ${escHtml(e.error)}</span>`).join(', ')}
+          </span>` : ''}
+          ${!hasSent && !hasErrors ? '<span style="opacity:0.7">Aucun email à envoyer pour l\'instant.</span>' : ''}
+        </div>
+      </div>`
+    // Refresh panels
+    loadNotifPreview()
+    loadNotifStatus()
+  } catch(e) {
+    result.style.display = 'block'
+    result.innerHTML = `<div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);
+      border-radius:10px;padding:1rem;color:#f87171;font-size:0.8rem">
+      <i class="fas fa-exclamation-triangle" style="margin-right:6px"></i>
+      Erreur : ${escHtml(e.message)}
+    </div>`
+  } finally {
+    btn.disabled = false
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Lancer la vérification maintenant'
+  }
+}
+
+async function resetNotifFlags(id) {
+  try {
+    await http.post(`/api/notifications/reset/${id}`, {})
+    showToast('Flags réinitialisés', 'success')
+    loadNotifPreview()
+    loadNotifStatus()
+  } catch(e) {
+    showToast('Erreur : ' + e.message, 'error')
+  }
+}
 
 // ============================================================
 // PARAMÈTRES

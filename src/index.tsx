@@ -9,9 +9,12 @@ import clientsRoutes from './routes/clients'
 import planningRoutes from './routes/planning'
 import kpiRoutes from './routes/kpi'
 import settingsRoutes from './routes/settings'
+import notificationsRoutes, { runNotificationCheck } from './routes/notifications'
 
 type Bindings = {
   DB: D1Database
+  RESEND_API_KEY: string
+  NOTIFICATION_EMAIL: string
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -35,6 +38,7 @@ app.route('/api/clients', clientsRoutes)
 app.route('/api/planning', planningRoutes)
 app.route('/api/kpi', kpiRoutes)
 app.route('/api/settings', settingsRoutes)
+app.route('/api/notifications', notificationsRoutes)
 
 // SPA - toutes les autres routes renvoient l'index.html
 app.get('*', (c) => {
@@ -64,3 +68,25 @@ app.get('*', (c) => {
 })
 
 export default app
+
+/* ─────────────────────────────────────────────────────────────
+   CLOUDFLARE CRON TRIGGER — runs every hour
+   Configured in wrangler.jsonc under "triggers.crons"
+   ───────────────────────────────────────────────────────────── */
+export const scheduled: ExportedHandlerScheduledHandler<Bindings> = async (
+  _event,
+  env,
+  _ctx
+) => {
+  console.log('[CRON] Running notification check at', new Date().toISOString())
+  try {
+    const result = await runNotificationCheck(env)
+    console.log(
+      `[CRON] Done — checked: ${result.checked}, sent: ${result.sent.length}, errors: ${result.errors.length}`,
+      result.sent.length  ? JSON.stringify(result.sent)   : '',
+      result.errors.length ? JSON.stringify(result.errors) : ''
+    )
+  } catch (err: any) {
+    console.error('[CRON] Fatal error:', err?.message ?? err)
+  }
+}
