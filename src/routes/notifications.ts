@@ -25,7 +25,7 @@ async function sendResendEmail(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'GMAO PPrime <notifications@pprime-gmao.pages.dev>',
+        from: 'GMAO PPrime <onboarding@resend.dev>',
         to: [to],
         subject,
         html,
