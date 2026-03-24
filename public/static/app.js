@@ -325,28 +325,39 @@ async function renderDashboard() {
       <div style="position:relative;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
 
         <!-- Gauche : logo + titre -->
-        <div style="display:flex;align-items:center;gap:1.25rem">
+        <div style="display:flex;align-items:center;gap:1.4rem">
           <!-- Logo PPrime -->
           <div style="flex-shrink:0">
-            <img src="/static/logo-pprime-real.png" alt="PPrime" style="height:52px;width:auto;display:block;filter:drop-shadow(0 2px 10px rgba(59,130,246,0.4))" />
+            <img src="/static/logo-pprime-real.png" alt="PPrime" style="height:56px;width:auto;display:block;filter:drop-shadow(0 2px 14px rgba(59,130,246,0.45))" />
           </div>
-          <div style="width:1px;height:48px;background:rgba(255,255,255,.1);flex-shrink:0"></div>
+          <div style="width:1px;height:52px;background:rgba(255,255,255,.12);flex-shrink:0"></div>
+          <!-- Titre -->
           <div>
-            <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;
-                        color:rgba(148,163,184,.6);margin-bottom:3px">
-              Système de Gestion de Maintenance Assistée par Ordinateur
-            </div>
-            <h1 style="font-size:1.45rem;font-weight:800;color:#f1f5f9;line-height:1.15;
-                       letter-spacing:-.3px;margin:0">
-              Tableau de Bord
-            </h1>
-            <div style="display:flex;align-items:center;gap:.6rem;margin-top:5px">
-              <span style="font-size:.72rem;color:rgba(148,163,184,.75)">
-                <i class="fas fa-calendar-day" style="margin-right:4px;color:#3b82f6;opacity:.8"></i>${dateStr}
+            <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:4px">
+              <span style="background:rgba(59,130,246,.18);border:1px solid rgba(59,130,246,.3);
+                           color:#93c5fd;font-size:.6rem;font-weight:700;text-transform:uppercase;
+                           letter-spacing:1px;padding:2px 9px;border-radius:20px">
+                GMAO — PPrime
               </span>
-              <span style="color:rgba(148,163,184,.3)">·</span>
-              <span style="font-size:.72rem;color:rgba(148,163,184,.75)">
-                <i class="fas fa-clock" style="margin-right:4px;color:#6366f1;opacity:.8"></i>${timeStr}
+              <span style="background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.25);
+                           color:#6ee7b7;font-size:.6rem;font-weight:700;padding:2px 8px;border-radius:20px">
+                <i class="fas fa-circle" style="font-size:.4rem;margin-right:3px"></i> Actif
+              </span>
+            </div>
+            <h1 style="font-size:1.5rem;font-weight:800;color:#f8fafc;line-height:1.1;
+                       letter-spacing:-.5px;margin:0 0 5px 0">
+              Tableau de Bord
+              <span style="background:linear-gradient(90deg,#60a5fa,#a78bfa);
+                           -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+                           background-clip:text"> Maintenance</span>
+            </h1>
+            <div style="display:flex;align-items:center;gap:.7rem">
+              <span style="font-size:.7rem;color:rgba(148,163,184,.8)">
+                <i class="fas fa-calendar-day" style="margin-right:4px;color:#60a5fa"></i>${dateStr}
+              </span>
+              <span style="color:rgba(148,163,184,.25)">|</span>
+              <span style="font-size:.7rem;color:rgba(148,163,184,.8)">
+                <i class="fas fa-clock" style="margin-right:4px;color:#a78bfa"></i>${timeStr}
               </span>
             </div>
           </div>
