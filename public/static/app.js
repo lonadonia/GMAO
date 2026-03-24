@@ -32,209 +32,343 @@ function showLoginPage() {
   document.getElementById('app').innerHTML = `
     <div style="
       min-height:100vh;width:100vw;
-      position:fixed;top:0;left:0;z-index:9999;overflow:hidden;
-      display:flex;align-items:center;justify-content:center;
+      position:fixed;top:0;left:0;z-index:9999;
+      display:flex;overflow:hidden;
+      font-family:'Segoe UI',system-ui,sans-serif;
     ">
       <style>
-        @keyframes loginFadeIn {
-          from { opacity:0; transform:translateY(24px) scale(.96); }
-          to   { opacity:1; transform:translateY(0) scale(1); }
+        @keyframes loginSlideIn {
+          from { opacity:0; transform:translateX(32px); }
+          to   { opacity:1; transform:translateX(0); }
         }
-        @keyframes bgKenBurns {
+        @keyframes loginImgZoom {
           from { transform: scale(1); }
-          to   { transform: scale(1.06); }
+          to   { transform: scale(1.07); }
         }
-        #login-email::placeholder { color:#94a3b8; }
-        #login-password::placeholder { color:#94a3b8; }
+        @keyframes floatBadge {
+          0%,100% { transform:translateY(0); }
+          50%      { transform:translateY(-6px); }
+        }
+        @keyframes scanLine {
+          0%   { top:-100%; }
+          100% { top:110%; }
+        }
+        #login-email::placeholder, #login-password::placeholder { color:#94a3b8; }
         #login-email, #login-password {
           font-family:'Segoe UI',system-ui,sans-serif;
-          transition: border-color .2s, box-shadow .2s;
+          transition:border-color .2s,box-shadow .2s;
         }
         #login-email:focus, #login-password:focus {
           outline:none;
           border-color:#7c3aed !important;
-          box-shadow: 0 0 0 3px rgba(124,58,237,.15) !important;
+          box-shadow:0 0 0 3px rgba(124,58,237,.15) !important;
         }
         #login-btn:hover {
-          background: linear-gradient(135deg,#6d28d9 0%,#7c3aed 100%) !important;
-          box-shadow: 0 8px 32px rgba(124,58,237,.45) !important;
-          transform: translateY(-1px);
+          background:linear-gradient(135deg,#5b21b6 0%,#7c3aed 100%) !important;
+          box-shadow:0 10px 36px rgba(124,58,237,.55) !important;
+          transform:translateY(-2px) !important;
         }
-        #login-btn:active { transform: scale(.98) !important; }
+        #login-btn:active { transform:scale(.98) !important; }
+        .login-feature-item:hover { background:rgba(124,58,237,.12) !important; }
       </style>
 
-      <!-- Background image with Ken Burns effect -->
+      <!-- ═══════════════════════════════════════
+           PANNEAU GAUCHE — image + branding
+      ═══════════════════════════════════════ -->
       <div style="
-        position:absolute;inset:0;
-        background-image:url('/static/login-bg.jpg');
-        background-size:cover;background-position:center;
-        animation: bgKenBurns 20s ease-in-out infinite alternate;
-      "></div>
+        flex:1;position:relative;overflow:hidden;
+        display:none;
+      " id="login-left-panel">
+        <!-- Image technicien avec tablette -->
+        <div style="
+          position:absolute;inset:0;
+          background-image:url('/static/login-bg.jpg');
+          background-size:cover;
+          background-position:center 30%;
+          animation:loginImgZoom 22s ease-in-out infinite alternate;
+        "></div>
 
-      <!-- Overlay gradient sombre pour lisibilité -->
-      <div style="
-        position:absolute;inset:0;
-        background:linear-gradient(135deg,
-          rgba(15,10,40,0.72) 0%,
-          rgba(10,15,35,0.65) 50%,
-          rgba(20,10,50,0.72) 100%);
-      "></div>
+        <!-- Overlay dégradé sombre depuis le bas + gauche -->
+        <div style="
+          position:absolute;inset:0;
+          background:linear-gradient(
+            160deg,
+            rgba(10,8,30,0.25) 0%,
+            rgba(15,12,40,0.45) 40%,
+            rgba(10,8,35,0.85) 100%
+          );
+        "></div>
 
-      <!-- Blur léger au centre pour donner de la profondeur -->
-      <div style="
-        position:absolute;inset:0;
-        backdrop-filter:blur(1px);
-        -webkit-backdrop-filter:blur(1px);
-        pointer-events:none;
-      "></div>
+        <!-- Ligne de scan animée subtile -->
+        <div style="
+          position:absolute;left:0;right:0;height:2px;
+          background:linear-gradient(90deg,transparent,rgba(124,58,237,.4),transparent);
+          animation:scanLine 8s linear infinite;
+          pointer-events:none;
+        "></div>
 
-      <!-- Card blanche centrée — style VITEX -->
-      <div style="
-        position:relative;z-index:10;
-        background:#ffffff;
-        border-radius:20px;
-        padding:2.8rem 2.6rem 2.2rem 2.6rem;
-        width:100%;max-width:440px;
-        margin:1.5rem;
-        box-shadow:
-          0 25px 80px rgba(0,0,0,0.45),
-          0 0 0 1px rgba(255,255,255,0.1);
-        animation:loginFadeIn .5s cubic-bezier(.22,.68,0,1.2);
-      ">
+        <!-- Contenu branding bas-gauche -->
+        <div style="position:absolute;bottom:0;left:0;right:0;padding:2.5rem 2.8rem">
 
-        <!-- Logo PPrime centré -->
-        <div style="text-align:center;margin-bottom:.6rem">
-          <img src="/static/logo-pprime-real.png" alt="PPrime"
-               style="height:52px;width:auto;object-fit:contain;display:inline-block" />
-        </div>
-
-        <!-- Badge "Nouvelle version" style VITEX -->
-        <div style="text-align:center;margin-bottom:1.4rem">
-          <span style="
-            display:inline-flex;align-items:center;gap:.4rem;
-            background:linear-gradient(90deg,rgba(124,58,237,.1),rgba(109,40,217,.12));
-            border:1px solid rgba(124,58,237,.25);
-            border-radius:20px;padding:.28rem .85rem;
-            font-size:.65rem;font-weight:700;
-            color:#7c3aed;text-transform:uppercase;letter-spacing:.8px;
+          <!-- Badge "Système actif" -->
+          <div style="
+            display:inline-flex;align-items:center;gap:.5rem;
+            background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);
+            border-radius:20px;padding:.3rem .9rem;margin-bottom:1.2rem;
+            animation:floatBadge 3s ease-in-out infinite;
           ">
-            <i class="fas fa-star" style="font-size:.55rem"></i>
-            PPrime — Plateforme GMAO v1.0
-          </span>
-        </div>
+            <span style="width:6px;height:6px;border-radius:50%;background:#34d399;
+                         box-shadow:0 0 6px #34d399;display:inline-block"></span>
+            <span style="font-size:.65rem;font-weight:700;color:#6ee7b7;text-transform:uppercase;letter-spacing:.8px">
+              Système en ligne
+            </span>
+          </div>
 
-        <!-- Titre Bienvenue -->
-        <div style="text-align:center;margin-bottom:.5rem">
-          <h1 style="font-size:1.85rem;font-weight:800;color:#0f172a;margin:0;letter-spacing:-.5px">
-            Bienvenue
-          </h1>
-          <p style="font-size:.82rem;color:#64748b;margin:.4rem 0 0 0;line-height:1.5">
-            Connectez-vous à votre espace —<br>
-            <span style="color:#7c3aed;font-weight:600">plus rapide, plus sécurisé.</span>
+          <!-- Titre principal -->
+          <h2 style="
+            font-size:2rem;font-weight:900;color:#f8fafc;
+            line-height:1.15;letter-spacing:-.6px;margin:0 0 .7rem;
+          ">
+            Gestion de<br>
+            <span style="
+              background:linear-gradient(90deg,#a78bfa,#60a5fa);
+              -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+              background-clip:text;
+            ">Maintenance</span><br>
+            Assistée
+          </h2>
+
+          <!-- Description -->
+          <p style="font-size:.82rem;color:rgba(203,213,225,.75);line-height:1.65;margin:0 0 1.6rem;max-width:340px">
+            Pilotez vos interventions, équipements et techniciens depuis une plateforme unifiée conçue pour l'industrie.
           </p>
+
+          <!-- Features liste -->
+          <div style="display:flex;flex-direction:column;gap:.5rem">
+            ${[
+              ['fa-bolt','Interventions en temps réel'],
+              ['fa-shield-alt','Maintenance préventive intelligente'],
+              ['fa-chart-line','Rapports & KPIs avancés'],
+              ['fa-file-alt','Comptes rendus PDF automatisés'],
+            ].map(([icon, label]) => `
+              <div class="login-feature-item" style="
+                display:flex;align-items:center;gap:.65rem;
+                padding:.4rem .7rem;border-radius:8px;
+                background:rgba(255,255,255,.05);
+                transition:background .2s;
+              ">
+                <i class="fas ${icon}" style="color:#a78bfa;font-size:.75rem;width:14px;text-align:center"></i>
+                <span style="font-size:.75rem;color:rgba(226,232,240,.85);font-weight:500">${label}</span>
+              </div>`
+            ).join('')}
+          </div>
+
+          <!-- Signature -->
+          <div style="margin-top:1.6rem;padding-top:1.1rem;border-top:1px solid rgba(255,255,255,.1);
+                      display:flex;align-items:center;gap:.75rem">
+            <img src="/static/logo-pprime-real.png" alt="PPrime"
+                 style="height:28px;width:auto;filter:brightness(1.2);opacity:.9" />
+            <div>
+              <div style="font-size:.72rem;font-weight:700;color:rgba(226,232,240,.8)">PPrime</div>
+              <div style="font-size:.6rem;color:rgba(148,163,184,.55)">Plateforme GMAO v1.0</div>
+            </div>
+          </div>
         </div>
+      </div>
 
-        <!-- Séparateur -->
-        <div style="height:1px;background:linear-gradient(90deg,transparent,#e2e8f0,transparent);margin:1.4rem 0"></div>
+      <!-- ═══════════════════════════════════════
+           PANNEAU DROITE — formulaire login
+      ═══════════════════════════════════════ -->
+      <div style="
+        width:100%;max-width:480px;
+        background:#ffffff;
+        display:flex;flex-direction:column;justify-content:center;
+        padding:2.8rem 3rem;
+        position:relative;overflow-y:auto;
+        box-shadow:-20px 0 60px rgba(0,0,0,.18);
+        animation:loginSlideIn .5s cubic-bezier(.22,.68,0,1.2);
+        flex-shrink:0;
+      " id="login-right-panel">
 
-        <!-- Formulaire -->
-        <form id="login-form" onsubmit="handleLogin(event)">
+        <!-- Fond très léger texture -->
+        <div style="
+          position:absolute;inset:0;pointer-events:none;
+          background:radial-gradient(ellipse at 80% 10%,rgba(124,58,237,.04) 0%,transparent 60%),
+                     radial-gradient(ellipse at 20% 90%,rgba(59,130,246,.04) 0%,transparent 60%);
+        "></div>
 
-          <!-- Email -->
-          <div style="margin-bottom:1.1rem">
-            <label style="display:block;font-size:.73rem;font-weight:600;color:#374151;margin-bottom:.45rem">
-              E-mail ou Nom d'utilisateur
-            </label>
-            <div style="position:relative">
-              <i class="fas fa-user" style="
-                position:absolute;left:13px;top:50%;transform:translateY(-50%);
-                color:#9ca3af;font-size:.82rem;pointer-events:none;
-              "></i>
-              <input type="email" id="login-email" required autocomplete="email"
-                placeholder="admin@gmao.com"
-                style="
-                  width:100%;padding:.78rem 1rem .78rem 2.55rem;
-                  border-radius:10px;
-                  background:#f8fafc;
-                  border:1.5px solid #e2e8f0;
-                  color:#0f172a;font-size:.88rem;
-                  box-sizing:border-box;
-                "
-              />
+        <div style="position:relative;max-width:360px;width:100%;margin:0 auto">
+
+          <!-- Logo -->
+          <div style="text-align:center;margin-bottom:.9rem">
+            <img src="/static/logo-pprime-real.png" alt="PPrime"
+                 style="height:56px;width:auto;object-fit:contain;display:inline-block;
+                        filter:drop-shadow(0 2px 8px rgba(124,58,237,.15))" />
+          </div>
+
+          <!-- Badge plateforme -->
+          <div style="text-align:center;margin-bottom:1.6rem">
+            <span style="
+              display:inline-flex;align-items:center;gap:.4rem;
+              background:linear-gradient(90deg,rgba(124,58,237,.08),rgba(79,70,229,.1));
+              border:1px solid rgba(124,58,237,.22);
+              border-radius:20px;padding:.3rem .95rem;
+              font-size:.63rem;font-weight:700;
+              color:#7c3aed;text-transform:uppercase;letter-spacing:.9px;
+            ">
+              <i class="fas fa-tablet-alt" style="font-size:.6rem"></i>
+              PPrime — Plateforme GMAO v1.0
+            </span>
+          </div>
+
+          <!-- Titre -->
+          <div style="margin-bottom:1.6rem">
+            <h1 style="font-size:1.75rem;font-weight:800;color:#0f172a;margin:0 0 .3rem;letter-spacing:-.5px">
+              Connexion
+            </h1>
+            <p style="font-size:.82rem;color:#64748b;margin:0;line-height:1.55">
+              Accédez à votre espace de gestion —
+              <span style="color:#7c3aed;font-weight:600">sécurisé et performant.</span>
+            </p>
+          </div>
+
+          <!-- Séparateur -->
+          <div style="height:1px;background:linear-gradient(90deg,rgba(124,58,237,.2),#e2e8f0,transparent);margin-bottom:1.6rem"></div>
+
+          <!-- Formulaire -->
+          <form id="login-form" onsubmit="handleLogin(event)">
+
+            <!-- Email -->
+            <div style="margin-bottom:1.1rem">
+              <label style="display:block;font-size:.73rem;font-weight:600;color:#374151;margin-bottom:.45rem;
+                            display:flex;align-items:center;gap:.4rem">
+                <i class="fas fa-user" style="color:#7c3aed;font-size:.65rem"></i>
+                Identifiant
+              </label>
+              <div style="position:relative">
+                <input type="email" id="login-email" required autocomplete="email"
+                  placeholder="admin@gmao.com"
+                  style="
+                    width:100%;padding:.82rem 1rem .82rem 1rem;
+                    border-radius:11px;
+                    background:#f8fafc;
+                    border:1.5px solid #e2e8f0;
+                    color:#0f172a;font-size:.88rem;
+                    box-sizing:border-box;
+                  "
+                />
+              </div>
+            </div>
+
+            <!-- Password -->
+            <div style="margin-bottom:.7rem">
+              <label style="display:block;font-size:.73rem;font-weight:600;color:#374151;margin-bottom:.45rem;
+                            display:flex;align-items:center;gap:.4rem">
+                <i class="fas fa-lock" style="color:#7c3aed;font-size:.65rem"></i>
+                Mot de passe
+              </label>
+              <div style="position:relative">
+                <input type="password" id="login-password" required autocomplete="current-password"
+                  placeholder="••••••••"
+                  style="
+                    width:100%;padding:.82rem 3rem .82rem 1rem;
+                    border-radius:11px;
+                    background:#f8fafc;
+                    border:1.5px solid #e2e8f0;
+                    color:#0f172a;font-size:.88rem;
+                    box-sizing:border-box;letter-spacing:.1em;
+                  "
+                />
+                <button type="button" onclick="toggleLoginPwd()"
+                  style="
+                    position:absolute;right:12px;top:50%;transform:translateY(-50%);
+                    background:none;border:none;color:#9ca3af;cursor:pointer;
+                    padding:4px;font-size:.9rem;transition:color .2s;
+                  "
+                  onmouseover="this.style.color='#7c3aed'"
+                  onmouseout="this.style.color='#9ca3af'">
+                  <i class="fas fa-eye" id="login-pwd-eye"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Erreur -->
+            <div id="login-error" style="
+              display:none;align-items:center;gap:.6rem;
+              background:#fef2f2;border:1px solid #fecaca;
+              border-radius:9px;padding:.65rem .9rem;margin-bottom:.9rem;
+              color:#dc2626;font-size:.78rem;
+            ">
+              <i class="fas fa-exclamation-circle" style="flex-shrink:0"></i>
+              <span>Identifiant ou mot de passe incorrect.</span>
+            </div>
+
+            <!-- Bouton connexion -->
+            <button type="submit" id="login-btn" style="
+              width:100%;padding:.92rem;border:none;border-radius:12px;
+              background:linear-gradient(135deg,#7c3aed 0%,#4f46e5 100%);
+              color:white;font-size:.9rem;font-weight:700;cursor:pointer;
+              box-shadow:0 6px 24px rgba(124,58,237,.38);
+              transition:all .25s ease;
+              display:flex;align-items:center;justify-content:center;gap:.6rem;
+              letter-spacing:.3px;margin-top:.9rem;
+            ">
+              <i class="fas fa-sign-in-alt"></i> S'identifier
+            </button>
+          </form>
+
+          <!-- Séparateur bas -->
+          <div style="height:1px;background:linear-gradient(90deg,transparent,#e2e8f0,transparent);margin:1.6rem 0 1.2rem"></div>
+
+          <!-- Info credentials (dev hint) -->
+          <div style="
+            background:linear-gradient(135deg,rgba(124,58,237,.06),rgba(79,70,229,.06));
+            border:1px solid rgba(124,58,237,.14);
+            border-radius:10px;padding:.75rem 1rem;
+            display:flex;align-items:center;gap:.7rem;
+            margin-bottom:1.4rem;
+          ">
+            <i class="fas fa-info-circle" style="color:#7c3aed;font-size:.9rem;flex-shrink:0"></i>
+            <div>
+              <div style="font-size:.7rem;font-weight:700;color:#5b21b6">Accès démo</div>
+              <div style="font-size:.67rem;color:#64748b;margin-top:1px">
+                <span style="font-family:monospace;color:#374151">admin@gmao.com</span> · 
+                <span style="font-family:monospace;color:#374151">1234</span>
+              </div>
             </div>
           </div>
 
-          <!-- Password -->
-          <div style="margin-bottom:.6rem">
-            <label style="display:block;font-size:.73rem;font-weight:600;color:#374151;margin-bottom:.45rem">
-              Votre mot de passe
-            </label>
-            <div style="position:relative">
-              <i class="fas fa-lock" style="
-                position:absolute;left:13px;top:50%;transform:translateY(-50%);
-                color:#9ca3af;font-size:.82rem;pointer-events:none;
-              "></i>
-              <input type="password" id="login-password" required autocomplete="current-password"
-                placeholder="••••••••"
-                style="
-                  width:100%;padding:.78rem 3rem .78rem 2.55rem;
-                  border-radius:10px;
-                  background:#f8fafc;
-                  border:1.5px solid #e2e8f0;
-                  color:#0f172a;font-size:.88rem;
-                  box-sizing:border-box;letter-spacing:.08em;
-                "
-              />
-              <button type="button" onclick="toggleLoginPwd()"
-                style="
-                  position:absolute;right:11px;top:50%;transform:translateY(-50%);
-                  background:none;border:none;color:#9ca3af;cursor:pointer;
-                  padding:4px;font-size:.9rem;transition:color .2s;
-                "
-                onmouseover="this.style.color='#7c3aed'"
-                onmouseout="this.style.color='#9ca3af'">
-                <i class="fas fa-eye" id="login-pwd-eye"></i>
-              </button>
+          <!-- Footer -->
+          <div style="text-align:center">
+            <div style="font-size:.65rem;color:#94a3b8;margin-bottom:.2rem">
+              © 2026 PPrime — Plus rapide. Plus sûr. Meilleur.
+            </div>
+            <div style="font-size:.62rem;color:#cbd5e1">
+              Réalisé par <span style="color:#7c3aed;font-weight:700">Mohcine Banaoui</span>
             </div>
           </div>
 
-          <!-- Erreur -->
-          <div id="login-error" style="
-            display:none;align-items:center;gap:.6rem;
-            background:#fef2f2;border:1px solid #fecaca;
-            border-radius:8px;padding:.65rem .9rem;margin-bottom:.9rem;
-            color:#dc2626;font-size:.78rem;
-          ">
-            <i class="fas fa-exclamation-circle" style="flex-shrink:0"></i>
-            <span>Email ou mot de passe incorrect. Veuillez réessayer.</span>
-          </div>
-
-          <!-- Bouton -->
-          <button type="submit" id="login-btn" style="
-            width:100%;padding:.88rem;border:none;border-radius:11px;
-            background:linear-gradient(135deg,#7c3aed 0%,#6d28d9 100%);
-            color:white;font-size:.92rem;font-weight:700;cursor:pointer;
-            box-shadow:0 6px 20px rgba(124,58,237,.35);
-            transition:all .2s ease;
-            display:flex;align-items:center;justify-content:center;gap:.55rem;
-            letter-spacing:.2px;margin-top:.8rem;
-          ">
-            <i class="fas fa-arrow-right"></i> S'identifier
-          </button>
-        </form>
-
-        <!-- Footer -->
-        <div style="margin-top:1.5rem;text-align:center">
-          <span style="font-size:.65rem;color:#94a3b8">
-            © 2026 PPrime — Plus rapide. Plus sûr. Meilleur.
-          </span><br>
-          <span style="font-size:.6rem;color:#cbd5e1">
-            Réalisé par <span style="color:#7c3aed;font-weight:600">Mohcine Banaoui</span>
-          </span>
         </div>
       </div>
     </div>
   `
+
+  // Afficher le panneau gauche seulement sur grand écran
+  const applyLayout = () => {
+    const leftPanel  = document.getElementById('login-left-panel')
+    const rightPanel = document.getElementById('login-right-panel')
+    if (!leftPanel || !rightPanel) return
+    if (window.innerWidth >= 900) {
+      leftPanel.style.display  = 'block'
+      rightPanel.style.maxWidth = '480px'
+    } else {
+      leftPanel.style.display  = 'none'
+      rightPanel.style.maxWidth = '100%'
+      rightPanel.style.width   = '100%'
+    }
+  }
+  applyLayout()
+  window.addEventListener('resize', applyLayout)
   setTimeout(() => document.getElementById('login-email')?.focus(), 200)
 }
 
