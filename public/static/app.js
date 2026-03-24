@@ -16,6 +16,7 @@ const API = {
   planningPreventif: '/api/planning/preventif',
   kpi: '/api/kpi',
   settings: '/api/settings',
+  compteRendus: '/api/compte-rendus',
 }
 
 // ============================================================
@@ -218,6 +219,9 @@ function renderApp() {
         <div class="nav-item ${state.currentPage==='reports'?'active':''}" onclick="navigate('reports')">
           <i class="fas fa-chart-bar"></i> Rapports
         </div>
+        <div class="nav-item ${state.currentPage==='compte-rendus'?'active':''}" onclick="navigate('compte-rendus')">
+          <i class="fas fa-file-alt"></i> Comptes Rendus
+        </div>
         <div class="nav-section-title">Automatisation</div>
         <div class="nav-item ${state.currentPage==='notifications'?'active':''}" onclick="navigate('notifications')">
           <i class="fas fa-bell"></i> Notifications
@@ -252,6 +256,7 @@ function navigate(page) {
     clients:       renderClients,
     planning:      renderPlanning,
     reports:       renderReports,
+    'compte-rendus': renderCompteRendus,
     settings:      renderSettings,
     notifications: renderNotifications,
   }
@@ -4070,6 +4075,605 @@ function applyLogoPrefs() { /* no-op */ }
 /*
   To restore logo studio, uncomment the block above.
 */
+
+// ============================================================
+// COMPTES RENDUS — Module gestion des comptes rendus
+// ============================================================
+async function renderCompteRendus() {
+  const container = document.getElementById('page-container')
+  container.innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1 style="font-size:1.2rem;font-weight:700"><i class="fas fa-file-alt" style="color:var(--accent-blue);margin-right:8px"></i>Comptes Rendus d'Interventions</h1>
+        <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px">Génération, archivage et consultation des rapports d'intervention</p>
+      </div>
+      <button class="btn btn-primary" onclick="openCRModal(null)">
+        <i class="fas fa-plus"></i> Nouveau Compte Rendu
+      </button>
+    </div>
+    <div class="page-content">
+      <!-- Filters -->
+      <div class="filters-bar">
+        <input type="text" id="cr-search" class="input input-sm" style="width:220px" placeholder="🔍 Rechercher..." oninput="debounceCR()">
+        <select id="cr-status" class="select input-sm" style="width:160px" onchange="loadCR()">
+          <option value="">Tous statuts</option>
+          <option value="draft">Brouillon</option>
+          <option value="finalized">Finalisé</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="clearCRFilters()"><i class="fas fa-times"></i> Réinitialiser</button>
+      </div>
+      <!-- List -->
+      <div id="cr-list"><div class="loading-overlay"><span class="loader"></span> Chargement...</div></div>
+    </div>
+  `
+  await loadCR()
+}
+
+let crDebounce = null
+function debounceCR() { clearTimeout(crDebounce); crDebounce = setTimeout(loadCR, 350) }
+function clearCRFilters() {
+  document.getElementById('cr-search').value = ''
+  document.getElementById('cr-status').value = ''
+  loadCR()
+}
+
+async function loadCR() {
+  const q      = document.getElementById('cr-search')?.value || ''
+  const status = document.getElementById('cr-status')?.value || ''
+  const list   = document.getElementById('cr-list')
+  if (!list) return
+  list.innerHTML = '<div class="loading-overlay"><span class="loader"></span></div>'
+  try {
+    let url = `${API.compteRendus}?limit=50`
+    if (q) url += `&q=${encodeURIComponent(q)}`
+    if (status) url += `&status=${encodeURIComponent(status)}`
+    const data = await http.get(url)
+    const rows = data.data || []
+    if (rows.length === 0) {
+      list.innerHTML = `<div style="text-align:center;padding:3rem;color:var(--text-secondary)">
+        <i class="fas fa-file-alt" style="font-size:2.5rem;opacity:.3;display:block;margin-bottom:1rem"></i>
+        <p style="font-size:0.85rem">Aucun compte rendu trouvé</p>
+        <button class="btn btn-primary btn-sm" style="margin-top:1rem" onclick="openCRModal(null)"><i class="fas fa-plus"></i> Créer le premier</button>
+      </div>`
+      return
+    }
+    list.innerHTML = `
+      <div style="display:grid;gap:.75rem">
+        ${rows.map(r => crCard(r)).join('')}
+      </div>
+    `
+  } catch(e) {
+    list.innerHTML = `<div style="padding:2rem;text-align:center;color:#f87171">Erreur de chargement</div>`
+  }
+}
+
+function crCard(r) {
+  const statusBadge = r.status === 'finalized'
+    ? `<span style="background:rgba(52,211,153,.15);color:#34d399;font-size:.65rem;font-weight:700;padding:2px 10px;border-radius:20px"><i class="fas fa-check-circle"></i> Finalisé</span>`
+    : `<span style="background:rgba(251,191,36,.15);color:#fbbf24;font-size:.65rem;font-weight:700;padding:2px 10px;border-radius:20px"><i class="fas fa-edit"></i> Brouillon</span>`
+  const resultColors = { resolved:'#34d399', partial:'#fbbf24', pending:'#f87171' }
+  const resultLabels = { resolved:'Résolu', partial:'Partiel', pending:'En attente' }
+  const rc = resultColors[r.result] || '#94a3b8'
+  const rl = resultLabels[r.result] || r.result
+  const photoIcon = r.photo_count > 0
+    ? `<span style="color:var(--accent-blue);font-size:.7rem"><i class="fas fa-camera"></i> ${r.photo_count} photo${r.photo_count>1?'s':''}</span>`
+    : ''
+  return `
+    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:1rem 1.25rem;
+                transition:border-color .2s" onmouseover="this.style.borderColor='var(--accent-blue)'" onmouseout="this.style.borderColor='var(--border)'">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.4rem">
+            ${statusBadge}
+            ${r.reference_num ? `<span style="font-size:.65rem;color:var(--text-secondary);font-family:monospace">${escHtml(r.reference_num)}</span>` : ''}
+            <span style="font-size:.65rem;color:${rc};font-weight:600"><i class="fas fa-circle" style="font-size:.4rem;margin-right:3px"></i>${rl}</span>
+            ${photoIcon}
+          </div>
+          <div style="font-weight:700;font-size:.9rem;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(r.title)}</div>
+          <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:.35rem">
+            ${r.client ? `<span style="font-size:.72rem;color:var(--text-secondary)"><i class="fas fa-building" style="margin-right:4px;opacity:.6"></i>${escHtml(r.client)}</span>` : ''}
+            ${r.technician_name ? `<span style="font-size:.72rem;color:var(--text-secondary)"><i class="fas fa-user-cog" style="margin-right:4px;opacity:.6"></i>${escHtml(r.technician_name)}</span>` : ''}
+            ${r.intervention_date ? `<span style="font-size:.72rem;color:var(--text-secondary)"><i class="fas fa-calendar" style="margin-right:4px;opacity:.6"></i>${formatDate(r.intervention_date)}</span>` : ''}
+            ${r.duration_hours ? `<span style="font-size:.72rem;color:var(--text-secondary)"><i class="fas fa-clock" style="margin-right:4px;opacity:.6"></i>${r.duration_hours}h</span>` : ''}
+          </div>
+        </div>
+        <div style="display:flex;gap:.5rem;align-items:center;flex-shrink:0">
+          <button class="btn btn-ghost btn-sm" title="Aperçu PDF" onclick="printCR(${r.id})">
+            <i class="fas fa-print"></i>
+          </button>
+          <button class="btn btn-ghost btn-sm" title="Modifier" onclick="openCRModal(${r.id})">
+            <i class="fas fa-edit"></i>
+          </button>
+          ${r.status === 'draft' ? `<button class="btn btn-ghost btn-sm" style="color:#34d399" title="Finaliser" onclick="finalizeCR(${r.id})"><i class="fas fa-check"></i></button>` : ''}
+          <button class="btn btn-ghost btn-sm" style="color:#f87171" title="Supprimer" onclick="deleteCR(${r.id}, '${escHtml(r.title).replace(/'/g,"\\'")}')">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  `
+}
+
+// ─── OPEN MODAL ────────────────────────────────────────────────
+async function openCRModal(id) {
+  let cr = null
+  let interventions = []
+  try { const d = await http.get(`${API.interventions}?limit=100`); interventions = d.data || [] } catch(e) {}
+
+  if (id) {
+    try { cr = await http.get(`${API.compteRendus}/${id}`) } catch(e) { showToast('Erreur de chargement','error'); return }
+  }
+
+  const today = new Date().toISOString().split('T')[0]
+  const intOptions = interventions.map(i =>
+    `<option value="${i.id}" data-client="${escHtml(i.client||'')}" data-tech="${escHtml(i.technician_name||'')}" data-equip="${escHtml(i.equipment||'')}" data-city="${escHtml(i.city||'')}" data-type="${i.type||'corrective'}" data-priority="${i.priority||'medium'}" data-ref="${escHtml(i.reference_num||'')}" ${cr && cr.intervention_id==i.id?'selected':''}>${escHtml(i.reference_num||'#'+i.id)} — ${escHtml(i.title)} (${escHtml(i.client||'—')})</option>`
+  ).join('')
+
+  const photosHtml = cr && cr.photos && cr.photos.length > 0
+    ? cr.photos.map(p => `
+        <div id="existing-photo-${p.id}" style="position:relative;display:inline-block">
+          <img src="" data-photo-id="${p.id}" data-report-id="${id}" onclick="loadPhotoFull(this)"
+            style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer"
+            title="${escHtml(p.caption||p.filename||'')}" />
+          <button onclick="deleteExistingPhoto(${p.id},${id})" style="position:absolute;top:-5px;right:-5px;background:#f87171;border:none;border-radius:50%;width:18px;height:18px;font-size:.6rem;cursor:pointer;color:white;display:flex;align-items:center;justify-content:center">✕</button>
+        </div>`).join('')
+    : ''
+
+  const partsList = cr && cr.parts_used ? (typeof cr.parts_used === 'string' ? JSON.parse(cr.parts_used) : cr.parts_used) : []
+
+  document.getElementById('modal-container').innerHTML = `
+    <div class="modal-overlay active" id="cr-modal-overlay" onclick="if(event.target===this)closeCRModal()">
+      <div class="modal" style="max-width:780px;max-height:90vh;overflow-y:auto" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <span class="modal-title"><i class="fas fa-file-alt" style="margin-right:8px;color:var(--accent-blue)"></i>${id ? 'Modifier' : 'Nouveau'} Compte Rendu</span>
+          <button class="modal-close" onclick="closeCRModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" style="padding:1.5rem">
+          <form id="cr-form" onsubmit="saveCR(event,${id||'null'})">
+
+            <!-- Lier à une intervention -->
+            <div style="background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2);border-radius:10px;padding:1rem;margin-bottom:1.25rem">
+              <label class="form-label" style="font-size:.75rem;font-weight:700;color:var(--accent-blue);text-transform:uppercase;letter-spacing:.5px">
+                <i class="fas fa-link"></i> Lier à une intervention
+              </label>
+              <select id="cr-intervention" class="select" style="width:100%" onchange="autofillCR(this)">
+                <option value="">— Sélectionner une intervention (optionnel) —</option>
+                ${intOptions}
+              </select>
+            </div>
+
+            <!-- Infos rapport -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+              <div style="grid-column:1/-1">
+                <label class="form-label">Titre du compte rendu *</label>
+                <input type="text" id="cr-title" class="input" required placeholder="Ex: CR Maintenance pompe — Site A" value="${escHtml(cr?.title||'')}">
+              </div>
+              <div>
+                <label class="form-label">Client</label>
+                <input type="text" id="cr-client" class="input" placeholder="Nom du client" value="${escHtml(cr?.client||'')}">
+              </div>
+              <div>
+                <label class="form-label">Technicien</label>
+                <input type="text" id="cr-tech" class="input" placeholder="Nom du technicien" value="${escHtml(cr?.technician_name||'')}">
+              </div>
+              <div>
+                <label class="form-label">Équipement</label>
+                <input type="text" id="cr-equip" class="input" placeholder="Ex: Pompe HP-200" value="${escHtml(cr?.equipment||'')}">
+              </div>
+              <div>
+                <label class="form-label">Ville / Site</label>
+                <input type="text" id="cr-city" class="input" placeholder="Casablanca — Site A" value="${escHtml(cr?.city||'')}">
+              </div>
+              <div>
+                <label class="form-label">Date d'intervention</label>
+                <input type="date" id="cr-date" class="input" value="${cr?.intervention_date||today}">
+              </div>
+              <div>
+                <label class="form-label">Durée (heures)</label>
+                <input type="number" id="cr-duration" class="input" step="0.5" min="0" placeholder="0" value="${cr?.duration_hours||''}">
+              </div>
+              <div>
+                <label class="form-label">Type</label>
+                <select id="cr-type" class="select">
+                  <option value="corrective" ${(!cr||cr.intervention_type==='corrective')?'selected':''}>Corrective</option>
+                  <option value="preventive" ${cr?.intervention_type==='preventive'?'selected':''}>Préventive</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Priorité</label>
+                <select id="cr-priority" class="select">
+                  <option value="low"      ${cr?.priority==='low'     ?'selected':''}>Basse</option>
+                  <option value="medium"   ${(!cr||cr.priority==='medium')  ?'selected':''}>Moyenne</option>
+                  <option value="high"     ${cr?.priority==='high'    ?'selected':''}>Haute</option>
+                  <option value="critical" ${cr?.priority==='critical'?'selected':''}>Critique</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Résultat</label>
+                <select id="cr-result" class="select">
+                  <option value="resolved" ${(!cr||cr.result==='resolved')?'selected':''}>✅ Résolu</option>
+                  <option value="partial"  ${cr?.result==='partial'?'selected':''}>⚠️ Partiel</option>
+                  <option value="pending"  ${cr?.result==='pending'?'selected':''}>🔴 En attente</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Note qualité (1-10)</label>
+                <input type="number" id="cr-quality" class="input" min="1" max="10" placeholder="8" value="${cr?.quality_rating||''}">
+              </div>
+            </div>
+
+            <!-- Travaux -->
+            <div style="margin-bottom:1rem">
+              <label class="form-label">Travaux effectués *</label>
+              <textarea id="cr-work" class="input" rows="4" placeholder="Décrivez les travaux réalisés, les étapes effectuées..." style="resize:vertical;font-family:inherit">${escHtml(cr?.work_performed||'')}</textarea>
+            </div>
+            <div style="margin-bottom:1rem">
+              <label class="form-label">Observations / Constats</label>
+              <textarea id="cr-obs" class="input" rows="3" placeholder="Observations terrain, anomalies constatées..." style="resize:vertical;font-family:inherit">${escHtml(cr?.observations||'')}</textarea>
+            </div>
+            <div style="margin-bottom:1rem">
+              <label class="form-label">Recommandations</label>
+              <textarea id="cr-reco" class="input" rows="2" placeholder="Actions préventives recommandées pour le futur..." style="resize:vertical;font-family:inherit">${escHtml(cr?.recommendations||'')}</textarea>
+            </div>
+
+            <!-- Pièces utilisées -->
+            <div style="margin-bottom:1rem">
+              <label class="form-label">Pièces / Matériaux utilisés</label>
+              <div id="parts-container" style="display:flex;flex-direction:column;gap:.4rem">
+                ${partsList.map((p,i) => crPartRow(p, i)).join('')}
+              </div>
+              <button type="button" class="btn btn-ghost btn-sm" style="margin-top:.5rem" onclick="addCRPart()">
+                <i class="fas fa-plus"></i> Ajouter une pièce
+              </button>
+            </div>
+
+            <!-- Signature client -->
+            <div style="margin-bottom:1.25rem">
+              <label class="form-label">Signature / Validation client</label>
+              <input type="text" id="cr-signature" class="input" placeholder="Nom du responsable client ayant validé" value="${escHtml(cr?.client_signature||'')}">
+            </div>
+
+            <!-- Photos -->
+            <div style="margin-bottom:1.5rem">
+              <label class="form-label"><i class="fas fa-camera" style="margin-right:6px;color:var(--accent-blue)"></i>Photos (max 5)</label>
+              <!-- Photos existantes -->
+              ${photosHtml ? `<div id="existing-photos" style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.5rem">${photosHtml}</div>` : ''}
+              <!-- Upload zone -->
+              <div id="cr-drop-zone" onclick="document.getElementById('cr-photos-input').click()"
+                style="border:2px dashed var(--border);border-radius:10px;padding:1.5rem;text-align:center;cursor:pointer;
+                       transition:border-color .2s;color:var(--text-secondary);font-size:.8rem"
+                ondragover="event.preventDefault();this.style.borderColor='var(--accent-blue)'"
+                ondragleave="this.style.borderColor='var(--border)'"
+                ondrop="handleCRDrop(event)">
+                <i class="fas fa-cloud-upload-alt" style="font-size:1.8rem;opacity:.4;display:block;margin-bottom:.5rem"></i>
+                Cliquez ou glissez des photos ici<br>
+                <span style="font-size:.7rem;opacity:.6">JPG, PNG, WEBP — max 2 Mo par photo</span>
+              </div>
+              <input type="file" id="cr-photos-input" accept="image/*" multiple style="display:none" onchange="handleCRPhotos(this.files)">
+              <div id="cr-photos-preview" style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.5rem"></div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;gap:.75rem;padding-top:1rem;border-top:1px solid var(--border)">
+              <button type="button" class="btn btn-ghost" onclick="closeCRModal()">Annuler</button>
+              <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> ${id ? 'Enregistrer' : 'Créer'}</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  `
+  // Lazy-load existing photos
+  if (cr && cr.photos && cr.photos.length > 0) {
+    cr.photos.forEach(p => {
+      http.get(`${API.compteRendus}/${id}/photos/${p.id}`).then(data => {
+        const img = document.querySelector(`img[data-photo-id="${p.id}"]`)
+        if (img && data.data_url) img.src = data.data_url
+      }).catch(()=>{})
+    })
+  }
+}
+
+// Parts management
+let _crPartIdx = 0
+function crPartRow(p = {}, i = null) {
+  const idx = i !== null ? i : _crPartIdx++
+  return `<div id="part-row-${idx}" style="display:flex;gap:.5rem;align-items:center">
+    <input type="text" class="input" style="flex:2" placeholder="Désignation" value="${escHtml(p.name||'')}">
+    <input type="text" class="input" style="flex:1;max-width:90px" placeholder="Qté" value="${escHtml(p.qty||'')}">
+    <input type="text" class="input" style="flex:1;max-width:100px" placeholder="Réf / Code" value="${escHtml(p.ref||'')}">
+    <button type="button" onclick="document.getElementById('part-row-${idx}').remove()" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:1rem;padding:4px">✕</button>
+  </div>`
+}
+function addCRPart() {
+  const c = document.getElementById('parts-container')
+  const div = document.createElement('div')
+  div.innerHTML = crPartRow({}, _crPartIdx++)
+  c.appendChild(div.firstElementChild)
+}
+
+// Autofill from intervention
+function autofillCR(sel) {
+  const opt = sel.options[sel.selectedIndex]
+  if (!opt || !opt.value) return
+  const set = (id, val) => { const el = document.getElementById(id); if(el && val) el.value = val }
+  set('cr-client',   opt.dataset.client)
+  set('cr-tech',     opt.dataset.tech)
+  set('cr-equip',    opt.dataset.equip)
+  set('cr-city',     opt.dataset.city)
+  set('cr-type',     opt.dataset.type)
+  set('cr-priority', opt.dataset.priority)
+  const titleEl = document.getElementById('cr-title')
+  if (titleEl && !titleEl.value) titleEl.value = `CR — ${opt.text.split('—').slice(1).join('—').trim().substring(0,60)}`
+}
+
+// Photo handling
+const _crNewPhotos = []
+function handleCRPhotos(files) {
+  const preview = document.getElementById('cr-photos-preview')
+  Array.from(files).slice(0, 5 - _crNewPhotos.length).forEach(file => {
+    if (file.size > 2.5 * 1024 * 1024) { showToast(`${file.name} trop lourd (max 2Mo)`, 'warning'); return }
+    const reader = new FileReader()
+    reader.onload = e => {
+      const dataUrl = e.target.result
+      _crNewPhotos.push({ filename: file.name, caption: '', data_url: dataUrl, size_bytes: file.size })
+      const idx = _crNewPhotos.length - 1
+      const div = document.createElement('div')
+      div.style.cssText = 'position:relative;display:inline-block'
+      div.innerHTML = `<img src="${dataUrl}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--accent-blue)">
+        <input type="text" placeholder="Légende" style="width:80px;font-size:.6rem;background:var(--bg-secondary);border:1px solid var(--border);border-radius:4px;padding:2px 4px;color:var(--text-primary);margin-top:2px" onchange="_crNewPhotos[${idx}].caption=this.value">
+        <button type="button" onclick="this.parentElement.remove();_crNewPhotos.splice(${idx},1)" style="position:absolute;top:-5px;right:-5px;background:#f87171;border:none;border-radius:50%;width:18px;height:18px;font-size:.6rem;cursor:pointer;color:white">✕</button>`
+      preview.appendChild(div)
+    }
+    reader.readAsDataURL(file)
+  })
+}
+function handleCRDrop(event) {
+  event.preventDefault()
+  document.getElementById('cr-drop-zone').style.borderColor = 'var(--border)'
+  handleCRPhotos(event.dataTransfer.files)
+}
+
+async function loadPhotoFull(img) {
+  const photoId  = img.dataset.photoId
+  const reportId = img.dataset.reportId
+  if (!photoId || !reportId) return
+  try {
+    const data = await http.get(`${API.compteRendus}/${reportId}/photos/${photoId}`)
+    const w = window.open()
+    w.document.write(`<img src="${data.data_url}" style="max-width:100%;height:auto">`)
+  } catch(e) {}
+}
+
+async function deleteExistingPhoto(photoId, reportId) {
+  if (!confirm('Supprimer cette photo ?')) return
+  try {
+    await http.delete(`${API.compteRendus}/${reportId}/photos/${photoId}`)
+    document.getElementById(`existing-photo-${photoId}`)?.remove()
+    showToast('Photo supprimée', 'success')
+  } catch(e) { showToast('Erreur', 'error') }
+}
+
+function closeCRModal() {
+  document.getElementById('modal-container').innerHTML = ''
+  _crNewPhotos.length = 0
+}
+
+// ─── SAVE ──────────────────────────────────────────────────────
+async function saveCR(e, id) {
+  e.preventDefault()
+  // Collect parts
+  const parts = []
+  document.querySelectorAll('#parts-container > div').forEach(row => {
+    const inputs = row.querySelectorAll('input')
+    if (inputs[0] && inputs[0].value.trim()) {
+      parts.push({ name: inputs[0].value.trim(), qty: inputs[1]?.value||'', ref: inputs[2]?.value||'' })
+    }
+  })
+  const intSel = document.getElementById('cr-intervention')
+  const payload = {
+    intervention_id:   intSel?.value || null,
+    title:             document.getElementById('cr-title').value.trim(),
+    client:            document.getElementById('cr-client').value.trim(),
+    technician_name:   document.getElementById('cr-tech').value.trim(),
+    equipment:         document.getElementById('cr-equip').value.trim(),
+    city:              document.getElementById('cr-city').value.trim(),
+    intervention_date: document.getElementById('cr-date').value,
+    duration_hours:    parseFloat(document.getElementById('cr-duration').value) || 0,
+    intervention_type: document.getElementById('cr-type').value,
+    priority:          document.getElementById('cr-priority').value,
+    result:            document.getElementById('cr-result').value,
+    quality_rating:    parseInt(document.getElementById('cr-quality').value) || null,
+    work_performed:    document.getElementById('cr-work').value.trim(),
+    observations:      document.getElementById('cr-obs').value.trim(),
+    recommendations:   document.getElementById('cr-reco').value.trim(),
+    client_signature:  document.getElementById('cr-signature').value.trim(),
+    parts_used:        parts,
+    photos:            [..._crNewPhotos],
+    status:            'draft'
+  }
+  // auto-set reference_num from intervention
+  if (intSel?.value) {
+    const opt = intSel.options[intSel.selectedIndex]
+    const ref = opt?.dataset?.ref
+    if (ref) payload.reference_num = ref
+  }
+  try {
+    if (id) { await http.put(`${API.compteRendus}/${id}`, payload); showToast('Compte rendu mis à jour', 'success') }
+    else     { await http.post(API.compteRendus, payload);          showToast('Compte rendu créé', 'success') }
+    closeCRModal()
+    await loadCR()
+  } catch(err) { showToast('Erreur lors de la sauvegarde', 'error') }
+}
+
+// ─── FINALIZE ──────────────────────────────────────────────────
+async function finalizeCR(id) {
+  if (!confirm('Finaliser ce compte rendu ? Il ne pourra plus être modifié.')) return
+  try {
+    await http.post(`${API.compteRendus}/${id}/finalize`, {})
+    showToast('Rapport finalisé ✅', 'success')
+    await loadCR()
+  } catch(e) { showToast('Erreur', 'error') }
+}
+
+// ─── DELETE ────────────────────────────────────────────────────
+async function deleteCR(id, title) {
+  if (!confirm(`Supprimer le compte rendu "${title}" ?`)) return
+  try {
+    await http.delete(`${API.compteRendus}/${id}`)
+    showToast('Compte rendu supprimé', 'success')
+    await loadCR()
+  } catch(e) { showToast('Erreur', 'error') }
+}
+
+// ─── PRINT / PDF ───────────────────────────────────────────────
+async function printCR(id) {
+  showToast('Chargement du rapport...', 'info')
+  try {
+    const cr = await http.get(`${API.compteRendus}/${id}`)
+    // Load photos
+    const photoImgs = []
+    if (cr.photos && cr.photos.length > 0) {
+      for (const p of cr.photos) {
+        try {
+          const data = await http.get(`${API.compteRendus}/${id}/photos/${p.id}`)
+          photoImgs.push({ src: data.data_url, caption: p.caption || p.filename || '' })
+        } catch(e) {}
+      }
+    }
+    const resultColor = { resolved:'#16a34a', partial:'#d97706', pending:'#dc2626' }
+    const priorityColor = { low:'#64748b', medium:'#3b82f6', high:'#f59e0b', critical:'#ef4444' }
+    const typeLabel = cr.intervention_type === 'preventive' ? 'Préventive' : 'Corrective'
+    const prioLabel = { low:'Basse', medium:'Moyenne', high:'Haute', critical:'Critique' }[cr.priority] || cr.priority
+    const parts = cr.parts_used ? (typeof cr.parts_used==='string'?JSON.parse(cr.parts_used):cr.parts_used) : []
+    const html = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>CR — ${cr.title}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#1e293b;background:#fff;padding:0}
+  @page{size:A4 portrait;margin:15mm 12mm 12mm 12mm}
+  .page{width:100%;max-width:780px;margin:0 auto}
+  /* Header */
+  .header{background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);color:white;padding:18px 22px;border-radius:0 0 12px 12px;margin-bottom:18px}
+  .header-top{display:flex;justify-content:space-between;align-items:flex-start}
+  .header h1{font-size:1.15rem;font-weight:700;margin:0}
+  .header .ref{font-size:.75rem;opacity:.7;margin-top:3px;font-family:monospace}
+  .badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:.7rem;font-weight:700;border:1px solid rgba(255,255,255,.3)}
+  /* Section titles */
+  .section{margin-bottom:14px}
+  .section-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#64748b;border-bottom:1px solid #e2e8f0;padding-bottom:4px;margin-bottom:8px}
+  /* Info grid */
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px}
+  .info-item{display:flex;flex-direction:column;gap:1px}
+  .info-label{font-size:.65rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px}
+  .info-value{font-size:.82rem;font-weight:600;color:#1e293b}
+  /* Content blocks */
+  .content-block{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:.82rem;line-height:1.6;color:#334155;white-space:pre-wrap;word-break:break-word}
+  /* Parts table */
+  table{width:100%;border-collapse:collapse;font-size:.78rem}
+  th{background:#f1f5f9;padding:5px 8px;text-align:left;font-weight:700;font-size:.68rem;text-transform:uppercase;letter-spacing:.5px;color:#64748b;border-bottom:2px solid #e2e8f0}
+  td{padding:5px 8px;border-bottom:1px solid #f1f5f9}
+  tr:last-child td{border:none}
+  /* Photos */
+  .photos-grid{display:flex;flex-wrap:wrap;gap:8px}
+  .photo-item{text-align:center}
+  .photo-item img{width:160px;height:130px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0}
+  .photo-caption{font-size:.65rem;color:#64748b;margin-top:3px;max-width:160px}
+  /* Footer */
+  .footer{margin-top:20px;padding-top:12px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:flex-end}
+  .signature-box{border:1px solid #e2e8f0;border-radius:8px;padding:8px 14px;min-width:200px;min-height:60px;text-align:center;font-size:.7rem;color:#94a3b8}
+  .result-chip{display:inline-block;padding:3px 12px;border-radius:20px;font-size:.75rem;font-weight:700}
+  @media print{.no-print{display:none}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div style="font-size:.72rem;opacity:.6;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">PPrime — GMAO</div>
+        <h1>${cr.title}</h1>
+        ${cr.reference_num ? `<div class="ref">${cr.reference_num}</div>` : ''}
+      </div>
+      <div style="text-align:right">
+        <span class="badge" style="background:${resultColor[cr.result]||'#64748b'};margin-bottom:4px">
+          ${cr.result==='resolved'?'✓ Résolu':cr.result==='partial'?'⚠ Partiel':'● En attente'}
+        </span>
+        <div style="font-size:.68rem;opacity:.65;margin-top:4px">${cr.status==='finalized'?'Rapport finalisé':'Brouillon'}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Informations -->
+  <div class="section">
+    <div class="section-title">📋 Informations de l'intervention</div>
+    <div class="info-grid">
+      <div class="info-item"><span class="info-label">Client</span><span class="info-value">${cr.client||'—'}</span></div>
+      <div class="info-item"><span class="info-label">Date</span><span class="info-value">${cr.intervention_date||'—'}</span></div>
+      <div class="info-item"><span class="info-label">Équipement</span><span class="info-value">${cr.equipment||'—'}</span></div>
+      <div class="info-item"><span class="info-label">Lieu</span><span class="info-value">${cr.city||'—'}</span></div>
+      <div class="info-item"><span class="info-label">Type</span><span class="info-value">${typeLabel}</span></div>
+      <div class="info-item"><span class="info-label">Priorité</span><span class="info-value" style="color:${priorityColor[cr.priority]||'#64748b'}">${prioLabel}</span></div>
+      <div class="info-item"><span class="info-label">Durée</span><span class="info-value">${cr.duration_hours||0} h</span></div>
+      ${cr.quality_rating ? `<div class="info-item"><span class="info-label">Note qualité</span><span class="info-value">${cr.quality_rating}/10</span></div>` : ''}
+    </div>
+  </div>
+
+  <!-- Travaux -->
+  <div class="section">
+    <div class="section-title">🔧 Travaux effectués</div>
+    <div class="content-block">${cr.work_performed||'Non renseigné'}</div>
+  </div>
+
+  ${cr.observations ? `<div class="section"><div class="section-title">👁 Observations</div><div class="content-block">${cr.observations}</div></div>` : ''}
+  ${cr.recommendations ? `<div class="section"><div class="section-title">💡 Recommandations</div><div class="content-block">${cr.recommendations}</div></div>` : ''}
+
+  <!-- Pièces -->
+  ${parts.length > 0 ? `
+  <div class="section">
+    <div class="section-title">🔩 Pièces / Matériaux utilisés</div>
+    <table>
+      <tr><th>Désignation</th><th>Quantité</th><th>Référence</th></tr>
+      ${parts.map(p => `<tr><td>${p.name||'—'}</td><td>${p.qty||'—'}</td><td style="font-family:monospace;font-size:.73rem">${p.ref||'—'}</td></tr>`).join('')}
+    </table>
+  </div>` : ''}
+
+  <!-- Photos -->
+  ${photoImgs.length > 0 ? `
+  <div class="section">
+    <div class="section-title">📷 Photos</div>
+    <div class="photos-grid">
+      ${photoImgs.map(p => `<div class="photo-item"><img src="${p.src}"><div class="photo-caption">${p.caption}</div></div>`).join('')}
+    </div>
+  </div>` : ''}
+
+  <!-- Footer signatures -->
+  <div class="footer">
+    <div>
+      <div style="font-size:.7rem;color:#94a3b8;margin-bottom:6px">Rédigé par</div>
+      <div style="font-size:.82rem;font-weight:600">${cr.created_by||'Responsable GMAO'}</div>
+      <div style="font-size:.7rem;color:#94a3b8;margin-top:3px">Généré le ${new Date().toLocaleDateString('fr-FR')}</div>
+    </div>
+    <div class="signature-box">
+      ${cr.client_signature ? `<div style="font-size:.75rem;font-weight:600;color:#1e293b;margin-top:10px">${cr.client_signature}</div><div style="font-size:.65rem;color:#94a3b8;margin-top:3px">Validé par le client</div>` : `<div style="margin-top:14px">Signature client</div>`}
+    </div>
+  </div>
+
+  <div class="no-print" style="text-align:center;margin-top:25px">
+    <button onclick="window.print()" style="background:#1e3a5f;color:white;border:none;padding:10px 28px;border-radius:8px;font-size:.9rem;cursor:pointer;font-weight:600">
+      <span style="margin-right:6px">🖨</span> Imprimer / Enregistrer PDF
+    </button>
+  </div>
+</div>
+</body>
+</html>`
+    const w = window.open('', '_blank')
+    w.document.write(html)
+    w.document.close()
+  } catch(err) { showToast('Erreur lors de la génération', 'error') }
+}
 
 // ============================================================
 // NOTIFICATIONS — Centre de notifications automatiques

@@ -10,6 +10,7 @@ import planningRoutes from './routes/planning'
 import kpiRoutes from './routes/kpi'
 import settingsRoutes from './routes/settings'
 import notificationsRoutes, { runNotificationCheck } from './routes/notifications'
+import compteRendusRoutes from './routes/compteRendus'
 
 type Bindings = {
   DB: D1Database
@@ -39,6 +40,7 @@ app.route('/api/planning', planningRoutes)
 app.route('/api/kpi', kpiRoutes)
 app.route('/api/settings', settingsRoutes)
 app.route('/api/notifications', notificationsRoutes)
+app.route('/api/compte-rendus', compteRendusRoutes)
 
 // SPA - toutes les autres routes renvoient l'index.html
 app.get('*', (c) => {
