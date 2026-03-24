@@ -333,7 +333,7 @@ async function renderDashboard() {
           <div style="width:1px;height:52px;background:rgba(255,255,255,.12);flex-shrink:0"></div>
           <!-- Titre -->
           <div>
-            <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:4px">
+            <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:4px;flex-wrap:wrap">
               <span style="background:rgba(59,130,246,.18);border:1px solid rgba(59,130,246,.3);
                            color:#93c5fd;font-size:.6rem;font-weight:700;text-transform:uppercase;
                            letter-spacing:1px;padding:2px 9px;border-radius:20px">
@@ -342,6 +342,12 @@ async function renderDashboard() {
               <span style="background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.25);
                            color:#6ee7b7;font-size:.6rem;font-weight:700;padding:2px 8px;border-radius:20px">
                 <i class="fas fa-circle" style="font-size:.4rem;margin-right:3px"></i> Actif
+              </span>
+              <span style="background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.25);
+                           color:#c4b5fd;font-size:.6rem;font-weight:600;padding:2px 9px;border-radius:20px;
+                           display:flex;align-items:center;gap:4px">
+                <i class="fas fa-user-shield" style="font-size:.55rem"></i>
+                Réalisé par <strong style="color:#e9d5ff;margin-left:3px">Mohcine Banaoui</strong>
               </span>
             </div>
             <h1 style="font-size:1.5rem;font-weight:800;color:#f8fafc;line-height:1.1;
