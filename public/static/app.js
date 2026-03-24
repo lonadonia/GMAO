@@ -4453,113 +4453,480 @@ function applyLogoPrefs() { /* no-op */ }
 // ============================================================
 async function renderCompteRendus() {
   const container = document.getElementById('page-container')
+
+  // ─── Pré-chargement techniciens pour les filtres ───────────
+  if (!state.technicians.data.length) {
+    try { const d = await http.get(API.technicians); state.technicians.data = d.data || [] } catch(e) {}
+  }
+  const techOpts = state.technicians.data
+    .map(t => `<option value="${escHtml(t.name)}">${escHtml(t.name)}</option>`)
+    .join('')
+
+  const now = new Date()
+  const dayNames = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi']
+  const monthNames = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']
+  const dateStr = `${dayNames[now.getDay()]} ${now.getDate()} ${monthNames[now.getMonth()]} ${now.getFullYear()}`
+
   container.innerHTML = `
-    <div class="page-header">
-      <div>
-        <h1 style="font-size:1.2rem;font-weight:700"><i class="fas fa-file-alt" style="color:var(--accent-blue);margin-right:8px"></i>Comptes Rendus d'Interventions</h1>
-        <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px">Génération, archivage et consultation des rapports d'intervention</p>
+
+    <!-- ══════════════════════════════════════════════════════
+         HERO HEADER — Comptes Rendus
+    ══════════════════════════════════════════════════════ -->
+    <div style="
+      background: linear-gradient(135deg, #0f172a 0%, #1a1040 40%, #0f2a4a 70%, #0a1628 100%);
+      border-radius: 16px;
+      padding: 1.6rem 2rem;
+      margin-bottom: 1.5rem;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(139,92,246,0.18);
+      box-shadow: 0 4px 32px rgba(0,0,0,0.4);
+    ">
+      <!-- Décorations background -->
+      <div style="position:absolute;top:-60px;right:-40px;width:200px;height:200px;border-radius:50%;
+                  background:radial-gradient(circle,rgba(139,92,246,0.13) 0%,transparent 70%);pointer-events:none"></div>
+      <div style="position:absolute;bottom:-40px;left:30%;width:160px;height:160px;border-radius:50%;
+                  background:radial-gradient(circle,rgba(59,130,246,0.08) 0%,transparent 70%);pointer-events:none"></div>
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;
+                  background:linear-gradient(90deg,transparent,#8b5cf6,#3b82f6,transparent);pointer-events:none"></div>
+
+      <div style="position:relative;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+
+        <!-- Gauche : icône + titre -->
+        <div style="display:flex;align-items:center;gap:1.2rem">
+          <div style="width:52px;height:52px;border-radius:14px;
+                      background:linear-gradient(135deg,rgba(139,92,246,.25),rgba(59,130,246,.2));
+                      border:1px solid rgba(139,92,246,.35);
+                      display:flex;align-items:center;justify-content:center;flex-shrink:0;
+                      box-shadow:0 4px 16px rgba(139,92,246,.2)">
+            <i class="fas fa-file-alt" style="font-size:1.35rem;color:#a78bfa"></i>
+          </div>
+          <div>
+            <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:5px;flex-wrap:wrap">
+              <span style="background:rgba(139,92,246,.18);border:1px solid rgba(139,92,246,.3);
+                           color:#c4b5fd;font-size:.6rem;font-weight:700;text-transform:uppercase;
+                           letter-spacing:1px;padding:2px 9px;border-radius:20px">
+                GMAO — PPrime
+              </span>
+              <span style="background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.25);
+                           color:#6ee7b7;font-size:.6rem;font-weight:700;padding:2px 8px;border-radius:20px">
+                <i class="fas fa-circle" style="font-size:.4rem;margin-right:3px"></i> Actif
+              </span>
+            </div>
+            <h1 style="font-size:1.45rem;font-weight:800;color:#f8fafc;line-height:1.1;letter-spacing:-.4px;margin:0 0 4px 0">
+              Comptes Rendus
+              <span style="background:linear-gradient(90deg,#a78bfa,#60a5fa);
+                           -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+                           background-clip:text"> d'Interventions</span>
+            </h1>
+            <div style="font-size:.7rem;color:rgba(148,163,184,.7)">
+              <i class="fas fa-calendar-day" style="margin-right:4px;color:#a78bfa"></i>${dateStr}
+            </div>
+          </div>
+        </div>
+
+        <!-- Droite : bouton + refresh -->
+        <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
+          <button onclick="loadCR()" style="
+            background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
+            color:rgba(148,163,184,.8);border-radius:9px;padding:.45rem .85rem;font-size:.78rem;
+            font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.4rem;
+            transition:all .2s;
+          " onmouseover="this.style.background='rgba(255,255,255,.13)'" onmouseout="this.style.background='rgba(255,255,255,.07)'">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+          <button onclick="openCRModal(null)" style="
+            background:linear-gradient(135deg,#7c3aed,#4f46e5);border:none;
+            color:white;border-radius:10px;padding:.55rem 1.3rem;font-size:.82rem;
+            font-weight:700;cursor:pointer;display:flex;align-items:center;gap:.5rem;
+            box-shadow:0 3px 14px rgba(124,58,237,.4);transition:opacity .2s;
+          " onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+            <i class="fas fa-plus"></i> Nouveau CR
+          </button>
+        </div>
       </div>
-      <button class="btn btn-primary" onclick="openCRModal(null)">
-        <i class="fas fa-plus"></i> Nouveau Compte Rendu
-      </button>
+
+      <!-- KPI stats dans le hero -->
+      <div id="cr-hero-stats" style="
+        margin-top:1.2rem;padding-top:1rem;
+        border-top:1px solid rgba(255,255,255,.07);
+        display:flex;gap:1rem;flex-wrap:wrap;align-items:center;
+      ">
+        <div style="display:flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.05);
+                    border:1px solid rgba(255,255,255,.09);border-radius:10px;padding:.45rem 1rem">
+          <i class="fas fa-spinner fa-spin" style="color:rgba(148,163,184,.5);font-size:.75rem"></i>
+          <span style="font-size:.72rem;color:rgba(148,163,184,.6)">Chargement stats...</span>
+        </div>
+      </div>
     </div>
+
     <div class="page-content">
-      <!-- Filters -->
-      <div class="filters-bar">
-        <input type="text" id="cr-search" class="input input-sm" style="width:220px" placeholder="🔍 Rechercher..." oninput="debounceCR()">
-        <select id="cr-status" class="select input-sm" style="width:160px" onchange="loadCR()">
+
+      <!-- ── Barre filtres avancée ────────────────────────────── -->
+      <div style="
+        background:var(--bg-secondary);border:1px solid var(--border);
+        border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.25rem;
+        display:flex;flex-wrap:wrap;gap:.65rem;align-items:center;
+      ">
+        <!-- Recherche texte -->
+        <div style="position:relative;flex:1;min-width:200px;max-width:280px">
+          <i class="fas fa-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-secondary);font-size:.78rem;pointer-events:none"></i>
+          <input type="text" id="cr-search" class="input input-sm" style="padding-left:30px;width:100%"
+            placeholder="Titre, client, équipement..." oninput="debounceCR()">
+        </div>
+
+        <!-- Séparateur -->
+        <div style="width:1px;height:24px;background:var(--border)"></div>
+
+        <!-- Statut -->
+        <select id="cr-status" class="select input-sm" style="width:145px" onchange="loadCR()">
           <option value="">Tous statuts</option>
-          <option value="draft">Brouillon</option>
-          <option value="finalized">Finalisé</option>
+          <option value="draft">✏️ Brouillon</option>
+          <option value="finalized">✅ Finalisé</option>
         </select>
-        <button class="btn btn-ghost btn-sm" onclick="clearCRFilters()"><i class="fas fa-times"></i> Réinitialiser</button>
+
+        <!-- Résultat -->
+        <select id="cr-result" class="select input-sm" style="width:145px" onchange="loadCR()">
+          <option value="">Tous résultats</option>
+          <option value="resolved">✅ Résolu</option>
+          <option value="partial">⚠️ Partiel</option>
+          <option value="pending">🔴 En attente</option>
+        </select>
+
+        <!-- Type -->
+        <select id="cr-type-filter" class="select input-sm" style="width:145px" onchange="loadCR()">
+          <option value="">Tous types</option>
+          <option value="corrective">🔧 Corrective</option>
+          <option value="preventive">🛡 Préventive</option>
+        </select>
+
+        <!-- Technicien -->
+        <select id="cr-tech-filter" class="select input-sm" style="width:160px" onchange="loadCR()">
+          <option value="">Tous techniciens</option>
+          ${techOpts}
+        </select>
+
+        <!-- Date début -->
+        <input type="date" id="cr-date-from" class="input input-sm" style="width:140px" onchange="loadCR()" title="Date début">
+
+        <!-- Date fin -->
+        <input type="date" id="cr-date-to" class="input input-sm" style="width:140px" onchange="loadCR()" title="Date fin">
+
+        <!-- Vue toggle -->
+        <div style="margin-left:auto;display:flex;gap:.3rem">
+          <button id="cr-view-cards" onclick="setCRView('cards')" title="Vue cartes" style="
+            background:rgba(139,92,246,.2);border:1px solid rgba(139,92,246,.4);
+            color:#a78bfa;border-radius:7px;padding:.35rem .65rem;font-size:.82rem;cursor:pointer;
+          "><i class="fas fa-th-large"></i></button>
+          <button id="cr-view-table" onclick="setCRView('table')" title="Vue tableau" style="
+            background:var(--bg-primary);border:1px solid var(--border);
+            color:var(--text-secondary);border-radius:7px;padding:.35rem .65rem;font-size:.82rem;cursor:pointer;
+          "><i class="fas fa-table"></i></button>
+        </div>
+
+        <!-- Réinitialiser -->
+        <button class="btn btn-ghost btn-sm" onclick="clearCRFilters()" title="Réinitialiser">
+          <i class="fas fa-times"></i>
+        </button>
       </div>
-      <!-- List -->
+
+      <!-- Liste / tableau -->
       <div id="cr-list"><div class="loading-overlay"><span class="loader"></span> Chargement...</div></div>
     </div>
   `
+  // Vue par défaut : cartes
+  window._crView = window._crView || 'cards'
   await loadCR()
+  loadCRHeroStats()
+}
+
+// Vue toggle
+function setCRView(view) {
+  window._crView = view
+  const btnCards = document.getElementById('cr-view-cards')
+  const btnTable = document.getElementById('cr-view-table')
+  if (btnCards && btnTable) {
+    if (view === 'cards') {
+      btnCards.style.background  = 'rgba(139,92,246,.2)'
+      btnCards.style.borderColor = 'rgba(139,92,246,.4)'
+      btnCards.style.color       = '#a78bfa'
+      btnTable.style.background  = 'var(--bg-primary)'
+      btnTable.style.borderColor = 'var(--border)'
+      btnTable.style.color       = 'var(--text-secondary)'
+    } else {
+      btnTable.style.background  = 'rgba(139,92,246,.2)'
+      btnTable.style.borderColor = 'rgba(139,92,246,.4)'
+      btnTable.style.color       = '#a78bfa'
+      btnCards.style.background  = 'var(--bg-primary)'
+      btnCards.style.borderColor = 'var(--border)'
+      btnCards.style.color       = 'var(--text-secondary)'
+    }
+  }
+  loadCR()
+}
+
+// ─── KPI stats hero ────────────────────────────────────────────
+async function loadCRHeroStats() {
+  const box = document.getElementById('cr-hero-stats')
+  if (!box) return
+  try {
+    let url = `${API.compteRendus}?limit=500`
+    const data = await http.get(url)
+    const rows = data.data || []
+    const total     = rows.length
+    const finalized = rows.filter(r => r.status === 'finalized').length
+    const draft     = rows.filter(r => r.status === 'draft').length
+    const resolved  = rows.filter(r => r.result === 'resolved').length
+    const partial   = rows.filter(r => r.result === 'partial').length
+    const pending   = rows.filter(r => r.result === 'pending').length
+    const resRate   = total > 0 ? Math.round((resolved / total) * 100) : 0
+    const statItem = (icon, color, label, value) => `
+      <div style="display:flex;align-items:center;gap:.55rem;background:rgba(255,255,255,.05);
+                  border:1px solid rgba(255,255,255,.09);border-radius:10px;padding:.45rem 1rem">
+        <i class="fas ${icon}" style="color:${color};font-size:.85rem"></i>
+        <div>
+          <div style="font-size:1rem;font-weight:800;color:${color};line-height:1">${value}</div>
+          <div style="font-size:.6rem;color:rgba(148,163,184,.6);text-transform:uppercase;letter-spacing:.5px">${label}</div>
+        </div>
+      </div>`
+    box.innerHTML =
+      statItem('fa-file-alt',     '#a78bfa', 'Total CR',     total)    +
+      statItem('fa-check-circle', '#34d399', 'Finalisés',    finalized) +
+      statItem('fa-edit',         '#fbbf24', 'Brouillons',   draft)    +
+      statItem('fa-thumbs-up',    '#34d399', 'Résolus',      resolved) +
+      statItem('fa-exclamation-triangle','#fbbf24','Partiels', partial) +
+      statItem('fa-times-circle', '#f87171', 'En attente',   pending)  +
+      `<div style="display:flex;align-items:center;gap:.55rem;background:rgba(52,211,153,.08);
+                  border:1px solid rgba(52,211,153,.18);border-radius:10px;padding:.45rem 1rem">
+        <i class="fas fa-percentage" style="color:#34d399;font-size:.85rem"></i>
+        <div>
+          <div style="font-size:1rem;font-weight:800;color:#34d399;line-height:1">${resRate}%</div>
+          <div style="font-size:.6rem;color:rgba(148,163,184,.6);text-transform:uppercase;letter-spacing:.5px">Taux résolution</div>
+        </div>
+      </div>`
+  } catch(e) {
+    box.innerHTML = `<span style="font-size:.72rem;color:rgba(148,163,184,.4)">Stats indisponibles</span>`
+  }
 }
 
 let crDebounce = null
 function debounceCR() { clearTimeout(crDebounce); crDebounce = setTimeout(loadCR, 350) }
 function clearCRFilters() {
-  document.getElementById('cr-search').value = ''
-  document.getElementById('cr-status').value = ''
+  const ids = ['cr-search','cr-status','cr-result','cr-type-filter','cr-tech-filter','cr-date-from','cr-date-to']
+  ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = '' })
   loadCR()
 }
 
 async function loadCR() {
-  const q      = document.getElementById('cr-search')?.value || ''
-  const status = document.getElementById('cr-status')?.value || ''
-  const list   = document.getElementById('cr-list')
+  const q       = document.getElementById('cr-search')?.value || ''
+  const status  = document.getElementById('cr-status')?.value || ''
+  const result  = document.getElementById('cr-result')?.value || ''
+  const type    = document.getElementById('cr-type-filter')?.value || ''
+  const tech    = document.getElementById('cr-tech-filter')?.value || ''
+  const dateFrom= document.getElementById('cr-date-from')?.value || ''
+  const dateTo  = document.getElementById('cr-date-to')?.value || ''
+  const list    = document.getElementById('cr-list')
   if (!list) return
   list.innerHTML = '<div class="loading-overlay"><span class="loader"></span></div>'
   try {
-    let url = `${API.compteRendus}?limit=50`
-    if (q) url += `&q=${encodeURIComponent(q)}`
-    if (status) url += `&status=${encodeURIComponent(status)}`
+    let url = `${API.compteRendus}?limit=100`
+    if (q)        url += `&q=${encodeURIComponent(q)}`
+    if (status)   url += `&status=${encodeURIComponent(status)}`
+    if (result)   url += `&result=${encodeURIComponent(result)}`
+    if (type)     url += `&intervention_type=${encodeURIComponent(type)}`
+    if (tech)     url += `&technician_name=${encodeURIComponent(tech)}`
+    if (dateFrom) url += `&date_from=${encodeURIComponent(dateFrom)}`
+    if (dateTo)   url += `&date_to=${encodeURIComponent(dateTo)}`
     const data = await http.get(url)
     const rows = data.data || []
     if (rows.length === 0) {
-      list.innerHTML = `<div style="text-align:center;padding:3rem;color:var(--text-secondary)">
-        <i class="fas fa-file-alt" style="font-size:2.5rem;opacity:.3;display:block;margin-bottom:1rem"></i>
-        <p style="font-size:0.85rem">Aucun compte rendu trouvé</p>
-        <button class="btn btn-primary btn-sm" style="margin-top:1rem" onclick="openCRModal(null)"><i class="fas fa-plus"></i> Créer le premier</button>
-      </div>`
+      list.innerHTML = `
+        <div style="
+          text-align:center;padding:4rem 2rem;
+          background:var(--bg-secondary);border:1px solid var(--border);
+          border-radius:14px;
+        ">
+          <div style="width:64px;height:64px;border-radius:50%;
+                      background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.2);
+                      display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem">
+            <i class="fas fa-file-alt" style="font-size:1.6rem;color:rgba(139,92,246,.5)"></i>
+          </div>
+          <p style="font-size:.9rem;font-weight:600;color:var(--text-primary);margin:0 0 .4rem">Aucun compte rendu trouvé</p>
+          <p style="font-size:.78rem;color:var(--text-secondary);margin:0 0 1.25rem">Créez votre premier rapport d'intervention</p>
+          <button class="btn btn-primary btn-sm" onclick="openCRModal(null)">
+            <i class="fas fa-plus"></i> Créer le premier
+          </button>
+        </div>`
       return
     }
-    list.innerHTML = `
-      <div style="display:grid;gap:.75rem">
-        ${rows.map(r => crCard(r)).join('')}
-      </div>
-    `
+    const view = window._crView || 'cards'
+    if (view === 'table') {
+      list.innerHTML = crTableView(rows)
+    } else {
+      list.innerHTML = `<div style="display:grid;gap:.85rem">${rows.map(r => crCard(r)).join('')}</div>`
+    }
   } catch(e) {
-    list.innerHTML = `<div style="padding:2rem;text-align:center;color:#f87171">Erreur de chargement</div>`
+    list.innerHTML = `
+      <div style="padding:2.5rem;text-align:center;color:#f87171;background:rgba(248,113,113,.05);border:1px solid rgba(248,113,113,.15);border-radius:12px">
+        <i class="fas fa-exclamation-triangle" style="font-size:1.5rem;display:block;margin-bottom:.75rem"></i>
+        <p style="margin:0;font-size:.85rem">Erreur de chargement des comptes rendus</p>
+      </div>`
   }
 }
 
-function crCard(r) {
-  const statusBadge = r.status === 'finalized'
-    ? `<span style="background:rgba(52,211,153,.15);color:#34d399;font-size:.65rem;font-weight:700;padding:2px 10px;border-radius:20px"><i class="fas fa-check-circle"></i> Finalisé</span>`
-    : `<span style="background:rgba(251,191,36,.15);color:#fbbf24;font-size:.65rem;font-weight:700;padding:2px 10px;border-radius:20px"><i class="fas fa-edit"></i> Brouillon</span>`
-  const resultColors = { resolved:'#34d399', partial:'#fbbf24', pending:'#f87171' }
-  const resultLabels = { resolved:'Résolu', partial:'Partiel', pending:'En attente' }
-  const rc = resultColors[r.result] || '#94a3b8'
-  const rl = resultLabels[r.result] || r.result
-  const photoIcon = r.photo_count > 0
-    ? `<span style="color:var(--accent-blue);font-size:.7rem"><i class="fas fa-camera"></i> ${r.photo_count} photo${r.photo_count>1?'s':''}</span>`
-    : ''
-  return `
-    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:1rem 1.25rem;
-                transition:border-color .2s" onmouseover="this.style.borderColor='var(--accent-blue)'" onmouseout="this.style.borderColor='var(--border)'">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem">
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.4rem">
-            ${statusBadge}
-            ${r.reference_num ? `<span style="font-size:.65rem;color:var(--text-secondary);font-family:monospace">${escHtml(r.reference_num)}</span>` : ''}
-            <span style="font-size:.65rem;color:${rc};font-weight:600"><i class="fas fa-circle" style="font-size:.4rem;margin-right:3px"></i>${rl}</span>
-            ${photoIcon}
+// ─── Vue tableau ───────────────────────────────────────────────
+function crTableView(rows) {
+  const rowsHtml = rows.map(r => {
+    const statusColor = r.status === 'finalized' ? '#34d399' : '#fbbf24'
+    const statusLabel = r.status === 'finalized' ? 'Finalisé' : 'Brouillon'
+    const resultColor = { resolved:'#34d399', partial:'#fbbf24', pending:'#f87171' }[r.result] || '#94a3b8'
+    const resultLabel = { resolved:'Résolu', partial:'Partiel', pending:'En attente' }[r.result] || r.result
+    const typeLabel   = r.intervention_type === 'preventive' ? '🛡 Préventive' : '🔧 Corrective'
+    return `
+      <tr style="border-bottom:1px solid var(--border);transition:background .15s"
+          onmouseover="this.style.background='rgba(139,92,246,.05)'"
+          onmouseout="this.style.background='transparent'">
+        <td style="padding:.65rem 1rem;font-size:.78rem;max-width:220px">
+          <div style="font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(r.title)}</div>
+          ${r.reference_num ? `<div style="font-size:.65rem;color:var(--text-secondary);font-family:monospace">${escHtml(r.reference_num)}</div>` : ''}
+        </td>
+        <td style="padding:.65rem .75rem;font-size:.75rem;color:var(--text-secondary)">${r.client ? escHtml(r.client) : '—'}</td>
+        <td style="padding:.65rem .75rem;font-size:.75rem;color:var(--text-secondary)">${r.technician_name ? escHtml(r.technician_name) : '—'}</td>
+        <td style="padding:.65rem .75rem;font-size:.73rem;color:var(--text-secondary)">${r.intervention_date ? formatDate(r.intervention_date) : '—'}</td>
+        <td style="padding:.65rem .75rem;font-size:.73rem;white-space:nowrap">${typeLabel}</td>
+        <td style="padding:.65rem .75rem">
+          <span style="background:rgba(255,255,255,.06);color:${resultColor};font-size:.65rem;font-weight:700;padding:2px 9px;border-radius:20px;border:1px solid ${resultColor}33">
+            ${resultLabel}
+          </span>
+        </td>
+        <td style="padding:.65rem .75rem">
+          <span style="color:${statusColor};font-size:.65rem;font-weight:700">
+            ${r.status === 'finalized' ? '✅' : '✏️'} ${statusLabel}
+          </span>
+        </td>
+        <td style="padding:.65rem .75rem;font-size:.73rem;color:var(--text-secondary)">${r.duration_hours ? r.duration_hours + 'h' : '—'}</td>
+        <td style="padding:.65rem .75rem">
+          <div style="display:flex;gap:.35rem">
+            <button class="btn btn-ghost btn-sm" title="Aperçu PDF" onclick="printCR(${r.id})" style="padding:.25rem .45rem;font-size:.72rem"><i class="fas fa-print"></i></button>
+            <button class="btn btn-ghost btn-sm" title="Modifier"   onclick="openCRModal(${r.id})" style="padding:.25rem .45rem;font-size:.72rem"><i class="fas fa-edit"></i></button>
+            ${r.status === 'draft' ? `<button class="btn btn-ghost btn-sm" title="Finaliser" onclick="finalizeCR(${r.id})" style="padding:.25rem .45rem;font-size:.72rem;color:#34d399"><i class="fas fa-check"></i></button>` : ''}
+            <button class="btn btn-ghost btn-sm" title="Supprimer" onclick="deleteCR(${r.id},'${escHtml(r.title).replace(/'/g,"\\'")}'')" style="padding:.25rem .45rem;font-size:.72rem;color:#f87171"><i class="fas fa-trash"></i></button>
           </div>
-          <div style="font-weight:700;font-size:.9rem;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(r.title)}</div>
-          <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:.35rem">
-            ${r.client ? `<span style="font-size:.72rem;color:var(--text-secondary)"><i class="fas fa-building" style="margin-right:4px;opacity:.6"></i>${escHtml(r.client)}</span>` : ''}
-            ${r.technician_name ? `<span style="font-size:.72rem;color:var(--text-secondary)"><i class="fas fa-user-cog" style="margin-right:4px;opacity:.6"></i>${escHtml(r.technician_name)}</span>` : ''}
-            ${r.intervention_date ? `<span style="font-size:.72rem;color:var(--text-secondary)"><i class="fas fa-calendar" style="margin-right:4px;opacity:.6"></i>${formatDate(r.intervention_date)}</span>` : ''}
+        </td>
+      </tr>`
+  }).join('')
+  return `
+    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="border-bottom:2px solid var(--border);background:rgba(139,92,246,.06)">
+              <th style="padding:.7rem 1rem;text-align:left;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-secondary)">Titre</th>
+              <th style="padding:.7rem .75rem;text-align:left;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-secondary)">Client</th>
+              <th style="padding:.7rem .75rem;text-align:left;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-secondary)">Technicien</th>
+              <th style="padding:.7rem .75rem;text-align:left;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-secondary)">Date</th>
+              <th style="padding:.7rem .75rem;text-align:left;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-secondary)">Type</th>
+              <th style="padding:.7rem .75rem;text-align:left;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-secondary)">Résultat</th>
+              <th style="padding:.7rem .75rem;text-align:left;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-secondary)">Statut</th>
+              <th style="padding:.7rem .75rem;text-align:left;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-secondary)">Durée</th>
+              <th style="padding:.7rem .75rem;text-align:left;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-secondary)">Actions</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+    </div>`
+}
+
+function crCard(r) {
+  const isFinalized = r.status === 'finalized'
+  const statusBadge = isFinalized
+    ? `<span style="background:rgba(52,211,153,.12);color:#34d399;font-size:.63rem;font-weight:700;padding:2px 9px;border-radius:20px;border:1px solid rgba(52,211,153,.25)"><i class="fas fa-check-circle" style="margin-right:3px"></i>Finalisé</span>`
+    : `<span style="background:rgba(251,191,36,.1);color:#fbbf24;font-size:.63rem;font-weight:700;padding:2px 9px;border-radius:20px;border:1px solid rgba(251,191,36,.25)"><i class="fas fa-edit" style="margin-right:3px"></i>Brouillon</span>`
+  const resultConfig = {
+    resolved: { color:'#34d399', bg:'rgba(52,211,153,.1)',  border:'rgba(52,211,153,.2)',  label:'Résolu',     icon:'fa-check-circle' },
+    partial:  { color:'#fbbf24', bg:'rgba(251,191,36,.1)',  border:'rgba(251,191,36,.2)',  label:'Partiel',    icon:'fa-exclamation-triangle' },
+    pending:  { color:'#f87171', bg:'rgba(248,113,113,.1)', border:'rgba(248,113,113,.2)', label:'En attente', icon:'fa-times-circle' },
+  }
+  const rc = resultConfig[r.result] || { color:'#94a3b8', bg:'rgba(148,163,184,.1)', border:'rgba(148,163,184,.2)', label: r.result, icon:'fa-circle' }
+  const typeLabel = r.intervention_type === 'preventive'
+    ? `<span style="font-size:.63rem;color:#a78bfa"><i class="fas fa-shield-alt" style="margin-right:3px"></i>Préventive</span>`
+    : `<span style="font-size:.63rem;color:#60a5fa"><i class="fas fa-tools" style="margin-right:3px"></i>Corrective</span>`
+  const photoIcon = r.photo_count > 0
+    ? `<span style="font-size:.65rem;color:#60a5fa"><i class="fas fa-camera" style="margin-right:3px"></i>${r.photo_count} photo${r.photo_count>1?'s':''}</span>`
+    : ''
+  const qualityBadge = r.quality_rating
+    ? `<span style="font-size:.63rem;color:#fbbf24"><i class="fas fa-star" style="margin-right:3px"></i>${r.quality_rating}/10</span>`
+    : ''
+  // Couleur bordure gauche selon résultat
+  const borderAccent = rc.color
+  return `
+    <div style="
+      background:var(--bg-secondary);
+      border:1px solid var(--border);
+      border-left:3px solid ${borderAccent};
+      border-radius:12px;padding:1.1rem 1.25rem;
+      transition:all .2s;position:relative;overflow:hidden;
+    "
+    onmouseover="this.style.borderColor='${borderAccent}';this.style.boxShadow='0 4px 20px rgba(0,0,0,.15)'"
+    onmouseout="this.style.borderColor='var(--border)';this.style.borderLeftColor='${borderAccent}';this.style.boxShadow='none'">
+
+      <!-- Accent déco -->
+      <div style="position:absolute;top:0;right:0;width:80px;height:80px;border-radius:0 12px 0 0;
+                  background:radial-gradient(circle at top right,${rc.bg},transparent 70%);pointer-events:none"></div>
+
+      <div style="position:relative;display:flex;align-items:flex-start;justify-content:space-between;gap:1rem">
+        <div style="flex:1;min-width:0">
+
+          <!-- Badges ligne 1 -->
+          <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.55rem">
+            ${statusBadge}
+            <span style="background:${rc.bg};color:${rc.color};font-size:.63rem;font-weight:700;padding:2px 9px;border-radius:20px;border:1px solid ${rc.border}">
+              <i class="fas ${rc.icon}" style="margin-right:3px"></i>${rc.label}
+            </span>
+            ${typeLabel}
+            ${r.reference_num ? `<span style="font-size:.62rem;color:var(--text-secondary);font-family:monospace;opacity:.7">${escHtml(r.reference_num)}</span>` : ''}
+          </div>
+
+          <!-- Titre -->
+          <div style="font-weight:700;font-size:.92rem;color:var(--text-primary);
+                      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+                      margin-bottom:.5rem">${escHtml(r.title)}</div>
+
+          <!-- Méta infos -->
+          <div style="display:flex;gap:.85rem;flex-wrap:wrap;align-items:center">
+            ${r.client ? `<span style="font-size:.72rem;color:var(--text-secondary)"><i class="fas fa-building" style="margin-right:4px;color:#60a5fa;opacity:.8"></i>${escHtml(r.client)}</span>` : ''}
+            ${r.technician_name ? `<span style="font-size:.72rem;color:var(--text-secondary)"><i class="fas fa-user-cog" style="margin-right:4px;color:#a78bfa;opacity:.8"></i>${escHtml(r.technician_name)}</span>` : ''}
+            ${r.intervention_date ? `<span style="font-size:.72rem;color:var(--text-secondary)"><i class="fas fa-calendar" style="margin-right:4px;color:#fbbf24;opacity:.8"></i>${formatDate(r.intervention_date)}</span>` : ''}
             ${r.duration_hours ? `<span style="font-size:.72rem;color:var(--text-secondary)"><i class="fas fa-clock" style="margin-right:4px;opacity:.6"></i>${r.duration_hours}h</span>` : ''}
+            ${r.city ? `<span style="font-size:.72rem;color:var(--text-secondary)"><i class="fas fa-map-marker-alt" style="margin-right:4px;opacity:.6"></i>${escHtml(r.city)}</span>` : ''}
+            ${photoIcon}
+            ${qualityBadge}
           </div>
         </div>
-        <div style="display:flex;gap:.5rem;align-items:center;flex-shrink:0">
-          <button class="btn btn-ghost btn-sm" title="Aperçu PDF" onclick="printCR(${r.id})">
-            <i class="fas fa-print"></i>
-          </button>
-          <button class="btn btn-ghost btn-sm" title="Modifier" onclick="openCRModal(${r.id})">
-            <i class="fas fa-edit"></i>
-          </button>
-          ${r.status === 'draft' ? `<button class="btn btn-ghost btn-sm" style="color:#34d399" title="Finaliser" onclick="finalizeCR(${r.id})"><i class="fas fa-check"></i></button>` : ''}
-          <button class="btn btn-ghost btn-sm" style="color:#f87171" title="Supprimer" onclick="deleteCR(${r.id}, '${escHtml(r.title).replace(/'/g,"\\'")}')">
-            <i class="fas fa-trash"></i>
-          </button>
+
+        <!-- Actions -->
+        <div style="display:flex;flex-direction:column;gap:.35rem;align-items:flex-end;flex-shrink:0">
+          <div style="display:flex;gap:.35rem">
+            <button class="btn btn-ghost btn-sm" title="Aperçu / Imprimer PDF" onclick="printCR(${r.id})"
+              style="padding:.3rem .55rem;font-size:.75rem;color:#60a5fa">
+              <i class="fas fa-print"></i>
+            </button>
+            <button class="btn btn-ghost btn-sm" title="Modifier" onclick="openCRModal(${r.id})"
+              style="padding:.3rem .55rem;font-size:.75rem">
+              <i class="fas fa-edit"></i>
+            </button>
+            ${r.status === 'draft' ? `
+            <button class="btn btn-ghost btn-sm" title="Finaliser" onclick="finalizeCR(${r.id})"
+              style="padding:.3rem .55rem;font-size:.75rem;color:#34d399">
+              <i class="fas fa-check"></i>
+            </button>` : ''}
+            <button class="btn btn-ghost btn-sm" title="Supprimer" onclick="deleteCR(${r.id}, '${escHtml(r.title).replace(/'/g,"\\'")}' )"
+              style="padding:.3rem .55rem;font-size:.75rem;color:#f87171">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+          ${r.created_at ? `<span style="font-size:.62rem;color:var(--text-secondary);opacity:.5">${formatDate(r.created_at)}</span>` : ''}
         </div>
       </div>
     </div>
