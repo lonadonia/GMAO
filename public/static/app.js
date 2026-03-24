@@ -233,8 +233,11 @@ function renderApp() {
         </div>
       </nav>
       <div class="sidebar-footer">
-        <i class="fas fa-circle" style="color:var(--accent-green);font-size:0.6rem"></i>
-        PPrime — GMAO v1.0
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <i class="fas fa-circle" style="color:var(--accent-green);font-size:0.55rem"></i>
+          <span style="font-weight:700;font-size:.7rem;color:var(--text-primary)">PPrime — GMAO v1.0</span>
+        </div>
+        <div style="font-size:.62rem;color:var(--text-secondary);padding-left:14px">Mohcine Banaoui</div>
       </div>
     </div>
     <div class="main-content">
@@ -289,77 +292,154 @@ async function renderDashboard() {
   const f = state.kpi.filters
 
   const container = document.getElementById('page-container')
-  container.innerHTML = `
-    <div class="page-header" style="flex-direction:column;align-items:stretch;gap:0.75rem">
+  // Date/heure dynamique
+  const now = new Date()
+  const dayNames = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi']
+  const monthNames = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']
+  const dateStr = `${dayNames[now.getDay()]} ${now.getDate()} ${monthNames[now.getMonth()]} ${now.getFullYear()}`
+  const timeStr = now.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})
 
-      <!-- Ligne 1 : titre + bouton actualiser -->
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <div>
-          <h1 style="font-size:1.2rem;font-weight:700">Tableau de bord</h1>
-          <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px">
-            Vue d'ensemble — KPIs en temps réel
-          </p>
+  container.innerHTML = `
+
+    <!-- ══════════════════════════════════════════════════════
+         HERO HEADER — GMAO PPrime Dashboard
+    ══════════════════════════════════════════════════════ -->
+    <div style="
+      background: linear-gradient(135deg, #0f172a 0%, #0d2240 40%, #0f2a4a 70%, #0a1628 100%);
+      border-radius: 16px;
+      padding: 1.75rem 2rem;
+      margin-bottom: 1.5rem;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(59,130,246,0.15);
+      box-shadow: 0 4px 32px rgba(0,0,0,0.4);
+    ">
+      <!-- Cercles décoratifs background -->
+      <div style="position:absolute;top:-60px;right:-60px;width:220px;height:220px;border-radius:50%;
+                  background:radial-gradient(circle,rgba(59,130,246,0.12) 0%,transparent 70%);pointer-events:none"></div>
+      <div style="position:absolute;bottom:-40px;left:40%;width:180px;height:180px;border-radius:50%;
+                  background:radial-gradient(circle,rgba(99,102,241,0.08) 0%,transparent 70%);pointer-events:none"></div>
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;
+                  background:linear-gradient(90deg,transparent,#3b82f6,#6366f1,transparent);pointer-events:none"></div>
+
+      <div style="position:relative;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+
+        <!-- Gauche : titre + sous-titre -->
+        <div style="display:flex;align-items:center;gap:1.25rem">
+          <!-- Icône -->
+          <div style="
+            width:54px;height:54px;border-radius:14px;flex-shrink:0;
+            background:linear-gradient(135deg,#1d4ed8,#4f46e5);
+            display:flex;align-items:center;justify-content:center;
+            box-shadow:0 4px 16px rgba(59,130,246,0.35);
+          ">
+            <i class="fas fa-tachometer-alt" style="font-size:1.4rem;color:white"></i>
+          </div>
+          <div>
+            <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;
+                        color:rgba(148,163,184,.7);margin-bottom:3px">
+              Système de Gestion de Maintenance Assistée par Ordinateur
+            </div>
+            <h1 style="font-size:1.55rem;font-weight:800;color:#f1f5f9;line-height:1.15;
+                       letter-spacing:-.3px;margin:0">
+              Tableau de Bord
+              <span style="color:#3b82f6"> PPrime</span>
+            </h1>
+            <div style="display:flex;align-items:center;gap:.6rem;margin-top:5px">
+              <span style="font-size:.72rem;color:rgba(148,163,184,.75)">
+                <i class="fas fa-calendar-day" style="margin-right:4px;color:#3b82f6;opacity:.8"></i>${dateStr}
+              </span>
+              <span style="color:rgba(148,163,184,.3)">·</span>
+              <span style="font-size:.72rem;color:rgba(148,163,184,.75)">
+                <i class="fas fa-clock" style="margin-right:4px;color:#6366f1;opacity:.8"></i>${timeStr}
+              </span>
+            </div>
+          </div>
         </div>
-        <div style="display:flex;gap:0.5rem;align-items:center">
-          <button class="btn btn-ghost btn-sm" onclick="resetKpiFilters()" title="Réinitialiser les filtres">
-            <i class="fas fa-times"></i> Réinitialiser
-          </button>
-          <button class="btn btn-primary btn-sm" onclick="reloadKPI()">
-            <i class="fas fa-sync-alt"></i> Actualiser
-          </button>
+
+        <!-- Droite : profil + boutons -->
+        <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+          <!-- Carte profil -->
+          <div style="
+            background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);
+            border-radius:12px;padding:.6rem 1rem;display:flex;align-items:center;gap:.7rem;
+          ">
+            <div style="
+              width:36px;height:36px;border-radius:50%;flex-shrink:0;
+              background:linear-gradient(135deg,#1d4ed8,#7c3aed);
+              display:flex;align-items:center;justify-content:center;
+              font-size:.85rem;font-weight:800;color:white;
+            ">MB</div>
+            <div>
+              <div style="font-size:.78rem;font-weight:700;color:#f1f5f9;line-height:1.2">Mohcine Banaoui</div>
+              <div style="font-size:.62rem;color:rgba(148,163,184,.65)">Responsable Maintenance</div>
+            </div>
+          </div>
+
+          <!-- Boutons action -->
+          <div style="display:flex;gap:.5rem">
+            <button class="btn btn-ghost btn-sm" onclick="resetKpiFilters()" title="Réinitialiser les filtres"
+              style="border:1px solid rgba(255,255,255,.1);color:rgba(148,163,184,.8)">
+              <i class="fas fa-filter-circle-xmark"></i>
+            </button>
+            <button onclick="reloadKPI()" style="
+              background:linear-gradient(135deg,#1d4ed8,#4f46e5);border:none;
+              color:white;border-radius:9px;padding:.45rem 1.1rem;font-size:.78rem;
+              font-weight:700;cursor:pointer;display:flex;align-items:center;gap:.4rem;
+              box-shadow:0 2px 12px rgba(59,130,246,.35);transition:opacity .2s;
+            " onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+              <i class="fas fa-sync-alt"></i> Actualiser
+            </button>
+          </div>
         </div>
       </div>
 
-      <!-- Ligne 2 : filtres -->
-      <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center">
-
-        <!-- Date début -->
-        <div style="display:flex;align-items:center;gap:0.3rem">
-          <i class="fas fa-calendar-alt" style="color:var(--text-secondary);font-size:0.75rem"></i>
-          <input type="date" id="kpi-date-from" class="input input-sm" style="width:145px"
+      <!-- Filtres en bas du hero -->
+      <div style="
+        margin-top:1.25rem;padding-top:1.1rem;
+        border-top:1px solid rgba(255,255,255,.07);
+        display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;
+      ">
+        <span style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;
+                     color:rgba(148,163,184,.5);margin-right:.25rem">
+          <i class="fas fa-sliders-h" style="margin-right:4px"></i>Filtres
+        </span>
+        <div style="display:flex;align-items:center;gap:.3rem">
+          <i class="fas fa-calendar-alt" style="color:rgba(148,163,184,.4);font-size:.7rem"></i>
+          <input type="date" id="kpi-date-from" class="input input-sm" style="width:140px;background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1);color:#f1f5f9"
                  value="${f.date_from||''}" onchange="reloadKPI()" title="Date début">
         </div>
-
-        <span style="color:var(--text-secondary);font-size:0.8rem">→</span>
-
-        <!-- Date fin -->
-        <div style="display:flex;align-items:center;gap:0.3rem">
-          <input type="date" id="kpi-date-to" class="input input-sm" style="width:145px"
+        <span style="color:rgba(148,163,184,.4);font-size:.75rem">→</span>
+        <div style="display:flex;align-items:center;gap:.3rem">
+          <input type="date" id="kpi-date-to" class="input input-sm" style="width:140px;background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1);color:#f1f5f9"
                  value="${f.date_to||''}" onchange="reloadKPI()" title="Date fin">
         </div>
-
-        <div style="width:1px;height:22px;background:var(--border-color);margin:0 0.25rem"></div>
-
-        <!-- Technicien -->
-        <div style="display:flex;align-items:center;gap:0.3rem">
-          <i class="fas fa-user-cog" style="color:var(--text-secondary);font-size:0.75rem"></i>
-          <select id="kpi-technician" class="select input-sm" style="width:150px" onchange="reloadKPI()">
+        <div style="width:1px;height:18px;background:rgba(255,255,255,.1)"></div>
+        <div style="display:flex;align-items:center;gap:.3rem">
+          <i class="fas fa-user-cog" style="color:rgba(148,163,184,.4);font-size:.7rem"></i>
+          <select id="kpi-technician" class="select input-sm" style="width:150px;background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1);color:#f1f5f9" onchange="reloadKPI()">
             <option value="">Tous techniciens</option>
             ${techOptions}
           </select>
         </div>
-
-        <!-- Ville -->
-        <div style="display:flex;align-items:center;gap:0.3rem">
-          <i class="fas fa-map-marker-alt" style="color:var(--text-secondary);font-size:0.75rem"></i>
-          <input type="text" id="kpi-city" class="input input-sm" style="width:130px"
+        <div style="width:1px;height:18px;background:rgba(255,255,255,.1)"></div>
+        <div style="display:flex;align-items:center;gap:.3rem">
+          <i class="fas fa-map-marker-alt" style="color:rgba(148,163,184,.4);font-size:.7rem"></i>
+          <input type="text" id="kpi-city" class="input input-sm" style="width:125px;background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1);color:#f1f5f9"
                  placeholder="Ville..." value="${f.city||''}"
                  oninput="debounceKpiFilter()" title="Filtrer par ville">
         </div>
-
-        <!-- Client -->
-        <div style="display:flex;align-items:center;gap:0.3rem">
-          <i class="fas fa-building" style="color:var(--text-secondary);font-size:0.75rem"></i>
-          <select id="kpi-client" class="select input-sm" style="width:160px" onchange="reloadKPI()">
+        <div style="display:flex;align-items:center;gap:.3rem">
+          <i class="fas fa-building" style="color:rgba(148,163,184,.4);font-size:.7rem"></i>
+          <select id="kpi-client" class="select input-sm" style="width:155px;background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1);color:#f1f5f9" onchange="reloadKPI()">
             <option value="">Tous clients</option>
             ${clientOptions}
           </select>
         </div>
-
-        <!-- Badge filtres actifs -->
         <div id="kpi-active-badge"></div>
       </div>
     </div>
+
     <div class="page-content">
       <div id="planning-alerts-banner"></div>
       <div id="kpi-section">
@@ -4653,7 +4733,7 @@ async function printCR(id) {
   <div class="footer">
     <div>
       <div style="font-size:.7rem;color:#94a3b8;margin-bottom:6px">Rédigé par</div>
-      <div style="font-size:.82rem;font-weight:600">${cr.created_by||'Responsable GMAO'}</div>
+      <div style="font-size:.82rem;font-weight:600">${cr.created_by||'Mohcine Banaoui'}</div>
       <div style="font-size:.7rem;color:#94a3b8;margin-top:3px">Généré le ${new Date().toLocaleDateString('fr-FR')}</div>
     </div>
     <div class="signature-box">

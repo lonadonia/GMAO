@@ -104,7 +104,7 @@ app.post('/', async (c) => {
     work_performed || null, observations || null, recommendations || null,
     parts_used ? JSON.stringify(parts_used) : null,
     duration_hours || 0, result || 'resolved',
-    quality_rating || null, client_signature || null, status || 'draft', created_by || 'Responsable GMAO',
+    quality_rating || null, client_signature || null, status || 'draft', created_by || 'Mohcine Banaoui',
     now(), now()
   ).run()
 
@@ -158,7 +158,7 @@ app.put('/:id', async (c) => {
     work_performed || null, observations || null, recommendations || null,
     parts_used ? JSON.stringify(parts_used) : null,
     duration_hours || 0, result || 'resolved',
-    quality_rating || null, client_signature || null, status || 'draft', created_by || 'Responsable GMAO',
+    quality_rating || null, client_signature || null, status || 'draft', created_by || 'Mohcine Banaoui',
     now(), id
   ).run()
 
