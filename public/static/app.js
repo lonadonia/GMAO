@@ -320,24 +320,6 @@ function showLoginPage() {
           <!-- Séparateur bas -->
           <div style="height:1px;background:linear-gradient(90deg,transparent,#e2e8f0,transparent);margin:1.6rem 0 1.2rem"></div>
 
-          <!-- Info credentials (dev hint) -->
-          <div style="
-            background:linear-gradient(135deg,rgba(124,58,237,.06),rgba(79,70,229,.06));
-            border:1px solid rgba(124,58,237,.14);
-            border-radius:10px;padding:.75rem 1rem;
-            display:flex;align-items:center;gap:.7rem;
-            margin-bottom:1.4rem;
-          ">
-            <i class="fas fa-info-circle" style="color:#7c3aed;font-size:.9rem;flex-shrink:0"></i>
-            <div>
-              <div style="font-size:.7rem;font-weight:700;color:#5b21b6">Accès démo</div>
-              <div style="font-size:.67rem;color:#64748b;margin-top:1px">
-                <span style="font-family:monospace;color:#374151">admin@gmao.com</span> · 
-                <span style="font-family:monospace;color:#374151">1234</span>
-              </div>
-            </div>
-          </div>
-
           <!-- Footer -->
           <div style="text-align:center">
             <div style="font-size:.65rem;color:#94a3b8;margin-bottom:.2rem">
