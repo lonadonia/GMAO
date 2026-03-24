@@ -324,26 +324,21 @@ async function renderDashboard() {
 
       <div style="position:relative;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
 
-        <!-- Gauche : titre + sous-titre -->
+        <!-- Gauche : logo + titre -->
         <div style="display:flex;align-items:center;gap:1.25rem">
-          <!-- Icône -->
-          <div style="
-            width:54px;height:54px;border-radius:14px;flex-shrink:0;
-            background:linear-gradient(135deg,#1d4ed8,#4f46e5);
-            display:flex;align-items:center;justify-content:center;
-            box-shadow:0 4px 16px rgba(59,130,246,0.35);
-          ">
-            <i class="fas fa-tachometer-alt" style="font-size:1.4rem;color:white"></i>
+          <!-- Logo PPrime -->
+          <div style="flex-shrink:0">
+            <img src="/static/logo-pprime-white.svg" alt="PPrime" style="height:52px;width:auto;display:block;filter:drop-shadow(0 2px 10px rgba(59,130,246,0.4))" />
           </div>
+          <div style="width:1px;height:48px;background:rgba(255,255,255,.1);flex-shrink:0"></div>
           <div>
-            <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;
-                        color:rgba(148,163,184,.7);margin-bottom:3px">
+            <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;
+                        color:rgba(148,163,184,.6);margin-bottom:3px">
               Système de Gestion de Maintenance Assistée par Ordinateur
             </div>
-            <h1 style="font-size:1.55rem;font-weight:800;color:#f1f5f9;line-height:1.15;
+            <h1 style="font-size:1.45rem;font-weight:800;color:#f1f5f9;line-height:1.15;
                        letter-spacing:-.3px;margin:0">
               Tableau de Bord
-              <span style="color:#3b82f6"> PPrime</span>
             </h1>
             <div style="display:flex;align-items:center;gap:.6rem;margin-top:5px">
               <span style="font-size:.72rem;color:rgba(148,163,184,.75)">
