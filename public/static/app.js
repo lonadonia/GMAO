@@ -189,8 +189,8 @@ function renderApp() {
            with your own <img>, <svg>, or HTML logo.
            Do not modify the outer wrappers.
            ============================================= -->
-      <div class="sidebar-logo" id="logo-wrapper" style="display:none">
-        <div id="logo-slot"></div>
+      <div class="sidebar-logo" id="logo-wrapper" style="display:block;padding:1.1rem 1rem 0.6rem 1rem">
+        <img src="/static/logo-pprime-white.svg" alt="PPrime" style="height:46px;width:auto;display:block" />
       </div>
       <nav class="sidebar-nav">
         <div class="nav-section-title">Principal</div>
