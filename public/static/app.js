@@ -328,7 +328,7 @@ async function renderDashboard() {
         <div style="display:flex;align-items:center;gap:1.25rem">
           <!-- Logo PPrime -->
           <div style="flex-shrink:0">
-            <img src="/static/logo-pprime-white.svg" alt="PPrime" style="height:52px;width:auto;display:block;filter:drop-shadow(0 2px 10px rgba(59,130,246,0.4))" />
+            <img src="/static/logo-pprime-real.png" alt="PPrime" style="height:52px;width:auto;display:block;filter:drop-shadow(0 2px 10px rgba(59,130,246,0.4))" />
           </div>
           <div style="width:1px;height:48px;background:rgba(255,255,255,.1);flex-shrink:0"></div>
           <div>
