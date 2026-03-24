@@ -4,6 +4,205 @@
  */
 
 // ============================================================
+// AUTH — Système de connexion simple
+// ============================================================
+const AUTH = {
+  CREDENTIALS: { email: 'admin@gmao.com', password: '1234' },
+  KEY: 'gmao_isAuthenticated',
+  isLoggedIn() { return localStorage.getItem(this.KEY) === 'true' },
+  login(email, password) {
+    if (email === this.CREDENTIALS.email && password === this.CREDENTIALS.password) {
+      localStorage.setItem(this.KEY, 'true')
+      return true
+    }
+    return false
+  },
+  logout() {
+    localStorage.removeItem(this.KEY)
+    showLoginPage()
+  },
+  guard() {
+    if (!this.isLoggedIn()) { showLoginPage(); return false }
+    return true
+  }
+}
+
+// ─── Page de connexion ────────────────────────────────────────
+function showLoginPage() {
+  document.getElementById('app').innerHTML = `
+    <div style="
+      min-height:100vh;display:flex;align-items:center;justify-content:center;
+      background:linear-gradient(135deg,#060d1a 0%,#0a1628 50%,#0d1f38 100%);
+      position:relative;overflow:hidden;
+    ">
+      <!-- Cercles déco bg -->
+      <div style="position:absolute;top:-120px;right:-80px;width:400px;height:400px;border-radius:50%;
+                  background:radial-gradient(circle,rgba(59,130,246,0.08) 0%,transparent 70%);pointer-events:none"></div>
+      <div style="position:absolute;bottom:-100px;left:-60px;width:350px;height:350px;border-radius:50%;
+                  background:radial-gradient(circle,rgba(99,102,241,0.07) 0%,transparent 70%);pointer-events:none"></div>
+      <div style="position:absolute;top:0;left:0;right:0;height:1px;
+                  background:linear-gradient(90deg,transparent,rgba(59,130,246,.3),transparent);pointer-events:none"></div>
+
+      <!-- Card login -->
+      <div style="
+        background:rgba(15,23,42,0.95);
+        border:1px solid rgba(59,130,246,0.18);
+        border-radius:20px;
+        padding:2.5rem 2.25rem;
+        width:100%;max-width:400px;
+        box-shadow:0 25px 60px rgba(0,0,0,0.5),0 0 0 1px rgba(255,255,255,0.03);
+        position:relative;
+      ">
+        <!-- Ligne déco top -->
+        <div style="position:absolute;top:0;left:10%;right:10%;height:2px;border-radius:0 0 4px 4px;
+                    background:linear-gradient(90deg,transparent,#3b82f6,#6366f1,transparent)"></div>
+
+        <!-- Logo -->
+        <div style="text-align:center;margin-bottom:2rem">
+          <img src="/static/logo-pprime-real.png" alt="PPrime" style="height:50px;width:auto;margin:0 auto 1rem auto;display:block;filter:drop-shadow(0 2px 12px rgba(59,130,246,0.4))" />
+          <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;
+                      color:rgba(148,163,184,.5);margin-bottom:.3rem">
+            Système de Gestion de Maintenance
+          </div>
+          <div style="font-size:1.15rem;font-weight:800;color:#f1f5f9">Connexion</div>
+        </div>
+
+        <!-- Formulaire -->
+        <form id="login-form" onsubmit="handleLogin(event)">
+          <!-- Email -->
+          <div style="margin-bottom:1.1rem">
+            <label style="display:block;font-size:.72rem;font-weight:600;color:rgba(148,163,184,.8);
+                          text-transform:uppercase;letter-spacing:.6px;margin-bottom:.45rem">
+              <i class="fas fa-envelope" style="margin-right:6px;color:#3b82f6"></i>Adresse email
+            </label>
+            <input
+              type="email" id="login-email" required
+              placeholder="admin@gmao.com"
+              style="
+                width:100%;padding:.7rem 1rem;border-radius:10px;
+                background:rgba(255,255,255,.05);
+                border:1px solid rgba(255,255,255,.1);
+                color:#f1f5f9;font-size:.88rem;outline:none;
+                transition:border-color .2s,box-shadow .2s;box-sizing:border-box;
+              "
+              onfocus="this.style.borderColor='#3b82f6';this.style.boxShadow='0 0 0 3px rgba(59,130,246,.15)'"
+              onblur="this.style.borderColor='rgba(255,255,255,.1)';this.style.boxShadow='none'"
+            />
+          </div>
+
+          <!-- Password -->
+          <div style="margin-bottom:1.5rem;position:relative">
+            <label style="display:block;font-size:.72rem;font-weight:600;color:rgba(148,163,184,.8);
+                          text-transform:uppercase;letter-spacing:.6px;margin-bottom:.45rem">
+              <i class="fas fa-lock" style="margin-right:6px;color:#6366f1"></i>Mot de passe
+            </label>
+            <div style="position:relative">
+              <input
+                type="password" id="login-password" required
+                placeholder="••••••••"
+                style="
+                  width:100%;padding:.7rem 2.8rem .7rem 1rem;border-radius:10px;
+                  background:rgba(255,255,255,.05);
+                  border:1px solid rgba(255,255,255,.1);
+                  color:#f1f5f9;font-size:.88rem;outline:none;
+                  transition:border-color .2s,box-shadow .2s;box-sizing:border-box;
+                "
+                onfocus="this.style.borderColor='#6366f1';this.style.boxShadow='0 0 0 3px rgba(99,102,241,.15)'"
+                onblur="this.style.borderColor='rgba(255,255,255,.1)';this.style.boxShadow='none'"
+              />
+              <button type="button" onclick="toggleLoginPwd()"
+                style="position:absolute;right:10px;top:50%;transform:translateY(-50%);
+                       background:none;border:none;color:rgba(148,163,184,.5);cursor:pointer;
+                       padding:4px;font-size:.85rem">
+                <i class="fas fa-eye" id="login-pwd-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Message erreur -->
+          <div id="login-error" style="display:none;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);
+               border-radius:8px;padding:.6rem .9rem;margin-bottom:1rem;
+               color:#fca5a5;font-size:.78rem;display:none;align-items:center;gap:.5rem">
+            <i class="fas fa-exclamation-circle"></i>
+            <span>Identifiants invalides. Veuillez réessayer.</span>
+          </div>
+
+          <!-- Bouton connexion -->
+          <button type="submit" id="login-btn" style="
+            width:100%;padding:.8rem;border:none;border-radius:11px;
+            background:linear-gradient(135deg,#1d4ed8,#4f46e5);
+            color:white;font-size:.9rem;font-weight:700;cursor:pointer;
+            box-shadow:0 4px 20px rgba(59,130,246,.35);
+            transition:opacity .2s,transform .1s;
+            display:flex;align-items:center;justify-content:center;gap:.5rem;
+          "
+          onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'"
+          onmousedown="this.style.transform='scale(.98)'" onmouseup="this.style.transform='scale(1)'">
+            <i class="fas fa-sign-in-alt"></i> Se connecter
+          </button>
+        </form>
+
+        <!-- Footer card -->
+        <div style="margin-top:1.75rem;padding-top:1.1rem;border-top:1px solid rgba(255,255,255,.06);
+                    text-align:center">
+          <div style="font-size:.62rem;color:rgba(148,163,184,.35)">
+            <i class="fas fa-shield-alt" style="margin-right:4px"></i>
+            PPrime GMAO v1.0 — Réalisé par <span style="color:rgba(148,163,184,.55)">Mohcine Banaoui</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `
+  // Focus auto email
+  setTimeout(() => document.getElementById('login-email')?.focus(), 100)
+}
+
+function toggleLoginPwd() {
+  const input = document.getElementById('login-password')
+  const eye   = document.getElementById('login-pwd-eye')
+  if (!input) return
+  if (input.type === 'password') {
+    input.type = 'text'
+    eye.className = 'fas fa-eye-slash'
+  } else {
+    input.type = 'password'
+    eye.className = 'fas fa-eye'
+  }
+}
+
+function handleLogin(e) {
+  e.preventDefault()
+  const email    = document.getElementById('login-email').value.trim()
+  const password = document.getElementById('login-password').value
+  const btn      = document.getElementById('login-btn')
+  const errDiv   = document.getElementById('login-error')
+
+  // Loading state
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connexion...'
+  btn.disabled  = true
+  errDiv.style.display = 'none'
+
+  setTimeout(() => {
+    if (AUTH.login(email, password)) {
+      btn.innerHTML = '<i class="fas fa-check"></i> Connecté !'
+      btn.style.background = 'linear-gradient(135deg,#059669,#10b981)'
+      setTimeout(() => { initApp() }, 600)
+    } else {
+      errDiv.style.display = 'flex'
+      btn.innerHTML  = '<i class="fas fa-sign-in-alt"></i> Se connecter'
+      btn.disabled   = false
+      // Shake animation
+      const form = document.getElementById('login-form')
+      form.style.animation = 'none'
+      form.style.transform = 'translateX(6px)'
+      setTimeout(() => { form.style.transform = 'translateX(-6px)' }, 80)
+      setTimeout(() => { form.style.transform = 'translateX(4px)'  }, 160)
+      setTimeout(() => { form.style.transform = 'translateX(0)'    }, 240)
+    }
+  }, 500)
+}
+
+// ============================================================
 // CONFIGURATION
 // ============================================================
 const API = {
@@ -232,12 +431,28 @@ function renderApp() {
           <i class="fas fa-sliders-h"></i> Paramètres
         </div>
       </nav>
-      <div class="sidebar-footer">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-          <i class="fas fa-circle" style="color:var(--accent-green);font-size:0.55rem"></i>
-          <span style="font-weight:700;font-size:.7rem;color:var(--text-primary)">PPrime — GMAO v1.0</span>
+      <div class="sidebar-footer" style="padding:0">
+        <!-- Bouton Déconnexion -->
+        <button onclick="AUTH.logout()" style="
+          width:100%;display:flex;align-items:center;gap:.6rem;
+          padding:.65rem 1.1rem;margin-bottom:.5rem;
+          background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.18);
+          border-radius:10px;color:#fca5a5;font-size:.75rem;font-weight:600;
+          cursor:pointer;transition:all .2s;
+        "
+        onmouseover="this.style.background='rgba(239,68,68,.18)';this.style.borderColor='rgba(239,68,68,.35)'"
+        onmouseout="this.style.background='rgba(239,68,68,.08)';this.style.borderColor='rgba(239,68,68,.18)'">
+          <i class="fas fa-sign-out-alt" style="font-size:.8rem"></i>
+          Déconnexion
+        </button>
+        <!-- Info version -->
+        <div style="padding:.2rem .3rem .4rem .3rem">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+            <i class="fas fa-circle" style="color:var(--accent-green);font-size:0.5rem"></i>
+            <span style="font-weight:700;font-size:.68rem;color:var(--text-primary)">PPrime — GMAO v1.0</span>
+          </div>
+          <div style="font-size:.6rem;color:var(--text-secondary);padding-left:13px">Mohcine Banaoui</div>
         </div>
-        <div style="font-size:.62rem;color:var(--text-secondary);padding-left:14px">Mohcine Banaoui</div>
       </div>
     </div>
     <div class="main-content">
@@ -249,6 +464,7 @@ function renderApp() {
 }
 
 function navigate(page) {
+  if (!AUTH.guard()) return
   state.currentPage = page
   renderApp()
   const pages = {
@@ -5323,10 +5539,17 @@ async function initLogoFromSettings() {
 // ============================================================
 // INIT
 // ============================================================
-document.addEventListener('DOMContentLoaded', () => {
+function initApp() {
   dayjs.locale('fr')
   renderApp()
   navigate('dashboard')
-  // Charger et appliquer le logo sauvegardé
   setTimeout(initLogoFromSettings, 200)
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (!AUTH.isLoggedIn()) {
+    showLoginPage()
+  } else {
+    initApp()
+  }
 })
