@@ -357,25 +357,8 @@ async function renderDashboard() {
           </div>
         </div>
 
-        <!-- Droite : profil + boutons -->
+        <!-- Droite : boutons -->
         <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
-          <!-- Carte profil -->
-          <div style="
-            background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);
-            border-radius:12px;padding:.6rem 1rem;display:flex;align-items:center;gap:.7rem;
-          ">
-            <div style="
-              width:36px;height:36px;border-radius:50%;flex-shrink:0;
-              background:linear-gradient(135deg,#1d4ed8,#7c3aed);
-              display:flex;align-items:center;justify-content:center;
-              font-size:.85rem;font-weight:800;color:white;
-            ">MB</div>
-            <div>
-              <div style="font-size:.78rem;font-weight:700;color:#f1f5f9;line-height:1.2">Mohcine Banaoui</div>
-              <div style="font-size:.62rem;color:rgba(148,163,184,.65)">Responsable de Maintenance</div>
-            </div>
-          </div>
-
           <!-- Boutons action -->
           <div style="display:flex;gap:.5rem">
             <button class="btn btn-ghost btn-sm" onclick="resetKpiFilters()" title="Réinitialiser les filtres"
