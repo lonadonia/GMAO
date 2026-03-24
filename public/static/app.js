@@ -631,6 +631,18 @@ function renderKPISection(data) {
         <div class="kpi-value">${kpis.recurring_count}</div>
         <div class="kpi-trend">sur ${kpis.total_interventions} interventions</div>
       </div>
+      <div class="kpi-card" style="--kpi-color:var(--accent-blue)">
+        <i class="fas fa-calendar-alt kpi-icon"></i>
+        <div class="kpi-label"><i class="fas fa-clipboard-list"></i> Plans actifs</div>
+        <div class="kpi-value">${kpis.plan_count || 0}</div>
+        <div class="kpi-trend">Plans de maintenance programmés</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color:var(--accent-green)">
+        <i class="fas fa-calendar-check kpi-icon"></i>
+        <div class="kpi-label"><i class="fas fa-check-circle"></i> Plans exécutés</div>
+        <div class="kpi-value">${kpis.fait_count || 0}</div>
+        <div class="kpi-trend">${kpis.plan_count > 0 ? Math.round(((kpis.fait_count||0)/kpis.plan_count)*100) : 0}% des plans réalisés</div>
+      </div>
     </div>
 
     <!-- Charts -->
