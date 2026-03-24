@@ -372,7 +372,7 @@ async function renderDashboard() {
             ">MB</div>
             <div>
               <div style="font-size:.78rem;font-weight:700;color:#f1f5f9;line-height:1.2">Mohcine Banaoui</div>
-              <div style="font-size:.62rem;color:rgba(148,163,184,.65)">Responsable Maintenance</div>
+              <div style="font-size:.62rem;color:rgba(148,163,184,.65)">Responsable de Maintenance</div>
             </div>
           </div>
 
