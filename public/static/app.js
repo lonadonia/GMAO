@@ -715,136 +715,220 @@ async function renderDashboard() {
   container.innerHTML = `
 
     <!-- ══════════════════════════════════════════════════════
-         HERO HEADER — GMAO PPrime Dashboard
+         HERO HEADER — GMAO PPrime Dashboard — Split technician
     ══════════════════════════════════════════════════════ -->
-    <div style="
-      background: linear-gradient(135deg, #0f172a 0%, #0d2240 40%, #0f2a4a 70%, #0a1628 100%);
-      border-radius: 16px;
-      padding: 1.75rem 2rem;
+    <style>
+      @keyframes heroScanLine {
+        0%   { transform: translateY(-100%); opacity: 0; }
+        10%  { opacity: 1; }
+        90%  { opacity: 1; }
+        100% { transform: translateY(1200%); opacity: 0; }
+      }
+      @keyframes heroPulse {
+        0%,100% { opacity:.6; transform:scale(1); }
+        50%     { opacity:1; transform:scale(1.15); }
+      }
+      @keyframes heroFadeUp {
+        from { opacity:0; transform:translateY(18px); }
+        to   { opacity:1; transform:translateY(0); }
+      }
+      @keyframes techSlideIn {
+        from { opacity:0; transform:translateX(60px) scale(.96); }
+        to   { opacity:1; transform:translateX(0) scale(1); }
+      }
+      @keyframes statCount {
+        from { opacity:0; transform:translateY(10px); }
+        to   { opacity:1; transform:translateY(0); }
+      }
+    </style>
+    <div id="dashboard-hero" style="
+      background: linear-gradient(135deg, #060e1f 0%, #0a1a38 35%, #0d2347 65%, #071224 100%);
+      border-radius: 20px;
       margin-bottom: 1.5rem;
       position: relative;
       overflow: hidden;
-      border: 1px solid rgba(59,130,246,0.15);
-      box-shadow: 0 4px 32px rgba(0,0,0,0.4);
+      border: 1px solid rgba(59,130,246,0.18);
+      box-shadow: 0 8px 48px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04);
+      min-height: 210px;
     ">
-      <!-- Cercles décoratifs background -->
-      <div style="position:absolute;top:-60px;right:-60px;width:220px;height:220px;border-radius:50%;
-                  background:radial-gradient(circle,rgba(59,130,246,0.12) 0%,transparent 70%);pointer-events:none"></div>
-      <div style="position:absolute;bottom:-40px;left:40%;width:180px;height:180px;border-radius:50%;
-                  background:radial-gradient(circle,rgba(99,102,241,0.08) 0%,transparent 70%);pointer-events:none"></div>
+      <!-- Accent top line -->
       <div style="position:absolute;top:0;left:0;right:0;height:2px;
-                  background:linear-gradient(90deg,transparent,#3b82f6,#6366f1,transparent);pointer-events:none"></div>
+                  background:linear-gradient(90deg,transparent 0%,#1d4ed8 20%,#3b82f6 50%,#6366f1 80%,transparent 100%);
+                  pointer-events:none;z-index:2"></div>
 
-      <div style="position:relative;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
-
-        <!-- Gauche : logo + titre -->
-        <div style="display:flex;align-items:center;gap:1.4rem">
-          <!-- Logo PPrime -->
-          <div style="flex-shrink:0">
-            <img src="/static/logo-pprime-real.png" alt="PPrime" style="height:56px;width:auto;display:block;filter:drop-shadow(0 2px 14px rgba(59,130,246,0.45))" />
-          </div>
-          <div style="width:1px;height:52px;background:rgba(255,255,255,.12);flex-shrink:0"></div>
-          <!-- Titre -->
-          <div>
-            <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:4px;flex-wrap:wrap">
-              <span style="background:rgba(59,130,246,.18);border:1px solid rgba(59,130,246,.3);
-                           color:#93c5fd;font-size:.6rem;font-weight:700;text-transform:uppercase;
-                           letter-spacing:1px;padding:2px 9px;border-radius:20px">
-                GMAO — PPrime
-              </span>
-              <span style="background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.25);
-                           color:#6ee7b7;font-size:.6rem;font-weight:700;padding:2px 8px;border-radius:20px">
-                <i class="fas fa-circle" style="font-size:.4rem;margin-right:3px"></i> Actif
-              </span>
-              <span style="background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.25);
-                           color:#c4b5fd;font-size:.6rem;font-weight:600;padding:2px 9px;border-radius:20px;
-                           display:flex;align-items:center;gap:4px">
-                <i class="fas fa-user-shield" style="font-size:.55rem"></i>
-                Réalisé par <strong style="color:#e9d5ff;margin-left:3px">Mohcine Banaoui</strong>
-              </span>
-            </div>
-            <h1 style="font-size:1.5rem;font-weight:800;color:#f8fafc;line-height:1.1;
-                       letter-spacing:-.5px;margin:0 0 5px 0">
-              Tableau de Bord
-              <span style="background:linear-gradient(90deg,#60a5fa,#a78bfa);
-                           -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-                           background-clip:text"> Maintenance</span>
-            </h1>
-            <div style="display:flex;align-items:center;gap:.7rem">
-              <span style="font-size:.7rem;color:rgba(148,163,184,.8)">
-                <i class="fas fa-calendar-day" style="margin-right:4px;color:#60a5fa"></i>${dateStr}
-              </span>
-              <span style="color:rgba(148,163,184,.25)">|</span>
-              <span style="font-size:.7rem;color:rgba(148,163,184,.8)">
-                <i class="fas fa-clock" style="margin-right:4px;color:#a78bfa"></i>${timeStr}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Droite : boutons -->
-        <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
-          <!-- Boutons action -->
-          <div style="display:flex;gap:.5rem">
-            <button class="btn btn-ghost btn-sm" onclick="resetKpiFilters()" title="Réinitialiser les filtres"
-              style="border:1px solid rgba(255,255,255,.1);color:rgba(148,163,184,.8)">
-              <i class="fas fa-filter-circle-xmark"></i>
-            </button>
-            <button onclick="reloadKPI()" style="
-              background:linear-gradient(135deg,#1d4ed8,#4f46e5);border:none;
-              color:white;border-radius:9px;padding:.45rem 1.1rem;font-size:.78rem;
-              font-weight:700;cursor:pointer;display:flex;align-items:center;gap:.4rem;
-              box-shadow:0 2px 12px rgba(59,130,246,.35);transition:opacity .2s;
-            " onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
-              <i class="fas fa-sync-alt"></i> Actualiser
-            </button>
-          </div>
-        </div>
+      <!-- Grid overlay subtle -->
+      <div style="position:absolute;inset:0;pointer-events:none;z-index:1;
+        background-image: repeating-linear-gradient(0deg,rgba(59,130,246,0.025) 0px,rgba(59,130,246,0.025) 1px,transparent 1px,transparent 40px),
+                          repeating-linear-gradient(90deg,rgba(59,130,246,0.025) 0px,rgba(59,130,246,0.025) 1px,transparent 1px,transparent 40px)">
       </div>
 
-      <!-- Filtres en bas du hero -->
-      <div style="
-        margin-top:1.25rem;padding-top:1.1rem;
-        border-top:1px solid rgba(255,255,255,.07);
-        display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;
-      ">
-        <span style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;
-                     color:rgba(148,163,184,.5);margin-right:.25rem">
-          <i class="fas fa-sliders-h" style="margin-right:4px"></i>Filtres
-        </span>
-        <div style="display:flex;align-items:center;gap:.3rem">
-          <i class="fas fa-calendar-alt" style="color:rgba(148,163,184,.4);font-size:.7rem"></i>
-          <input type="date" id="kpi-date-from" class="input input-sm" style="width:140px;background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1);color:#f1f5f9"
-                 value="${f.date_from||''}" onchange="reloadKPI()" title="Date début">
+      <!-- Glow blob top-left -->
+      <div style="position:absolute;top:-80px;left:-40px;width:300px;height:300px;border-radius:50%;
+                  background:radial-gradient(circle,rgba(37,99,235,0.18) 0%,transparent 70%);
+                  pointer-events:none;z-index:1"></div>
+      <!-- Glow blob bottom center -->
+      <div style="position:absolute;bottom:-60px;left:35%;width:250px;height:250px;border-radius:50%;
+                  background:radial-gradient(circle,rgba(99,102,241,0.1) 0%,transparent 70%);
+                  pointer-events:none;z-index:1"></div>
+
+      <!-- Scan line animation -->
+      <div style="position:absolute;top:0;left:0;right:0;height:1px;
+                  background:linear-gradient(90deg,transparent,rgba(96,165,250,0.6),transparent);
+                  animation:heroScanLine 6s linear infinite;pointer-events:none;z-index:2"></div>
+
+      <!-- LAYOUT: Left content + Right technician image -->
+      <div style="position:relative;z-index:3;display:flex;align-items:stretch;min-height:210px">
+
+        <!-- ─── LEFT PANEL ─── -->
+        <div style="flex:1;padding:1.75rem 2rem;display:flex;flex-direction:column;justify-content:space-between;animation:heroFadeUp .5s ease both">
+
+          <!-- Top row: logo + badges + buttons -->
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:1.25rem">
+              <img src="/static/logo-pprime-real.png" alt="PPrime"
+                   style="height:52px;width:auto;filter:drop-shadow(0 2px 18px rgba(59,130,246,.55))" />
+              <div style="width:1px;height:48px;background:linear-gradient(to bottom,transparent,rgba(255,255,255,.15),transparent)"></div>
+              <div>
+                <div style="display:flex;align-items:center;gap:.45rem;margin-bottom:5px;flex-wrap:wrap">
+                  <span style="background:rgba(37,99,235,.2);border:1px solid rgba(59,130,246,.35);
+                               color:#93c5fd;font-size:.58rem;font-weight:800;text-transform:uppercase;
+                               letter-spacing:1.2px;padding:3px 10px;border-radius:30px">
+                    GMAO — PPrime
+                  </span>
+                  <span style="background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.28);
+                               color:#6ee7b7;font-size:.58rem;font-weight:700;padding:3px 9px;border-radius:30px;
+                               display:flex;align-items:center;gap:3px">
+                    <span style="width:5px;height:5px;border-radius:50%;background:#34d399;animation:heroPulse 2s infinite;display:inline-block"></span>
+                    Système actif
+                  </span>
+                </div>
+                <h1 style="font-size:1.6rem;font-weight:900;color:#f8fafc;line-height:1.05;
+                           letter-spacing:-.6px;margin:0 0 6px 0">
+                  Tableau de Bord
+                  <span style="background:linear-gradient(90deg,#3b82f6,#818cf8);
+                               -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+                               background-clip:text;font-weight:900"> Maintenance</span>
+                </h1>
+                <div style="display:flex;align-items:center;gap:.6rem">
+                  <span style="font-size:.68rem;color:rgba(148,163,184,.75)">
+                    <i class="fas fa-calendar-day" style="margin-right:4px;color:#60a5fa"></i>${dateStr}
+                  </span>
+                  <span style="color:rgba(148,163,184,.2)">•</span>
+                  <span style="font-size:.68rem;color:rgba(148,163,184,.75)">
+                    <i class="fas fa-clock" style="margin-right:4px;color:#818cf8"></i>${timeStr}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action buttons -->
+            <div style="display:flex;gap:.45rem;flex-shrink:0;margin-top:.15rem">
+              <button class="btn btn-ghost btn-sm" onclick="resetKpiFilters()" title="Réinitialiser"
+                style="border:1px solid rgba(255,255,255,.1);color:rgba(148,163,184,.7);border-radius:9px">
+                <i class="fas fa-filter-circle-xmark"></i>
+              </button>
+              <button onclick="reloadKPI()" style="
+                background:linear-gradient(135deg,#1d4ed8 0%,#4f46e5 100%);
+                border:none;color:white;border-radius:9px;padding:.45rem 1.1rem;
+                font-size:.75rem;font-weight:700;cursor:pointer;
+                display:flex;align-items:center;gap:.4rem;
+                box-shadow:0 4px 16px rgba(37,99,235,.45);
+                transition:all .2s;
+              " onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(37,99,235,.55)'"
+                 onmouseout="this.style.transform='none';this.style.boxShadow='0 4px 16px rgba(37,99,235,.45)'">
+                <i class="fas fa-sync-alt"></i> Actualiser
+              </button>
+            </div>
+          </div>
+
+          <!-- Bottom row: filters -->
+          <div style="
+            margin-top:1.15rem;padding-top:1rem;
+            border-top:1px solid rgba(255,255,255,.06);
+            display:flex;flex-wrap:wrap;gap:.45rem;align-items:center;
+          ">
+            <span style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.9px;
+                         color:rgba(148,163,184,.4);margin-right:.2rem">
+              <i class="fas fa-sliders-h" style="margin-right:4px"></i>Filtres
+            </span>
+            <div style="display:flex;align-items:center;gap:.3rem">
+              <i class="fas fa-calendar-alt" style="color:rgba(148,163,184,.35);font-size:.68rem"></i>
+              <input type="date" id="kpi-date-from" class="input input-sm"
+                     style="width:135px;background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.09);color:#f1f5f9;border-radius:7px"
+                     value="${f.date_from||''}" onchange="reloadKPI()" title="Date début">
+            </div>
+            <span style="color:rgba(148,163,184,.35);font-size:.7rem">→</span>
+            <div style="display:flex;align-items:center;gap:.3rem">
+              <input type="date" id="kpi-date-to" class="input input-sm"
+                     style="width:135px;background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.09);color:#f1f5f9;border-radius:7px"
+                     value="${f.date_to||''}" onchange="reloadKPI()" title="Date fin">
+            </div>
+            <div style="width:1px;height:16px;background:rgba(255,255,255,.08)"></div>
+            <div style="display:flex;align-items:center;gap:.3rem">
+              <i class="fas fa-user-cog" style="color:rgba(148,163,184,.35);font-size:.68rem"></i>
+              <select id="kpi-technician" class="select input-sm"
+                      style="width:145px;background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.09);color:#f1f5f9;border-radius:7px"
+                      onchange="reloadKPI()">
+                <option value="">Tous techniciens</option>
+                ${techOptions}
+              </select>
+            </div>
+            <div style="width:1px;height:16px;background:rgba(255,255,255,.08)"></div>
+            <div style="display:flex;align-items:center;gap:.3rem">
+              <i class="fas fa-map-marker-alt" style="color:rgba(148,163,184,.35);font-size:.68rem"></i>
+              <input type="text" id="kpi-city" class="input input-sm"
+                     style="width:120px;background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.09);color:#f1f5f9;border-radius:7px"
+                     placeholder="Ville..." value="${f.city||''}" oninput="debounceKpiFilter()" title="Ville">
+            </div>
+            <div style="display:flex;align-items:center;gap:.3rem">
+              <i class="fas fa-building" style="color:rgba(148,163,184,.35);font-size:.68rem"></i>
+              <select id="kpi-client" class="select input-sm"
+                      style="width:148px;background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.09);color:#f1f5f9;border-radius:7px"
+                      onchange="reloadKPI()">
+                <option value="">Tous clients</option>
+                ${clientOptions}
+              </select>
+            </div>
+            <div id="kpi-active-badge"></div>
+          </div>
         </div>
-        <span style="color:rgba(148,163,184,.4);font-size:.75rem">→</span>
-        <div style="display:flex;align-items:center;gap:.3rem">
-          <input type="date" id="kpi-date-to" class="input input-sm" style="width:140px;background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1);color:#f1f5f9"
-                 value="${f.date_to||''}" onchange="reloadKPI()" title="Date fin">
+
+        <!-- ─── RIGHT PANEL — Technician image ─── -->
+        <div style="
+          width: 200px;
+          flex-shrink: 0;
+          position: relative;
+          overflow: hidden;
+          animation: techSlideIn .65s ease both .1s;
+        ">
+          <!-- Gradient fade left edge -->
+          <div style="position:absolute;top:0;left:0;width:70px;height:100%;
+                      background:linear-gradient(90deg,#060e1f 0%,transparent 100%);
+                      pointer-events:none;z-index:2"></div>
+          <!-- Gradient fade bottom edge -->
+          <div style="position:absolute;bottom:0;left:0;right:0;height:60px;
+                      background:linear-gradient(to top,#060e1f 0%,transparent 100%);
+                      pointer-events:none;z-index:2"></div>
+          <!-- Blue tint overlay -->
+          <div style="position:absolute;inset:0;background:rgba(9,30,80,0.35);pointer-events:none;z-index:1;
+                      mix-blend-mode:multiply"></div>
+          <!-- Technician image -->
+          <img src="/static/technician-hero.png" alt="Technicien" style="
+            width:100%;height:100%;object-fit:cover;object-position:top center;
+            display:block;filter:saturate(0.7) brightness(0.92) contrast(1.05);
+          " />
+          <!-- Bottom label -->
+          <div style="position:absolute;bottom:12px;right:12px;z-index:3;text-align:right">
+            <div style="background:rgba(37,99,235,.25);backdrop-filter:blur(8px);
+                        border:1px solid rgba(59,130,246,.3);border-radius:8px;
+                        padding:4px 10px">
+              <div style="font-size:.58rem;font-weight:800;color:#93c5fd;text-transform:uppercase;letter-spacing:.8px">
+                <i class="fas fa-tablet-alt" style="margin-right:3px"></i>Technicien
+              </div>
+            </div>
+          </div>
         </div>
-        <div style="width:1px;height:18px;background:rgba(255,255,255,.1)"></div>
-        <div style="display:flex;align-items:center;gap:.3rem">
-          <i class="fas fa-user-cog" style="color:rgba(148,163,184,.4);font-size:.7rem"></i>
-          <select id="kpi-technician" class="select input-sm" style="width:150px;background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1);color:#f1f5f9" onchange="reloadKPI()">
-            <option value="">Tous techniciens</option>
-            ${techOptions}
-          </select>
-        </div>
-        <div style="width:1px;height:18px;background:rgba(255,255,255,.1)"></div>
-        <div style="display:flex;align-items:center;gap:.3rem">
-          <i class="fas fa-map-marker-alt" style="color:rgba(148,163,184,.4);font-size:.7rem"></i>
-          <input type="text" id="kpi-city" class="input input-sm" style="width:125px;background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1);color:#f1f5f9"
-                 placeholder="Ville..." value="${f.city||''}"
-                 oninput="debounceKpiFilter()" title="Filtrer par ville">
-        </div>
-        <div style="display:flex;align-items:center;gap:.3rem">
-          <i class="fas fa-building" style="color:rgba(148,163,184,.4);font-size:.7rem"></i>
-          <select id="kpi-client" class="select input-sm" style="width:155px;background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1);color:#f1f5f9" onchange="reloadKPI()">
-            <option value="">Tous clients</option>
-            ${clientOptions}
-          </select>
-        </div>
-        <div id="kpi-active-badge"></div>
+
       </div>
     </div>
 
@@ -1139,130 +1223,158 @@ function renderKPISection(data) {
     </div>
 
     <!-- ═══════════════════════════════════════
-         CHARTS — dark premium blue
+         CHARTS — Blue Premium Dashboard
     ═══════════════════════════════════════ -->
+    <style>
+      .chart-card-premium {
+        background: linear-gradient(145deg, rgba(13,22,50,0.95) 0%, rgba(17,30,65,0.9) 100%);
+        border: 1px solid rgba(37,99,235,0.22);
+        border-radius: 16px;
+        padding: 1.3rem 1.5rem;
+        position: relative;
+        overflow: hidden;
+        transition: border-color .25s, box-shadow .25s, transform .2s;
+        backdrop-filter: blur(4px);
+      }
+      .chart-card-premium:hover {
+        border-color: rgba(59,130,246,0.45);
+        box-shadow: 0 8px 32px rgba(37,99,235,0.18);
+        transform: translateY(-2px);
+      }
+      .chart-card-premium::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; height: 2px;
+        background: linear-gradient(90deg, transparent, rgba(59,130,246,0.7), rgba(99,102,241,0.5), transparent);
+        pointer-events: none;
+      }
+      .chart-card-premium .cc-glow {
+        position: absolute; top: -40px; right: -40px;
+        width: 130px; height: 130px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(37,99,235,0.18) 0%, transparent 70%);
+        pointer-events: none;
+      }
+      .chart-card-premium .cc-dot-grid {
+        position: absolute; bottom: 0; left: 0;
+        width: 80px; height: 80px;
+        background-image: radial-gradient(circle, rgba(59,130,246,0.12) 1px, transparent 1px);
+        background-size: 10px 10px;
+        pointer-events: none; opacity: .6;
+      }
+      .cc-tag {
+        display: inline-flex; align-items: center; gap: 4px;
+        font-size: .6rem; font-weight: 800; text-transform: uppercase;
+        letter-spacing: .9px; color: #60a5fa;
+        background: rgba(37,99,235,.12); border: 1px solid rgba(59,130,246,.2);
+        border-radius: 20px; padding: 2px 9px; margin-bottom: 4px;
+      }
+      .cc-title {
+        font-size: .9rem; font-weight: 700; color: #f1f5f9;
+        letter-spacing: -.2px;
+      }
+      .cc-title span {
+        font-size: .7rem; color: rgba(148,163,184,.6); font-weight: 400;
+      }
+    </style>
     <div class="chart-grid">
 
       <!-- 1. Mensuel wide -->
-      <div class="chart-card wide" style="
-        background:linear-gradient(145deg,var(--bg-secondary) 0%,rgba(99,132,255,0.04) 100%);
-        border:1px solid rgba(99,132,255,0.15);border-radius:14px;padding:1.25rem 1.5rem;
-        position:relative;overflow:hidden;
-      ">
-        <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;
-                    background:radial-gradient(circle,rgba(99,132,255,0.1) 0%,transparent 70%);pointer-events:none"></div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem">
+      <div class="chart-card-premium wide">
+        <div class="cc-glow"></div>
+        <div class="cc-dot-grid"></div>
+        <!-- Corner accent -->
+        <div style="position:absolute;bottom:0;right:0;width:100px;height:100px;
+                    background:radial-gradient(circle at 100% 100%,rgba(99,102,241,0.12) 0%,transparent 70%);
+                    pointer-events:none"></div>
+        <div style="position:relative;display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.1rem">
           <div>
-            <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.8px;color:rgba(99,132,255,.7);font-weight:700;margin-bottom:3px">
-              <i class="fas fa-chart-mixed" style="margin-right:5px"></i>Vue mensuelle
-            </div>
-            <div style="font-size:.92rem;font-weight:700;color:var(--text-primary)">Interventions par mois <span style="font-size:.72rem;color:var(--text-secondary);font-weight:400">— 12 derniers mois</span></div>
+            <div class="cc-tag"><i class="fas fa-chart-line"></i> Vue mensuelle</div>
+            <div class="cc-title">Interventions par mois <span>— 12 derniers mois</span></div>
           </div>
-          <div style="display:flex;gap:.4rem">
-            <span style="font-size:.65rem;padding:3px 9px;background:rgba(99,132,255,.12);border:1px solid rgba(99,132,255,.2);color:#6384ff;border-radius:20px;font-weight:700">LIVE</span>
+          <div style="display:flex;gap:.35rem;flex-shrink:0">
+            <span style="font-size:.62rem;padding:3px 10px;
+                         background:rgba(37,99,235,.2);border:1px solid rgba(59,130,246,.3);
+                         color:#60a5fa;border-radius:20px;font-weight:800;
+                         animation:heroPulse 2s infinite;display:flex;align-items:center;gap:4px">
+              <span style="width:5px;height:5px;border-radius:50%;background:#3b82f6;display:inline-block"></span>LIVE
+            </span>
           </div>
         </div>
         <canvas id="chart-monthly" height="88"></canvas>
       </div>
 
       <!-- 2. Statut donut -->
-      <div class="chart-card" style="
-        background:linear-gradient(145deg,var(--bg-secondary) 0%,rgba(52,211,153,0.03) 100%);
-        border:1px solid rgba(52,211,153,0.12);border-radius:14px;padding:1.25rem 1.5rem;
-        position:relative;overflow:hidden;
-      ">
-        <div style="position:absolute;top:-20px;right:-20px;width:90px;height:90px;border-radius:50%;
-                    background:radial-gradient(circle,rgba(52,211,153,0.1) 0%,transparent 70%);pointer-events:none"></div>
-        <div style="margin-bottom:1rem">
-          <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.8px;color:rgba(52,211,153,.7);font-weight:700;margin-bottom:3px">
-            <i class="fas fa-circle-half-stroke" style="margin-right:5px"></i>Répartition
+      <div class="chart-card-premium">
+        <div class="cc-glow" style="background:radial-gradient(circle,rgba(52,211,153,0.14) 0%,transparent 70%)"></div>
+        <div class="cc-dot-grid"></div>
+        <div style="position:relative;margin-bottom:.9rem">
+          <div class="cc-tag" style="color:#6ee7b7;background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.22)">
+            <i class="fas fa-circle-half-stroke"></i> Répartition
           </div>
-          <div style="font-size:.88rem;font-weight:700;color:var(--text-primary)">Statut des interventions</div>
+          <div class="cc-title">Statut des interventions</div>
         </div>
         <canvas id="chart-status" height="180"></canvas>
       </div>
 
       <!-- 3. Priorité donut -->
-      <div class="chart-card" style="
-        background:linear-gradient(145deg,var(--bg-secondary) 0%,rgba(244,63,94,0.03) 100%);
-        border:1px solid rgba(244,63,94,0.12);border-radius:14px;padding:1.25rem 1.5rem;
-        position:relative;overflow:hidden;
-      ">
-        <div style="position:absolute;top:-20px;right:-20px;width:90px;height:90px;border-radius:50%;
-                    background:radial-gradient(circle,rgba(244,63,94,0.1) 0%,transparent 70%);pointer-events:none"></div>
-        <div style="margin-bottom:1rem">
-          <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.8px;color:rgba(244,63,94,.7);font-weight:700;margin-bottom:3px">
-            <i class="fas fa-exclamation-triangle" style="margin-right:5px"></i>Criticité
+      <div class="chart-card-premium">
+        <div class="cc-glow" style="background:radial-gradient(circle,rgba(99,102,241,0.16) 0%,transparent 70%)"></div>
+        <div class="cc-dot-grid"></div>
+        <div style="position:relative;margin-bottom:.9rem">
+          <div class="cc-tag" style="color:#a5b4fc;background:rgba(99,102,241,.1);border-color:rgba(99,102,241,.22)">
+            <i class="fas fa-exclamation-triangle"></i> Criticité
           </div>
-          <div style="font-size:.88rem;font-weight:700;color:var(--text-primary)">Priorité des interventions</div>
+          <div class="cc-title">Priorité des interventions</div>
         </div>
         <canvas id="chart-priority" height="180"></canvas>
       </div>
 
       <!-- 4. Top villes -->
-      <div class="chart-card" style="
-        background:linear-gradient(145deg,var(--bg-secondary) 0%,rgba(251,191,36,0.03) 100%);
-        border:1px solid rgba(251,191,36,0.12);border-radius:14px;padding:1.25rem 1.5rem;
-        position:relative;overflow:hidden;
-      ">
-        <div style="position:absolute;top:-20px;right:-20px;width:90px;height:90px;border-radius:50%;
-                    background:radial-gradient(circle,rgba(251,191,36,0.1) 0%,transparent 70%);pointer-events:none"></div>
-        <div style="margin-bottom:1rem">
-          <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.8px;color:rgba(251,191,36,.7);font-weight:700;margin-bottom:3px">
-            <i class="fas fa-map-marker-alt" style="margin-right:5px"></i>Géographie
+      <div class="chart-card-premium">
+        <div class="cc-glow" style="background:radial-gradient(circle,rgba(14,165,233,0.16) 0%,transparent 70%)"></div>
+        <div class="cc-dot-grid"></div>
+        <div style="position:relative;margin-bottom:.9rem">
+          <div class="cc-tag" style="color:#7dd3fc;background:rgba(14,165,233,.1);border-color:rgba(14,165,233,.22)">
+            <i class="fas fa-map-marker-alt"></i> Géographie
           </div>
-          <div style="font-size:.88rem;font-weight:700;color:var(--text-primary)">Top villes</div>
+          <div class="cc-title">Top villes</div>
         </div>
         <canvas id="chart-cities" height="180"></canvas>
       </div>
 
       <!-- 5. Performance techniciens -->
-      <div class="chart-card" style="
-        background:linear-gradient(145deg,var(--bg-secondary) 0%,rgba(99,132,255,0.04) 100%);
-        border:1px solid rgba(99,132,255,0.13);border-radius:14px;padding:1.25rem 1.5rem;
-        position:relative;overflow:hidden;
-      ">
-        <div style="position:absolute;top:-20px;right:-20px;width:90px;height:90px;border-radius:50%;
-                    background:radial-gradient(circle,rgba(99,132,255,0.1) 0%,transparent 70%);pointer-events:none"></div>
-        <div style="margin-bottom:1rem">
-          <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.8px;color:rgba(99,132,255,.7);font-weight:700;margin-bottom:3px">
-            <i class="fas fa-user-cog" style="margin-right:5px"></i>Ressources
-          </div>
-          <div style="font-size:.88rem;font-weight:700;color:var(--text-primary)">Performance techniciens</div>
+      <div class="chart-card-premium">
+        <div class="cc-glow"></div>
+        <div class="cc-dot-grid"></div>
+        <div style="position:relative;margin-bottom:.9rem">
+          <div class="cc-tag"><i class="fas fa-user-cog"></i> Ressources humaines</div>
+          <div class="cc-title">Performance techniciens</div>
         </div>
         <canvas id="chart-technicians" height="180"></canvas>
       </div>
 
       <!-- 6. Top clients -->
-      <div class="chart-card" style="
-        background:linear-gradient(145deg,var(--bg-secondary) 0%,rgba(167,139,250,0.04) 100%);
-        border:1px solid rgba(167,139,250,0.13);border-radius:14px;padding:1.25rem 1.5rem;
-        position:relative;overflow:hidden;
-      ">
-        <div style="position:absolute;top:-20px;right:-20px;width:90px;height:90px;border-radius:50%;
-                    background:radial-gradient(circle,rgba(167,139,250,0.1) 0%,transparent 70%);pointer-events:none"></div>
-        <div style="margin-bottom:1rem">
-          <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.8px;color:rgba(167,139,250,.7);font-weight:700;margin-bottom:3px">
-            <i class="fas fa-building" style="margin-right:5px"></i>Clientèle
+      <div class="chart-card-premium">
+        <div class="cc-glow" style="background:radial-gradient(circle,rgba(56,189,248,0.14) 0%,transparent 70%)"></div>
+        <div class="cc-dot-grid"></div>
+        <div style="position:relative;margin-bottom:.9rem">
+          <div class="cc-tag" style="color:#7dd3fc;background:rgba(56,189,248,.1);border-color:rgba(56,189,248,.22)">
+            <i class="fas fa-building"></i> Clientèle
           </div>
-          <div style="font-size:.88rem;font-weight:700;color:var(--text-primary)">Top clients</div>
+          <div class="cc-title">Top clients</div>
         </div>
         <canvas id="chart-clients" height="180"></canvas>
       </div>
 
       <!-- 7. Équipements en panne -->
-      <div class="chart-card" style="
-        background:linear-gradient(145deg,var(--bg-secondary) 0%,rgba(251,146,60,0.03) 100%);
-        border:1px solid rgba(251,146,60,0.12);border-radius:14px;padding:1.25rem 1.5rem;
-        position:relative;overflow:hidden;
-      ">
-        <div style="position:absolute;top:-20px;right:-20px;width:90px;height:90px;border-radius:50%;
-                    background:radial-gradient(circle,rgba(251,146,60,0.1) 0%,transparent 70%);pointer-events:none"></div>
-        <div style="margin-bottom:1rem">
-          <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.8px;color:rgba(251,146,60,.7);font-weight:700;margin-bottom:3px">
-            <i class="fas fa-cogs" style="margin-right:5px"></i>Matériel
+      <div class="chart-card-premium">
+        <div class="cc-glow" style="background:radial-gradient(circle,rgba(99,102,241,0.14) 0%,transparent 70%)"></div>
+        <div class="cc-dot-grid"></div>
+        <div style="position:relative;margin-bottom:.9rem">
+          <div class="cc-tag" style="color:#a5b4fc;background:rgba(99,102,241,.1);border-color:rgba(99,102,241,.22)">
+            <i class="fas fa-cogs"></i> Matériel
           </div>
-          <div style="font-size:.88rem;font-weight:700;color:var(--text-primary)">Équipements en panne</div>
+          <div class="cc-title">Équipements en panne</div>
         </div>
         <canvas id="chart-equipment" height="180"></canvas>
       </div>
@@ -1453,19 +1565,70 @@ function renderKPISection(data) {
     </div>
 
     <!-- Map: Interventions par ville au Maroc -->
-    <div style="margin-top:1.5rem;background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;overflow:hidden">
-      <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-        <div style="font-weight:700;font-size:0.88rem;color:var(--text-primary);display:flex;align-items:center;gap:8px">
-          <i class="fas fa-map-marked-alt" style="color:var(--accent-blue)"></i>
-          Interventions par ville — Maroc
+    <div style="
+      margin-top:1.5rem;
+      background:linear-gradient(145deg,var(--bg-secondary) 0%,rgba(99,132,255,0.04) 100%);
+      border:1px solid rgba(99,132,255,0.15);
+      border-radius:16px;overflow:hidden;
+      box-shadow:0 4px 24px rgba(0,0,0,0.25);
+      position:relative;
+    ">
+      <!-- Ligne accent top -->
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;
+                  background:linear-gradient(90deg,transparent,#6384ff,rgba(99,132,255,.3),transparent);pointer-events:none"></div>
+
+      <!-- Header premium -->
+      <div style="
+        padding:1.1rem 1.5rem;
+        border-bottom:1px solid rgba(99,132,255,0.1);
+        display:flex;align-items:center;justify-content:space-between;
+        background:rgba(99,132,255,0.04);
+      ">
+        <div style="display:flex;align-items:center;gap:.75rem">
+          <div style="
+            width:34px;height:34px;border-radius:9px;
+            background:rgba(99,132,255,0.15);border:1px solid rgba(99,132,255,0.25);
+            display:flex;align-items:center;justify-content:center;
+          ">
+            <i class="fas fa-map-marked-alt" style="color:#6384ff;font-size:.85rem"></i>
+          </div>
+          <div>
+            <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.8px;color:rgba(99,132,255,.7);font-weight:700">
+              Géolocalisation
+            </div>
+            <div style="font-weight:700;font-size:.9rem;color:var(--text-primary)">
+              Interventions par ville — Maroc
+            </div>
+          </div>
         </div>
-        <span id="map-city-count" style="font-size:0.72rem;color:var(--text-secondary)"></span>
+        <div style="display:flex;align-items:center;gap:.75rem">
+          <span id="map-city-count" style="
+            font-size:.7rem;color:#6384ff;font-weight:700;
+            background:rgba(99,132,255,.1);border:1px solid rgba(99,132,255,.2);
+            padding:3px 10px;border-radius:20px;
+          "></span>
+          <span style="
+            font-size:.62rem;padding:3px 9px;
+            background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.2);
+            color:#34d399;border-radius:20px;font-weight:700;
+            display:flex;align-items:center;gap:4px;
+          ">
+            <span style="width:5px;height:5px;border-radius:50%;background:#34d399;display:inline-block"></span>
+            LIVE
+          </span>
+        </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 320px;min-height:360px">
+
+      <!-- Carte + ranking -->
+      <div style="display:grid;grid-template-columns:1fr 310px;min-height:380px">
         <!-- Leaflet map -->
-        <div id="city-map" style="height:360px;z-index:0"></div>
+        <div id="city-map" style="height:380px;z-index:0"></div>
         <!-- City ranking list -->
-        <div style="border-left:1px solid var(--border);overflow-y:auto;max-height:360px" id="city-ranking-list"></div>
+        <div style="
+          border-left:1px solid rgba(99,132,255,0.1);
+          overflow-y:auto;max-height:380px;
+          background:rgba(10,14,40,0.3);
+        " id="city-ranking-list"></div>
       </div>
     </div>
 
@@ -1489,8 +1652,8 @@ function renderKPISection(data) {
 
 function renderCharts(kpis, charts) {
   // ── Configuration globale Chart.js — dark premium blue ──────
-  Chart.defaults.color           = '#8892b0'
-  Chart.defaults.borderColor     = 'rgba(99,132,255,0.08)'
+  Chart.defaults.color           = '#94a3b8'
+  Chart.defaults.borderColor     = 'rgba(37,99,235,0.1)'
   Chart.defaults.font.family     = "'Segoe UI', system-ui, sans-serif"
   Chart.defaults.font.size       = 11
 
@@ -1499,8 +1662,8 @@ function renderCharts(kpis, charts) {
   state.charts = {}
 
   // ── Palettes & helpers ──────────────────────────────────────
-  const gridColor   = 'rgba(99,132,255,0.07)'
-  const tickColor   = '#8892b0'
+  const gridColor   = 'rgba(37,99,235,0.09)'
+  const tickColor   = '#94a3b8'
 
   // Gradient factory
   const makeGrad = (ctx, color1, color2, vertical = true) => {
@@ -1568,9 +1731,9 @@ function renderCharts(kpis, charts) {
       const [y, mo] = m.month.split('-')
       return dayjs(`${y}-${mo}-01`).locale('fr').format('MMM YY')
     })
-    const gradTotal      = makeGrad(ctx, 'rgba(99,132,255,0.55)', 'rgba(99,132,255,0.04)')
-    const gradResolved   = makeGrad(ctx, 'rgba(52,211,153,0.45)', 'rgba(52,211,153,0.03)')
-    const gradPreventive = makeGrad(ctx, 'rgba(167,139,250,0.45)', 'rgba(167,139,250,0.03)')
+    const gradTotal      = makeGrad(ctx, 'rgba(37,99,235,0.7)', 'rgba(37,99,235,0.05)')
+    const gradResolved   = makeGrad(ctx, 'rgba(56,189,248,0.45)', 'rgba(56,189,248,0.03)')
+    const gradPreventive = makeGrad(ctx, 'rgba(99,102,241,0.45)', 'rgba(99,102,241,0.03)')
 
     state.charts.monthly = new Chart(ctx, {
       type: 'bar',
@@ -1580,8 +1743,8 @@ function renderCharts(kpis, charts) {
           {
             label: 'Total',
             data: charts.by_month.map(m => m.total),
-            backgroundColor: 'rgba(99,132,255,0.75)',
-            borderColor: '#6384ff',
+            backgroundColor: 'rgba(37,99,235,0.75)',
+            borderColor: '#1d4ed8',
             borderWidth: 1,
             borderRadius: { topLeft: 5, topRight: 5 },
             borderSkipped: false,
@@ -1593,10 +1756,10 @@ function renderCharts(kpis, charts) {
             type: 'line',
             fill: true,
             backgroundColor: gradResolved,
-            borderColor: '#34d399',
+            borderColor: '#38bdf8',
             borderWidth: 2.5,
-            pointBackgroundColor: '#34d399',
-            pointBorderColor: '#0a0e28',
+            pointBackgroundColor: '#38bdf8',
+            pointBorderColor: '#060e1f',
             pointBorderWidth: 2,
             pointRadius: 4,
             pointHoverRadius: 7,
@@ -1609,10 +1772,10 @@ function renderCharts(kpis, charts) {
             type: 'line',
             fill: true,
             backgroundColor: gradPreventive,
-            borderColor: '#a78bfa',
+            borderColor: '#818cf8',
             borderWidth: 2,
-            pointBackgroundColor: '#a78bfa',
-            pointBorderColor: '#0a0e28',
+            pointBackgroundColor: '#818cf8',
+            pointBorderColor: '#060e1f',
             pointBorderWidth: 2,
             pointRadius: 3,
             pointHoverRadius: 6,
@@ -1645,10 +1808,10 @@ function renderCharts(kpis, charts) {
   const statusEl = document.getElementById('chart-status')
   if (statusEl && charts.by_status?.length > 0) {
     const colorMap = {
-      resolved:    '#34d399',
-      in_progress: '#6384ff',
-      planned:     '#a78bfa',
-      cancelled:   '#2d3758'
+      resolved:    '#38bdf8',
+      in_progress: '#1d4ed8',
+      planned:     '#6366f1',
+      cancelled:   '#1e3a5f'
     }
     const labelMap = { resolved:'Résolu', in_progress:'En cours', planned:'Planifié', cancelled:'Annulé' }
     const colors = charts.by_status.map(s => colorMap[s.status] || '#2d3758')
@@ -1721,13 +1884,17 @@ function renderCharts(kpis, charts) {
   }
 
   // ════════════════════════════════════════════════════════════
-  // 4. TOP VILLES — Bar horizontal premium
+  // 4. TOP VILLES — Bar horizontal premium BLUE
   // ════════════════════════════════════════════════════════════
   const cityEl = document.getElementById('chart-cities')
   if (cityEl && charts.by_city?.length > 0) {
     const ctx = cityEl.getContext('2d')
     const top = charts.by_city.slice(0, 8)
-    const gradCity = makeGrad(ctx, 'rgba(251,191,36,0.9)', 'rgba(251,191,36,0.3)', false)
+    const bluePalette = [
+      'rgba(59,130,246,0.85)', 'rgba(37,99,235,0.8)', 'rgba(29,78,216,0.8)',
+      'rgba(96,165,250,0.75)', 'rgba(147,197,253,0.7)', 'rgba(56,189,248,0.75)',
+      'rgba(14,165,233,0.72)', 'rgba(2,132,199,0.70)',
+    ]
     state.charts.cities = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -1735,10 +1902,10 @@ function renderCharts(kpis, charts) {
         datasets: [{
           label: 'Interventions',
           data: top.map(c => c.count),
-          backgroundColor: top.map((_, i) => `rgba(251,191,36,${0.9 - i * 0.08})`),
-          borderColor: 'rgba(251,191,36,0.4)',
+          backgroundColor: top.map((_, i) => bluePalette[i] || 'rgba(59,130,246,0.7)'),
+          borderColor: 'rgba(59,130,246,0.3)',
           borderWidth: 1,
-          borderRadius: { topRight: 5, bottomRight: 5 },
+          borderRadius: { topRight: 6, bottomRight: 6 },
           borderSkipped: 'left',
         }]
       },
@@ -1759,7 +1926,7 @@ function renderCharts(kpis, charts) {
   }
 
   // ════════════════════════════════════════════════════════════
-  // 5. PERFORMANCE TECHNICIENS — Bar groupé premium
+  // 5. PERFORMANCE TECHNICIENS — Bar groupé premium BLUE
   // ════════════════════════════════════════════════════════════
   const techEl = document.getElementById('chart-technicians')
   if (techEl && charts.top_technicians?.length > 0) {
@@ -1771,8 +1938,8 @@ function renderCharts(kpis, charts) {
           {
             label: 'Total',
             data: charts.top_technicians.map(t => t.total),
-            backgroundColor: 'rgba(99,132,255,0.75)',
-            borderColor: 'rgba(99,132,255,0.5)',
+            backgroundColor: 'rgba(59,130,246,0.78)',
+            borderColor: 'rgba(59,130,246,0.45)',
             borderWidth: 1,
             borderRadius: { topLeft: 5, topRight: 5 },
             borderSkipped: false,
@@ -1780,8 +1947,8 @@ function renderCharts(kpis, charts) {
           {
             label: 'Résolues',
             data: charts.top_technicians.map(t => t.resolved),
-            backgroundColor: 'rgba(52,211,153,0.75)',
-            borderColor: 'rgba(52,211,153,0.5)',
+            backgroundColor: 'rgba(96,165,250,0.65)',
+            borderColor: 'rgba(96,165,250,0.4)',
             borderWidth: 1,
             borderRadius: { topLeft: 5, topRight: 5 },
             borderSkipped: false,
@@ -1805,7 +1972,7 @@ function renderCharts(kpis, charts) {
   }
 
   // ════════════════════════════════════════════════════════════
-  // 6. TOP CLIENTS — Bar horizontal premium
+  // 6. TOP CLIENTS — Bar horizontal premium BLUE
   // ════════════════════════════════════════════════════════════
   const clientEl = document.getElementById('chart-clients')
   if (clientEl && charts.by_client?.length > 0) {
@@ -1818,8 +1985,8 @@ function renderCharts(kpis, charts) {
           {
             label: 'Total',
             data: top.map(c => c.total),
-            backgroundColor: 'rgba(167,139,250,0.75)',
-            borderColor: 'rgba(167,139,250,0.4)',
+            backgroundColor: 'rgba(37,99,235,0.78)',
+            borderColor: 'rgba(37,99,235,0.35)',
             borderWidth: 1,
             borderRadius: { topLeft: 5, topRight: 5 },
             borderSkipped: false,
@@ -1827,8 +1994,8 @@ function renderCharts(kpis, charts) {
           {
             label: 'Résolues',
             data: top.map(c => c.resolved),
-            backgroundColor: 'rgba(52,211,153,0.65)',
-            borderColor: 'rgba(52,211,153,0.4)',
+            backgroundColor: 'rgba(56,189,248,0.68)',
+            borderColor: 'rgba(56,189,248,0.35)',
             borderWidth: 1,
             borderRadius: { topLeft: 5, topRight: 5 },
             borderSkipped: false,
@@ -1852,7 +2019,7 @@ function renderCharts(kpis, charts) {
   }
 
   // ════════════════════════════════════════════════════════════
-  // 7. TOP ÉQUIPEMENTS — Bar horizontal premium
+  // 7. TOP ÉQUIPEMENTS — Bar horizontal premium BLUE
   // ════════════════════════════════════════════════════════════
   const equipEl = document.getElementById('chart-equipment')
   if (equipEl && charts.by_equipment?.length > 0) {
@@ -1865,19 +2032,19 @@ function renderCharts(kpis, charts) {
           {
             label: 'Pannes',
             data: top.map(e => e.total),
-            backgroundColor: 'rgba(251,146,60,0.75)',
-            borderColor: 'rgba(251,146,60,0.4)',
+            backgroundColor: 'rgba(29,78,216,0.8)',
+            borderColor: 'rgba(29,78,216,0.4)',
             borderWidth: 1,
-            borderRadius: { topRight: 5, bottomRight: 5 },
+            borderRadius: { topRight: 6, bottomRight: 6 },
             borderSkipped: 'left',
           },
           {
             label: 'Arrêts prod.',
             data: top.map(e => e.with_downtime),
-            backgroundColor: 'rgba(244,63,94,0.65)',
-            borderColor: 'rgba(244,63,94,0.4)',
+            backgroundColor: 'rgba(99,102,241,0.7)',
+            borderColor: 'rgba(99,102,241,0.35)',
             borderWidth: 1,
-            borderRadius: { topRight: 5, bottomRight: 5 },
+            borderRadius: { topRight: 6, bottomRight: 6 },
             borderSkipped: 'left',
           },
         ]
@@ -1984,112 +2151,243 @@ function getCityCoords(cityName) {
 let _leafletMap = null
 
 function renderCityMap(cityData) {
-  const mapEl = document.getElementById('city-map')
+  const mapEl  = document.getElementById('city-map')
   const listEl = document.getElementById('city-ranking-list')
   if (!mapEl || !listEl) return
 
-  // Filter cities with coordinates
+  // Villes avec coordonnées
   const cities = cityData
     .map(c => ({ ...c, coords: getCityCoords(c.city) }))
     .filter(c => c.coords)
 
-  // Update header count
+  // Counter header
   const countEl = document.getElementById('map-city-count')
-  if (countEl) countEl.textContent = `${cityData.length} ville${cityData.length>1?'s':''} · ${cityData.reduce((s,c)=>s+c.count,0)} interventions`
+  if (countEl) {
+    const totalInterv = cityData.reduce((s, c) => s + c.count, 0)
+    countEl.textContent = `${cityData.length} ville${cityData.length > 1 ? 's' : ''} · ${totalInterv} intervention${totalInterv > 1 ? 's' : ''}`
+  }
 
-  // Destroy previous map instance
+  // Détruire l'ancienne carte
   if (_leafletMap) { _leafletMap.remove(); _leafletMap = null }
 
-  // Init Leaflet map centered on Morocco
+  // Init Leaflet — centré Maroc
   _leafletMap = L.map('city-map', {
-    center: [31.5, -7.0],
-    zoom: 5,
-    zoomControl: true,
+    center:          [31.0, -6.5],
+    zoom:            5,
+    zoomControl:     false,
     scrollWheelZoom: false,
+    attributionControl: true,
   })
 
-  // Dark tile layer (CartoDB dark)
+  // Zoom control positionné à droite en bas
+  L.control.zoom({ position: 'bottomright' }).addTo(_leafletMap)
+
+  // Tile dark premium (CartoDB Positron Dark)
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    attribution: '<span style="font-size:.6rem;opacity:.4">Leaflet | © OpenStreetMap © CARTO</span>',
     subdomains: 'abcd',
-    maxZoom: 19
+    maxZoom: 18,
   }).addTo(_leafletMap)
 
   if (!cities.length) {
-    listEl.innerHTML = `<div style="padding:2rem;text-align:center;color:var(--text-secondary);font-size:0.8rem;opacity:0.5">Aucune ville géolocalisable</div>`
+    listEl.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+                  height:100%;padding:2.5rem 1.5rem;text-align:center">
+        <i class="fas fa-map-marked-alt" style="font-size:2rem;color:rgba(99,132,255,.25);display:block;margin-bottom:.75rem"></i>
+        <p style="font-size:.78rem;color:rgba(148,163,184,.4);margin:0">Aucune ville géolocalisable</p>
+      </div>`
     return
   }
 
   const maxCount = Math.max(...cities.map(c => c.count))
-  const total = cityData.reduce((s, c) => s + c.count, 0)
+  const total    = cityData.reduce((s, c) => s + c.count, 0)
 
-  // Color scale: few = blue, many = red
+  // Palette de couleurs premium selon intensité
   function markerColor(count) {
-    const ratio = count / maxCount
-    if (ratio >= 0.8) return '#ef4444'
-    if (ratio >= 0.5) return '#f97316'
-    if (ratio >= 0.3) return '#fbbf24'
-    return '#3b82f6'
+    const r = count / maxCount
+    if (r >= 0.8) return { fill: '#f43f5e', glow: 'rgba(244,63,94,0.5)' }
+    if (r >= 0.55) return { fill: '#fb923c', glow: 'rgba(251,146,60,0.45)' }
+    if (r >= 0.3) return { fill: '#fbbf24', glow: 'rgba(251,191,36,0.4)' }
+    return { fill: '#6384ff', glow: 'rgba(99,132,255,0.4)' }
   }
 
-  // Add circle markers
-  cities.forEach((c, idx) => {
-    const color = markerColor(c.count)
-    const radius = 10 + (c.count / maxCount) * 22
+  // Markers avec halo pulsant (DivIcon)
+  cities.forEach(c => {
+    const col    = markerColor(c.count)
+    const radius = Math.round(10 + (c.count / maxCount) * 24)
+    const pct    = total > 0 ? ((c.count / total) * 100).toFixed(1) : '0.0'
 
-    const circle = L.circleMarker(c.coords, {
-      radius,
-      fillColor: color,
-      color: '#fff',
-      weight: 2,
-      opacity: 0.9,
-      fillOpacity: 0.82,
-    }).addTo(_leafletMap)
+    const icon = L.divIcon({
+      className: '',
+      iconSize:  [radius * 2, radius * 2],
+      iconAnchor:[radius, radius],
+      html: `
+        <div style="
+          width:${radius*2}px;height:${radius*2}px;
+          border-radius:50%;
+          background:${col.fill};
+          border:2px solid rgba(255,255,255,0.25);
+          box-shadow:0 0 0 4px ${col.glow}, 0 0 18px ${col.glow};
+          display:flex;align-items:center;justify-content:center;
+          font-size:${radius > 18 ? '0.7' : '0.6'}rem;
+          font-weight:800;color:#fff;
+          cursor:pointer;
+          transition:transform .15s;
+        " title="${c.city} — ${c.count} interventions">
+          ${c.count}
+        </div>`
+    })
 
-    circle.bindPopup(`
-      <div style="font-family:sans-serif;min-width:140px">
-        <div style="font-weight:700;font-size:0.9rem;margin-bottom:4px">${c.city}</div>
-        <div style="color:#666;font-size:0.8rem">
-          <span style="font-size:1.1rem;font-weight:800;color:${color}">${c.count}</span>
-          intervention${c.count>1?'s':''}
+    const marker = L.marker(c.coords, { icon }).addTo(_leafletMap)
+
+    // Popup dark premium
+    marker.bindPopup(`
+      <div style="
+        font-family:'Segoe UI',sans-serif;
+        background:#0a0e28;color:#e2e8f0;
+        border-radius:10px;min-width:160px;
+        padding:0;overflow:hidden;
+      ">
+        <div style="
+          padding:.6rem .9rem;
+          background:linear-gradient(135deg,rgba(99,132,255,.15),rgba(99,132,255,.05));
+          border-bottom:1px solid rgba(99,132,255,.15);
+        ">
+          <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.8px;color:rgba(99,132,255,.8);font-weight:700;margin-bottom:2px">
+            <i class="fas fa-map-marker-alt" style="margin-right:4px"></i>Ville
+          </div>
+          <div style="font-weight:800;font-size:.95rem;color:#f8fafc">${c.city}</div>
         </div>
-        <div style="color:#999;font-size:0.72rem;margin-top:2px">${((c.count/total)*100).toFixed(1)}% du total</div>
+        <div style="padding:.6rem .9rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
+            <span style="font-size:.7rem;color:rgba(148,163,184,.7)">Interventions</span>
+            <span style="font-size:1.1rem;font-weight:800;color:${col.fill}">${c.count}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:.7rem;color:rgba(148,163,184,.7)">Part du total</span>
+            <span style="font-size:.8rem;font-weight:700;color:rgba(255,255,255,.7)">${pct}%</span>
+          </div>
+          <div style="margin-top:.5rem;height:3px;border-radius:2px;background:rgba(255,255,255,.08)">
+            <div style="height:100%;width:${pct}%;background:${col.fill};border-radius:2px"></div>
+          </div>
+        </div>
       </div>
-    `, { className: 'map-popup' })
+    `, {
+      maxWidth: 220,
+      className: 'map-popup-dark',
+    })
 
-    circle.on('mouseover', function() { this.openPopup() })
+    marker.on('mouseover', function() { this.openPopup() })
   })
 
-  // Ranking list
-  const colors = ['#ef4444','#f97316','#fbbf24','#3b82f6','#8b5cf6','#10b981','#06b6d4','#ec4899']
-  listEl.innerHTML = cityData.map((c, idx) => {
-    const pct = total > 0 ? ((c.count / total) * 100).toFixed(1) : 0
-    const col = colors[idx % colors.length]
-    const hasCoords = !!getCityCoords(c.city)
-    return `
-      <div style="display:flex;align-items:center;gap:10px;padding:0.75rem 1rem;border-bottom:1px solid var(--border);cursor:${hasCoords?'pointer':'default'}"
-           ${hasCoords ? `onclick="flyToCity('${c.city.replace(/'/g,"\\'")}',${getCityCoords(c.city)})"` : ''}>
-        <div style="width:28px;height:28px;border-radius:8px;background:${col};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.75rem;color:#fff;flex-shrink:0">${idx+1}</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:600;font-size:0.82rem;color:var(--text-primary);display:flex;align-items:center;gap:5px">
-            ${escHtml(c.city)}
-            ${!hasCoords ? '<span style="font-size:0.6rem;color:var(--text-secondary);opacity:0.5">📍?</span>' : ''}
+  // CSS popup dark (injecté une seule fois)
+  if (!document.getElementById('map-popup-style')) {
+    const style = document.createElement('style')
+    style.id = 'map-popup-style'
+    style.textContent = `
+      .map-popup-dark .leaflet-popup-content-wrapper {
+        background:#0a0e28 !important;
+        border:1px solid rgba(99,132,255,0.25) !important;
+        border-radius:12px !important;
+        box-shadow:0 8px 32px rgba(0,0,0,.6), 0 0 0 1px rgba(99,132,255,0.15) !important;
+        padding:0 !important;
+        overflow:hidden !important;
+      }
+      .map-popup-dark .leaflet-popup-content {
+        margin:0 !important;
+        border-radius:12px !important;
+        overflow:hidden !important;
+      }
+      .map-popup-dark .leaflet-popup-tip-container { display:none }
+      .leaflet-control-zoom a {
+        background:rgba(10,14,40,0.92) !important;
+        border:1px solid rgba(99,132,255,0.2) !important;
+        color:#a0aec0 !important;
+        border-radius:8px !important;
+      }
+      .leaflet-control-zoom a:hover {
+        background:rgba(99,132,255,0.15) !important;
+        color:#6384ff !important;
+      }
+      .leaflet-control-zoom {
+        border:none !important;
+        box-shadow:0 4px 16px rgba(0,0,0,0.4) !important;
+      }
+      .leaflet-control-attribution {
+        background:rgba(10,14,40,0.7) !important;
+        color:rgba(148,163,184,.4) !important;
+        font-size:.55rem !important;
+        border-radius:6px 0 0 0 !important;
+      }
+      .leaflet-control-attribution a { color:rgba(99,132,255,.5) !important; }
+    `
+    document.head.appendChild(style)
+  }
+
+  // ── Ranking list premium ───────────────────────────────────
+  const palette = ['#f43f5e','#fb923c','#fbbf24','#6384ff','#a78bfa','#34d399','#06b6d4','#ec4899']
+
+  listEl.innerHTML = `
+    <div style="padding:.75rem 1rem .4rem;border-bottom:1px solid rgba(99,132,255,.08)">
+      <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.8px;color:rgba(99,132,255,.6);font-weight:700">
+        <i class="fas fa-trophy" style="margin-right:5px"></i>Classement
+      </div>
+    </div>
+    ${cityData.map((c, idx) => {
+      const pct     = total > 0 ? ((c.count / total) * 100).toFixed(1) : '0.0'
+      const col     = palette[idx % palette.length]
+      const hasCoord= !!getCityCoords(c.city)
+      const coords  = getCityCoords(c.city)
+      const medal   = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : null
+      return `
+        <div style="
+          display:flex;align-items:center;gap:.7rem;
+          padding:.7rem 1rem;
+          border-bottom:1px solid rgba(99,132,255,.07);
+          cursor:${hasCoord ? 'pointer' : 'default'};
+          transition:background .15s;
+        "
+        onmouseover="this.style.background='rgba(99,132,255,.07)'"
+        onmouseout="this.style.background='transparent'"
+        ${hasCoord && coords ? `onclick="flyToCity('${c.city.replace(/'/g,"\\'")}',${coords[0]},${coords[1]})"` : ''}>
+
+          <!-- Rang -->
+          <div style="
+            width:26px;height:26px;border-radius:7px;
+            background:${col}22;border:1px solid ${col}44;
+            display:flex;align-items:center;justify-content:center;
+            font-weight:800;font-size:.72rem;color:${col};flex-shrink:0;
+          ">${medal || (idx + 1)}</div>
+
+          <!-- Nom + barre -->
+          <div style="flex:1;min-width:0">
+            <div style="
+              font-weight:600;font-size:.8rem;
+              color:var(--text-primary);
+              white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+              display:flex;align-items:center;gap:.35rem;
+            ">
+              ${escHtml(c.city)}
+              ${!hasCoord ? '<i class="fas fa-question-circle" style="font-size:.6rem;color:rgba(148,163,184,.3)" title="Coordonnées inconnues"></i>' : ''}
+            </div>
+            <div style="margin-top:.35rem;height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden">
+              <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,${col},${col}88);border-radius:2px;transition:width .5s .1s"></div>
+            </div>
           </div>
-          <div style="margin-top:3px;height:4px;background:var(--bg-primary);border-radius:2px;overflow:hidden">
-            <div style="height:100%;width:${pct}%;background:${col};border-radius:2px;transition:width 0.5s"></div>
+
+          <!-- Valeurs -->
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-weight:800;font-size:.88rem;color:${col};line-height:1">${c.count}</div>
+            <div style="font-size:.62rem;color:rgba(148,163,184,.5);margin-top:2px">${pct}%</div>
           </div>
-        </div>
-        <div style="text-align:right;flex-shrink:0">
-          <div style="font-weight:800;font-size:0.88rem;color:${col}">${c.count}</div>
-          <div style="font-size:0.65rem;color:var(--text-secondary)">${pct}%</div>
-        </div>
-      </div>`
-  }).join('')
+        </div>`
+    }).join('')}
+  `
 }
 
 function flyToCity(name, lat, lng) {
   if (!_leafletMap) return
-  _leafletMap.flyTo([lat, lng], 10, { duration: 1.2 })
+  _leafletMap.flyTo([lat, lng], 9, { duration: 1.4, easeLinearity: 0.25 })
 }
 
 async function loadRecentInterventions() {
