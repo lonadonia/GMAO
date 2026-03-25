@@ -3674,12 +3674,13 @@ async function renderPlanning() {
   container.innerHTML = `
     <div class="page-header">
       <div>
-        <h1 style="font-size:1.2rem;font-weight:700">Planning</h1>
-        <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px">Calendrier de maintenance préventive</p>
+        <h1 style="font-size:1.2rem;font-weight:700"><i class="fas fa-calendar-alt" style="color:var(--accent-blue);margin-right:8px"></i>Planning</h1>
+        <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px">Calendrier de maintenance préventive 2026</p>
       </div>
       <div style="display:flex;gap:0.5rem;align-items:center">
-        <button class="btn btn-ghost btn-sm" onclick="togglePreventifSection()" id="btn-toggle-gantt">
-          <i class="fas fa-table"></i> Planning Contractuel
+        <button class="btn btn-ghost btn-sm" onclick="togglePreventifSection()" id="btn-toggle-gantt"
+          style="border:1px solid rgba(79,158,248,0.3);color:var(--accent-blue)">
+          <i class="fas fa-table-list"></i> Planning Contractuel
         </button>
         <button class="btn btn-ghost btn-sm" onclick="openPreventifModal()">
           <i class="fas fa-plus"></i> Ajouter
@@ -3691,8 +3692,7 @@ async function renderPlanning() {
     </div>
     <div class="page-content">
 
-      <!-- ===== CALENDRIER (toujours visible) ===== -->
-      <!-- Navigation mois -->
+      <!-- ===== CALENDRIER ===== -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem">
         <div style="display:flex;gap:0.4rem;align-items:center">
           <button class="btn btn-ghost btn-sm" onclick="prevMonth()"><i class="fas fa-chevron-left"></i></button>
@@ -3700,7 +3700,6 @@ async function renderPlanning() {
           <button class="btn btn-ghost btn-sm" onclick="nextMonth()"><i class="fas fa-chevron-right"></i></button>
           <button class="btn btn-ghost btn-sm" onclick="goToday()">Aujourd'hui</button>
         </div>
-        <!-- Légende -->
         <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
           <span class="calendar-event preventive" style="padding:2px 7px;font-size:0.66rem">🔧 Préventif</span>
           <span class="calendar-event corrective" style="padding:2px 7px;font-size:0.66rem">⚠️ Correctif planifié</span>
@@ -3708,55 +3707,71 @@ async function renderPlanning() {
           <span class="calendar-event bdc"        style="padding:2px 7px;font-size:0.66rem">📋 Bon de commande</span>
         </div>
       </div>
-
-      <!-- Résumé mensuel -->
       <div id="calendar-month-summary" style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.75rem;min-height:26px;flex-wrap:wrap"></div>
-
-      <!-- Grille calendrier -->
       <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:1rem;margin-bottom:1.5rem">
         <div class="calendar-grid" id="calendar-grid">
           <div class="loading-overlay" style="grid-column:1/-1"><span class="loader"></span></div>
         </div>
       </div>
 
-      <!-- ===== SECTION PLANNING PRÉVENTIF CONTRACTUEL (collapsible) ===== -->
+      <!-- ===== PLANNING CONTRACTUEL PREMIUM ===== -->
       <div id="section-preventif">
-        <!-- Stats bar -->
-        <div id="preventif-stats" style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.75rem"></div>
-        <!-- Filtres -->
-        <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.75rem;flex-wrap:wrap">
-          <select id="filter-nature" class="select" style="width:190px;height:32px;font-size:0.77rem" onchange="loadPreventifTable()">
-            <option value="">Toutes les natures</option>
-            <option value="Contrat de maintenance">Contrat de maintenance</option>
-            <option value="Bon de commande">Bon de commande</option>
-          </select>
-          <select id="filter-frequence" class="select" style="width:155px;height:32px;font-size:0.77rem" onchange="loadPreventifTable()">
-            <option value="">Toutes fréquences</option>
-            <option value="Annuelle">Annuelle</option>
-            <option value="Semestrielle">Semestrielle</option>
-            <option value="Trimestrielle">Trimestrielle</option>
-          </select>
-          <select id="filter-fait" class="select" style="width:145px;height:32px;font-size:0.77rem" onchange="loadPreventifTable()">
-            <option value="">Tous les statuts</option>
-            <option value="true">✓ Fait</option>
-            <option value="false">✗ Non fait</option>
-          </select>
-          <input type="text" id="filter-client" class="input" style="width:195px;height:32px;font-size:0.77rem" placeholder="🔍 Rechercher client..." oninput="loadPreventifTable()">
-        </div>
-        <!-- Tableau Gantt -->
-        <div class="table-card">
-          <div class="table-header">
-            <div class="table-title"><i class="fas fa-file-contract" style="color:var(--accent-blue)"></i> Planning Préventif Contractuel 2026</div>
-            <div id="preventif-counter" style="font-size:0.75rem;color:var(--text-secondary)"></div>
-          </div>
-          <div id="preventif-table"><div class="loading-overlay"><span class="loader"></span></div></div>
-        </div>
-      </div>
 
+        <!-- KPI STRIP -->
+        <div id="preventif-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;margin-bottom:1.25rem"></div>
+
+        <!-- BARRE DE CONTRÔLE -->
+        <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:1rem;flex-wrap:wrap;
+                    background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:0.6rem 1rem">
+          <i class="fas fa-filter" style="color:var(--accent-blue);font-size:0.8rem"></i>
+          <select id="filter-nature" class="select" style="width:175px;height:32px;font-size:0.77rem" onchange="loadPreventifTable()">
+            <option value="">Toutes les natures</option>
+            <option value="Contrat de maintenance">📄 Contrat de maintenance</option>
+            <option value="Bon de commande">📋 Bon de commande</option>
+          </select>
+          <select id="filter-frequence" class="select" style="width:150px;height:32px;font-size:0.77rem" onchange="loadPreventifTable()">
+            <option value="">Toutes fréquences</option>
+            <option value="Annuelle">🔁 Annuelle</option>
+            <option value="Semestrielle">🔁 Semestrielle</option>
+            <option value="Trimestrielle">🔁 Trimestrielle</option>
+          </select>
+          <select id="filter-fait" class="select" style="width:140px;height:32px;font-size:0.77rem" onchange="loadPreventifTable()">
+            <option value="">Tous les statuts</option>
+            <option value="true">✅ Fait</option>
+            <option value="false">⏳ En attente</option>
+          </select>
+          <input type="text" id="filter-client" class="input" style="flex:1;min-width:160px;height:32px;font-size:0.77rem" placeholder="🔍 Rechercher client..." oninput="loadPreventifTable()">
+          <div id="preventif-counter" style="font-size:0.75rem;color:var(--text-secondary);white-space:nowrap;margin-left:auto"></div>
+        </div>
+
+        <!-- TABLEAU GANTT PREMIUM -->
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:0.9rem 1.2rem;
+                      border-bottom:1px solid var(--border);
+                      background:linear-gradient(90deg,rgba(29,78,216,0.08),rgba(99,102,241,0.04))">
+            <div style="display:flex;align-items:center;gap:0.6rem">
+              <div style="width:32px;height:32px;border-radius:8px;background:rgba(29,78,216,0.15);
+                          border:1px solid rgba(29,78,216,0.3);display:flex;align-items:center;justify-content:center">
+                <i class="fas fa-file-contract" style="color:var(--accent-blue);font-size:0.85rem"></i>
+              </div>
+              <div>
+                <div style="font-weight:700;font-size:0.92rem;color:var(--text-primary)">Planning Préventif Contractuel</div>
+                <div style="font-size:0.7rem;color:var(--text-secondary)">Année 2026 — 1 intervention/semaine — Lundi &amp; Jeudi</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:0.5rem">
+              <button class="btn btn-ghost btn-sm" onclick="openPreventifModal()" style="font-size:0.75rem">
+                <i class="fas fa-plus"></i> Nouvelle
+              </button>
+            </div>
+          </div>
+          <div id="preventif-table"><div class="loading-overlay" style="padding:3rem"><span class="loader"></span></div></div>
+        </div>
+
+      </div>
     </div>
   `
 
-  // Charger les deux sections
   renderCalendar()
   loadPreventifTable()
 }
@@ -3804,25 +3819,38 @@ async function loadPreventifTable() {
     const rows  = payload.data || (Array.isArray(payload) ? payload : [])
     const stats = payload.stats || {}
 
-    // Stats bar
+    // KPI STRIP premium
     const statsEl = document.getElementById('preventif-stats')
     if (statsEl) {
       const pct = stats.total > 0 ? Math.round((stats.fait_count/stats.total)*100) : 0
-      statsEl.innerHTML = `
-        <div class="stat-mini"><span class="stat-mini-val">${stats.total||0}</span><span class="stat-mini-lbl">Total</span></div>
-        <div class="stat-mini" style="color:var(--accent-green)"><span class="stat-mini-val">${stats.fait_count||0}</span><span class="stat-mini-lbl">Fait ✓</span></div>
-        <div class="stat-mini" style="color:var(--accent-yellow)"><span class="stat-mini-val">${stats.en_attente_count||0}</span><span class="stat-mini-lbl">En attente</span></div>
-        <div class="stat-mini" style="color:var(--accent-blue)"><span class="stat-mini-val">${stats.contrats||0}</span><span class="stat-mini-lbl">Contrats</span></div>
-        <div class="stat-mini" style="color:var(--accent-purple)"><span class="stat-mini-val">${stats.bons_commande||0}</span><span class="stat-mini-lbl">Bons commande</span></div>
-        <div style="flex:1"></div>
-        <div style="display:flex;align-items:center;gap:0.75rem;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:0.5rem 1rem">
-          <span style="font-size:0.75rem;color:var(--text-secondary)">Avancement 2026</span>
-          <div style="width:120px;height:8px;background:var(--bg-secondary);border-radius:4px;overflow:hidden">
-            <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,var(--accent-blue),var(--accent-green));border-radius:4px;transition:width .4s"></div>
-          </div>
-          <strong style="font-size:0.85rem;color:${pct>=80?'var(--accent-green)':pct>=40?'var(--accent-yellow)':'var(--accent-red)'}">${pct}%</strong>
-        </div>
-      `
+      const kpiCard = (icon, val, lbl, col, bg) =>
+        `<div style="background:${bg};border:1px solid ${col}33;border-radius:10px;padding:0.8rem 1rem;
+                    display:flex;align-items:center;gap:0.75rem;position:relative;overflow:hidden">
+           <div style="width:36px;height:36px;border-radius:8px;background:${col}22;border:1px solid ${col}44;
+                       display:flex;align-items:center;justify-content:center;flex-shrink:0">
+             <i class="fas fa-${icon}" style="color:${col};font-size:1rem"></i>
+           </div>
+           <div>
+             <div style="font-size:1.4rem;font-weight:800;color:${col};line-height:1">${val}</div>
+             <div style="font-size:0.68rem;color:var(--text-secondary);margin-top:2px;white-space:nowrap">${lbl}</div>
+           </div>
+         </div>`
+      statsEl.innerHTML =
+        kpiCard('list-check',   stats.total||0,          'Total 2026',      '#3b82f6','rgba(59,130,246,0.06)') +
+        kpiCard('check-circle', stats.fait_count||0,     'Réalisées',       '#22c55e','rgba(34,197,94,0.06)') +
+        kpiCard('clock',        stats.en_attente_count||0,'En attente',     '#f59e0b','rgba(245,158,11,0.06)') +
+        kpiCard('file-contract',stats.contrats||0,       'Contrats',        '#60a5fa','rgba(96,165,250,0.06)') +
+        kpiCard('file-invoice', stats.bons_commande||0,  'Bons commande',   '#a78bfa','rgba(167,139,250,0.06)') +
+        `<div style="background:rgba(29,78,216,0.06);border:1px solid rgba(29,78,216,0.2);border-radius:10px;
+                    padding:0.8rem 1rem;display:flex;flex-direction:column;justify-content:center;gap:6px">
+           <div style="display:flex;justify-content:space-between;align-items:center">
+             <span style="font-size:0.72rem;color:var(--text-secondary)">Avancement global 2026</span>
+             <strong style="font-size:1rem;font-weight:800;color:${pct>=80?'#22c55e':pct>=40?'#f59e0b':'#ef4444'}">${pct}%</strong>
+           </div>
+           <div style="height:8px;background:var(--bg-secondary);border-radius:4px;overflow:hidden">
+             <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#1d4ed8,#22c55e);border-radius:4px;transition:width .6s ease"></div>
+           </div>
+         </div>`
     }
 
     const counter = document.getElementById('preventif-counter')
@@ -3833,78 +3861,199 @@ async function loadPreventifTable() {
       return
     }
 
-    // Tableau avec colonne par mois (style Gantt)
+    // ============================================================
+    // TABLEAU GANTT PREMIUM avec dates exactes
+    // ============================================================
     const currentMonth = new Date().getMonth() + 1
+    const currentDay   = new Date().getDate()
+    const currentYear  = new Date().getFullYear()
+
+    const JOURS_COURT = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam']
+    const FREQ_CFG = {
+      'Trimestrielle': { color:'#22c55e', bg:'rgba(34,197,94,0.1)',  icon:'fa-rotate',    label:'Trim.' },
+      'Semestrielle':  { color:'#3b82f6', bg:'rgba(59,130,246,0.1)', icon:'fa-rotate',    label:'Sem.'  },
+      'Annuelle':      { color:'#f59e0b', bg:'rgba(245,158,11,0.1)', icon:'fa-calendar-day',label:'Ann.' }
+    }
 
     el.innerHTML = `
-      <div style="overflow-x:auto">
-        <table style="min-width:1200px">
+      <div style="overflow-x:auto;">
+        <table style="min-width:1280px;border-collapse:collapse">
           <thead>
-            <tr>
-              <th style="min-width:140px">Nature</th>
-              <th style="min-width:260px">Description / Intervention</th>
-              <th style="min-width:180px">Client</th>
-              <th style="min-width:110px;text-align:center">Fréquence</th>
+            <tr style="background:linear-gradient(90deg,rgba(15,23,42,0.9),rgba(15,23,42,0.7))">
+              <th style="min-width:90px;padding:10px 12px;text-align:left;font-size:0.7rem;font-weight:600;
+                         color:var(--text-secondary);border-bottom:2px solid rgba(59,130,246,0.3);
+                         position:sticky;left:0;background:rgba(10,16,35,0.98);z-index:2">Nature</th>
+              <th style="min-width:220px;padding:10px 12px;text-align:left;font-size:0.7rem;font-weight:600;
+                         color:var(--text-secondary);border-bottom:2px solid rgba(59,130,246,0.3)">Client / Description</th>
+              <th style="min-width:90px;padding:10px 8px;text-align:center;font-size:0.7rem;font-weight:600;
+                         color:var(--text-secondary);border-bottom:2px solid rgba(59,130,246,0.3)">Fréquence</th>
+              <th style="min-width:110px;padding:10px 8px;text-align:center;font-size:0.7rem;font-weight:600;
+                         color:#60a5fa;border-bottom:2px solid rgba(59,130,246,0.3)">Date planifiée</th>
               ${MOIS_LABELS.map((m,i) => {
-                const isCurrent = (i+1) === currentMonth
-                return `<th style="width:52px;text-align:center;font-size:0.68rem;padding:6px 4px;${isCurrent?'color:var(--accent-blue);background:rgba(79,158,248,0.06)':''}">${m}</th>`
+                const isCur = (i+1) === currentMonth
+                return `<th style="width:48px;padding:8px 2px;text-align:center;font-size:0.63rem;
+                           font-weight:${isCur?'800':'600'};
+                           color:${isCur?'#60a5fa':'var(--text-secondary)'};
+                           border-bottom:2px solid ${isCur?'rgba(59,130,246,0.6)':'rgba(59,130,246,0.2)'};
+                           background:${isCur?'rgba(59,130,246,0.06)':''};
+                           ${isCur?'border-top:2px solid rgba(59,130,246,0.4)':''}
+                           ">${m}${isCur?'<div style="font-size:0.5rem;color:#60a5fa;margin-top:1px">▼</div>':''}</th>`
               }).join('')}
-              <th style="min-width:80px;text-align:center">Statut</th>
-              <th style="min-width:60px;text-align:center">Actions</th>
+              <th style="min-width:80px;padding:10px 8px;text-align:center;font-size:0.7rem;font-weight:600;
+                         color:var(--text-secondary);border-bottom:2px solid rgba(59,130,246,0.3)">Statut</th>
+              <th style="min-width:70px;padding:10px 8px;text-align:center;font-size:0.7rem;font-weight:600;
+                         color:var(--text-secondary);border-bottom:2px solid rgba(59,130,246,0.3)">Actions</th>
             </tr>
           </thead>
           <tbody>
-            ${rows.map(r => {
+            ${rows.map((r, rowIdx) => {
               const isContrat = r.nature === 'Contrat de maintenance'
-              const natureBadge = isContrat
-                ? `<span class="badge" style="background:rgba(79,158,248,0.12);color:var(--accent-blue);border:1px solid rgba(79,158,248,0.2);font-size:0.6rem;white-space:nowrap">Contrat</span>`
-                : `<span class="badge" style="background:rgba(167,139,250,0.12);color:var(--accent-purple);border:1px solid rgba(167,139,250,0.2);font-size:0.6rem;white-space:nowrap">Bon de commande</span>`
+              const fCfg = FREQ_CFG[r.frequence] || { color:'#94a3b8', bg:'rgba(148,163,184,0.1)', icon:'fa-calendar', label:r.frequence }
+              const rowBg = rowIdx%2===0 ? 'rgba(255,255,255,0.01)' : 'rgba(255,255,255,0.03)'
 
-              const freqColor = {
-                'Trimestrielle':'var(--accent-green)',
-                'Semestrielle': 'var(--accent-blue)',
-                'Annuelle':     'var(--accent-yellow)'
-              }[r.frequence] || 'var(--text-secondary)'
+              // Date planifiée
+              let dateLabel = '—', jourLabel = '', dateTip = ''
+              if (r.date_planifiee) {
+                const dp = new Date(r.date_planifiee + 'T00:00:00')
+                const dd = dp.getDate()
+                const mm = dp.getMonth()+1
+                const jj = JOURS_COURT[dp.getDay()]
+                dateLabel = `${String(dd).padStart(2,'0')}/${String(mm).padStart(2,'0')}`
+                jourLabel = jj
+                const isToday = dd===currentDay && mm===currentMonth && dp.getFullYear()===currentYear
+                const isPast  = dp < new Date(currentYear,currentMonth-1,currentDay)
+                dateTip = isToday ? '🟢 Aujourd\'hui' : isPast ? '🔴 Passée' : '🔵 À venir'
+              }
 
               const moisCells = Array.from({length:12},(_,i) => {
                 const mKey = `mois_${i+1}`
                 const planned = r[mKey] === 1
-                const isCurrent = (i+1) === currentMonth
-                if (!planned) return `<td style="text-align:center;background:${isCurrent?'rgba(79,158,248,0.04)':''}"></td>`
-                const color = r.fait
-                  ? 'var(--accent-green)'
-                  : (i+1) < currentMonth ? 'var(--accent-red)' : 'var(--accent-blue)'
-                const icon  = r.fait ? '✓' : '●'
-                return `<td style="text-align:center;background:${isCurrent?'rgba(79,158,248,0.06)':''}">
-                  <div style="width:28px;height:28px;border-radius:50%;background:${color}22;border:2px solid ${color};display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;color:${color};font-weight:700;cursor:pointer" 
-                       title="${MOIS_FULL[i]} — ${r.client}"
-                       onclick="toggleFait(${r.id},${r.fait})">${icon}</div>
+                const isCur   = (i+1) === currentMonth
+
+                if (!planned) return `<td style="text-align:center;padding:0 2px;
+                  background:${isCur?'rgba(59,130,246,0.04)':''};
+                  border-right:${isCur?'1px solid rgba(59,130,246,0.15)':'1px solid rgba(255,255,255,0.03)'}"></td>`
+
+                // Déterminer la couleur selon état
+                let dotColor, dotBg, dotIcon, dotTitle
+                if (r.fait) {
+                  dotColor='#22c55e'; dotBg='rgba(34,197,94,0.15)'; dotIcon='✓'; dotTitle='Réalisée'
+                } else if ((i+1) < currentMonth) {
+                  dotColor='#ef4444'; dotBg='rgba(239,68,68,0.15)'; dotIcon='!'; dotTitle='En retard'
+                } else if ((i+1) === currentMonth) {
+                  dotColor='#f59e0b'; dotBg='rgba(245,158,11,0.2)'; dotIcon='●'; dotTitle='Ce mois'
+                } else {
+                  dotColor='#3b82f6'; dotBg='rgba(59,130,246,0.15)'; dotIcon='●'; dotTitle='Planifiée'
+                }
+
+                // Afficher le jour du mois si date_planifiee disponible
+                let dayNum = ''
+                if (r.date_planifiee) {
+                  const dp = new Date(r.date_planifiee+'T00:00:00')
+                  if (dp.getMonth()+1 === i+1) dayNum = String(dp.getDate()).padStart(2,'0')
+                }
+
+                return `<td style="text-align:center;padding:6px 2px;
+                  background:${isCur?'rgba(59,130,246,0.04)':'${rowBg}'};
+                  border-right:${isCur?'1px solid rgba(59,130,246,0.2)':'1px solid rgba(255,255,255,0.03)'}">
+                  <div style="width:34px;height:34px;border-radius:8px;
+                    background:${dotBg};border:1.5px solid ${dotColor}44;
+                    display:inline-flex;flex-direction:column;align-items:center;
+                    justify-content:center;cursor:pointer;transition:all .2s;
+                    box-shadow:${r.fait?'0 0 6px '+dotColor+'40':''}"
+                    title="${dotTitle} — ${MOIS_FULL[i]}${dayNum?' ('+dayNum+')':''}"
+                    onclick="toggleFait(${r.id},${r.fait})"
+                    onmouseenter="this.style.transform='scale(1.15)';this.style.borderColor='${dotColor}'"
+                    onmouseleave="this.style.transform='scale(1)';this.style.borderColor='${dotColor}44'">
+                    <span style="font-size:0.7rem;font-weight:800;color:${dotColor}">${dotIcon}</span>
+                    ${dayNum?`<span style="font-size:0.48rem;color:${dotColor};opacity:0.8;margin-top:-2px">${dayNum}</span>`:''}
+                  </div>
                 </td>`
               }).join('')
 
               return `
-                <tr style="${r.fait ? 'opacity:0.7' : ''}">
-                  <td>${natureBadge}</td>
-                  <td>
-                    <div style="font-size:0.78rem;color:var(--text-primary);line-height:1.4">${escHtml(r.description.length>65?r.description.slice(0,65)+'…':r.description)}</div>
+                <tr style="background:${rowBg};border-bottom:1px solid rgba(255,255,255,0.04);
+                           transition:background .15s;${r.fait?'opacity:0.65':''}"
+                    onmouseenter="this.style.background='rgba(59,130,246,0.06)'"
+                    onmouseleave="this.style.background='${rowBg}'">
+
+                  <!-- Nature badge -->
+                  <td style="padding:10px 12px;position:sticky;left:0;background:rgba(10,16,35,0.96);z-index:1">
+                    <div style="display:inline-flex;align-items:center;gap:5px;padding:3px 8px;
+                      border-radius:6px;
+                      background:${isContrat?'rgba(59,130,246,0.12)':'rgba(167,139,250,0.12)'};
+                      border:1px solid ${isContrat?'rgba(59,130,246,0.25)':'rgba(167,139,250,0.25)'}">
+                      <i class="fas ${isContrat?'fa-file-contract':'fa-file-invoice'}" 
+                         style="font-size:0.6rem;color:${isContrat?'#60a5fa':'#a78bfa'}"></i>
+                      <span style="font-size:0.6rem;font-weight:700;
+                        color:${isContrat?'#60a5fa':'#a78bfa'}">
+                        ${isContrat?'Contrat':'BdC'}
+                      </span>
+                    </div>
                   </td>
-                  <td>
-                    <div style="font-weight:600;font-size:0.78rem;color:var(--text-primary)">${escHtml(r.client)}</div>
+
+                  <!-- Client / Description -->
+                  <td style="padding:10px 12px">
+                    <div style="font-weight:700;font-size:0.82rem;color:var(--text-primary);margin-bottom:2px">
+                      ${escHtml(r.client)}
+                    </div>
+                    <div style="font-size:0.68rem;color:var(--text-muted);line-height:1.3">
+                      ${escHtml(r.description.length>60?r.description.slice(0,60)+'…':r.description)}
+                    </div>
                   </td>
-                  <td style="text-align:center">
-                    <span style="font-size:0.68rem;font-weight:600;color:${freqColor}">${r.frequence}</span>
+
+                  <!-- Fréquence -->
+                  <td style="padding:10px 8px;text-align:center">
+                    <div style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;
+                      border-radius:6px;background:${fCfg.bg};border:1px solid ${fCfg.color}33">
+                      <i class="fas ${fCfg.icon}" style="font-size:0.58rem;color:${fCfg.color}"></i>
+                      <span style="font-size:0.62rem;font-weight:700;color:${fCfg.color}">${fCfg.label}</span>
+                    </div>
                   </td>
+
+                  <!-- Date planifiée -->
+                  <td style="padding:10px 8px;text-align:center">
+                    ${r.date_planifiee ? `
+                    <div style="display:inline-flex;flex-direction:column;align-items:center;gap:1px">
+                      <div style="font-size:0.78rem;font-weight:800;color:#60a5fa;font-variant-numeric:tabular-nums">
+                        ${dateLabel}
+                      </div>
+                      <div style="font-size:0.6rem;font-weight:600;padding:1px 5px;border-radius:4px;
+                        background:rgba(96,165,250,0.1);color:#60a5fa;border:1px solid rgba(96,165,250,0.2)">
+                        ${jourLabel}
+                      </div>
+                    </div>` : '<span style="color:var(--text-muted);font-size:0.7rem">—</span>'}
+                  </td>
+
                   ${moisCells}
-                  <td style="text-align:center">
+
+                  <!-- Statut -->
+                  <td style="padding:10px 8px;text-align:center">
                     ${r.fait
-                      ? `<span style="color:var(--accent-green);font-size:0.7rem;font-weight:700">✓ Fait</span>`
-                      : `<span style="color:var(--accent-yellow);font-size:0.7rem">En attente</span>`
+                      ? `<div style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;
+                           border-radius:6px;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3)">
+                           <i class="fas fa-check" style="font-size:0.6rem;color:#22c55e"></i>
+                           <span style="font-size:0.65rem;font-weight:700;color:#22c55e">Fait</span>
+                         </div>`
+                      : `<div style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;
+                           border-radius:6px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25)">
+                           <i class="fas fa-clock" style="font-size:0.6rem;color:#f59e0b"></i>
+                           <span style="font-size:0.65rem;font-weight:600;color:#f59e0b">En attente</span>
+                         </div>`
                     }
                   </td>
-                  <td style="text-align:center">
-                    <div style="display:flex;gap:3px;justify-content:center">
-                      <button class="btn btn-ghost btn-sm btn-icon" onclick="openPreventifModal(${r.id})" title="Modifier"><i class="fas fa-edit"></i></button>
-                      <button class="btn btn-danger btn-sm btn-icon" onclick="confirmDeletePreventif(${r.id},'${escHtml(r.client)}')" title="Supprimer"><i class="fas fa-trash"></i></button>
+
+                  <!-- Actions -->
+                  <td style="padding:10px 8px;text-align:center">
+                    <div style="display:flex;gap:4px;justify-content:center">
+                      <button class="btn btn-ghost btn-sm btn-icon" onclick="openPreventifModal(${r.id})"
+                        title="Modifier" style="width:28px;height:28px;border-radius:6px">
+                        <i class="fas fa-pen" style="font-size:0.65rem"></i>
+                      </button>
+                      <button class="btn btn-danger btn-sm btn-icon" onclick="confirmDeletePreventif(${r.id},'${escHtml(r.client)}')"
+                        title="Supprimer" style="width:28px;height:28px;border-radius:6px">
+                        <i class="fas fa-trash" style="font-size:0.65rem"></i>
+                      </button>
                     </div>
                   </td>
                 </tr>
