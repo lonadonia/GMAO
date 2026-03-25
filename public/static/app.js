@@ -4118,21 +4118,38 @@ async function renderCalendar() {
       events[day].push({ ...i, kind: 'corrective', source: 'intervention' })
     })
 
-    // Planning préventif contractuel — répartis sur les jours ouvrés (lun-ven) du mois
+    // Planning préventif contractuel — distribué sur les semaines du mois
     const contractItems = preventifData.data || []
     if (contractItems.length > 0) {
-      // Collecter tous les jours ouvrés du mois (lun à ven)
-      const workDays = []
       const dInMonth = new Date(year, month, 0).getDate()
-      for (let d = 1; d <= dInMonth; d++) {
-        const dow = new Date(year, month-1, d).getDay()
-        if (dow >= 1 && dow <= 5) workDays.push(d) // Lundi à Vendredi
+
+      // Construire les semaines ouvrées du mois (groupées par semaine calendaire)
+      // semaine 1 = jours 1-7, semaine 2 = jours 8-14, etc.
+      // Pour chaque semaine, choisir le 1er jour ouvré (lun-ven)
+      const weekBuckets = [] // tableau de jours représentants (1 par semaine)
+      for (let weekStart = 1; weekStart <= dInMonth; weekStart += 7) {
+        for (let d = weekStart; d <= Math.min(weekStart + 6, dInMonth); d++) {
+          const dow = new Date(year, month-1, d).getDay()
+          if (dow >= 1 && dow <= 5) { // lundi à vendredi
+            weekBuckets.push(d)
+            break
+          }
+        }
       }
-      // Répartir uniformément sur les jours ouvrés
+      // Si le mois a peu de semaines, compléter avec les jours ouvrés restants
+      if (weekBuckets.length < contractItems.length) {
+        for (let d = 1; d <= dInMonth; d++) {
+          const dow = new Date(year, month-1, d).getDay()
+          if (dow >= 1 && dow <= 5 && !weekBuckets.includes(d)) weekBuckets.push(d)
+        }
+      }
+      weekBuckets.sort((a,b) => a-b)
+
+      // Répartir les interventions sur les semaines (plusieurs par semaine si besoin)
+      const itemsPerBucket = Math.ceil(contractItems.length / weekBuckets.length)
       contractItems.forEach((item, idx) => {
-        // Espacer les contrats sur toute la largeur du mois
-        const step = Math.max(1, Math.floor(workDays.length / contractItems.length))
-        const targetDay = workDays[Math.min(idx * step, workDays.length - 1)] || workDays[idx % workDays.length] || 1
+        const bucketIdx = Math.floor(idx / itemsPerBucket)
+        const targetDay = weekBuckets[Math.min(bucketIdx, weekBuckets.length - 1)] || weekBuckets[idx % weekBuckets.length] || 1
         if (!events[targetDay]) events[targetDay] = []
         events[targetDay].push({
           ...item,
