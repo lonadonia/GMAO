@@ -3675,20 +3675,80 @@ async function renderPlanning() {
     <div class="page-header">
       <div>
         <h1 style="font-size:1.2rem;font-weight:700"><i class="fas fa-calendar-alt" style="color:var(--accent-blue);margin-right:8px"></i>Planning</h1>
-        <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px">Gestion du planning de maintenance</p>
+        <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px">Planning annuel de maintenance préventive 2026</p>
       </div>
       <div style="display:flex;gap:0.5rem;align-items:center">
-        <button class="btn btn-primary" onclick="openPlanModal()">
+        <button class="btn btn-ghost btn-sm" onclick="openPlanModal()" title="Nouveau plan de maintenance cyclique">
           <i class="fas fa-plus"></i> Nouveau plan
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="openPreventifModal()">
+          <i class="fas fa-plus"></i> Nouvelle intervention
         </button>
       </div>
     </div>
-    <div class="page-content">
+    <div class="page-content" style="display:flex;flex-direction:column;gap:1.5rem">
+
+      <!-- ═══ SECTION 1: PLANNING PRÉVENTIF CONTRACTUEL ═══ -->
+      <div class="table-card" style="overflow:visible">
+        <!-- En-tête section -->
+        <div style="padding:1rem 1.25rem;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem">
+          <div style="display:flex;align-items:center;gap:0.75rem">
+            <div style="width:38px;height:38px;border-radius:10px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center">
+              <i class="fas fa-table-cells" style="color:#60a5fa;font-size:1rem"></i>
+            </div>
+            <div>
+              <div style="font-weight:700;font-size:0.9rem">Planning Préventif Contractuel</div>
+              <div style="font-size:0.7rem;color:var(--text-secondary)">Année 2026 — 1 intervention/semaine — Lundi & Jeudi</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
+            <select id="filter-nature" onchange="loadPreventifTable()" class="form-control" style="font-size:0.72rem;padding:4px 8px;height:30px;min-width:120px">
+              <option value="">Toutes natures</option>
+              <option value="Contrat de maintenance">Contrats</option>
+              <option value="Bon de commande">Bons de commande</option>
+            </select>
+            <select id="filter-frequence" onchange="loadPreventifTable()" class="form-control" style="font-size:0.72rem;padding:4px 8px;height:30px;min-width:110px">
+              <option value="">Toutes fréq.</option>
+              <option value="Trimestrielle">Trimestrielle</option>
+              <option value="Semestrielle">Semestrielle</option>
+              <option value="Annuelle">Annuelle</option>
+            </select>
+            <select id="filter-fait" onchange="loadPreventifTable()" class="form-control" style="font-size:0.72rem;padding:4px 8px;height:30px;min-width:90px">
+              <option value="">Tous statuts</option>
+              <option value="0">En attente</option>
+              <option value="1">Réalisé</option>
+            </select>
+            <span id="preventif-counter" style="font-size:0.7rem;color:var(--text-secondary);white-space:nowrap;padding:4px 8px;background:rgba(255,255,255,0.04);border-radius:6px;border:1px solid rgba(255,255,255,0.08)">— entrées</span>
+          </div>
+        </div>
+
+        <!-- KPI Strip + avancement mensuel -->
+        <div id="preventif-stats" style="display:grid;grid-template-columns:1fr;gap:0.75rem;padding:1rem 1.25rem;border-bottom:1px solid rgba(255,255,255,0.06)">
+          <div class="loading-overlay"><span class="loader"></span></div>
+        </div>
+
+        <!-- Tableau Gantt -->
+        <div id="preventif-table" style="padding:0">
+          <div class="loading-overlay" style="height:120px"><span class="loader"></span></div>
+        </div>
+      </div>
+
+      <!-- ═══ SECTION 2: PLANS DE MAINTENANCE (liste) ═══ -->
       <div class="table-card">
-        <div id="plans-list"><div class="loading-overlay"><span class="loader"></span></div></div>
+        <div style="padding:0.875rem 1.25rem;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:0.75rem">
+          <div style="width:34px;height:34px;border-radius:9px;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.25);display:flex;align-items:center;justify-content:center">
+            <i class="fas fa-wrench" style="color:#4ade80;font-size:0.85rem"></i>
+          </div>
+          <div>
+            <div style="font-weight:700;font-size:0.85rem">Plans de maintenance actifs</div>
+            <div style="font-size:0.68rem;color:var(--text-secondary)">Interventions récurrentes programmées</div>
+          </div>
+        </div>
+        <div id="plans-list" style="padding:0"><div class="loading-overlay" style="height:80px"><span class="loader"></span></div></div>
       </div>
     </div>
   `
+  loadPreventifTable()
   loadPlansList()
 }
 
@@ -3735,38 +3795,88 @@ async function loadPreventifTable() {
     const rows  = payload.data || (Array.isArray(payload) ? payload : [])
     const stats = payload.stats || {}
 
-    // KPI STRIP premium
+    // KPI STRIP premium + Avancement mensuel
+    const currentM = new Date().getMonth() + 1
+    const currentY = new Date().getFullYear()
     const statsEl = document.getElementById('preventif-stats')
     if (statsEl) {
       const pct = stats.total > 0 ? Math.round((stats.fait_count/stats.total)*100) : 0
+
+      // Calcul avancement par mois à partir des données
+      const moisStats = Array.from({length:12}, (_,i) => {
+        const mNum = i+1
+        const mKey = `mois_${mNum}`
+        const total = rows.filter(r => r[mKey]===1).length
+        const fait  = rows.filter(r => r[mKey]===1 && r.fait===1).length
+        const pctM  = total>0 ? Math.round((fait/total)*100) : null
+        return { mNum, total, fait, pct:pctM }
+      })
+
       const kpiCard = (icon, val, lbl, col, bg) =>
-        `<div style="background:${bg};border:1px solid ${col}33;border-radius:10px;padding:0.8rem 1rem;
-                    display:flex;align-items:center;gap:0.75rem;position:relative;overflow:hidden">
-           <div style="width:36px;height:36px;border-radius:8px;background:${col}22;border:1px solid ${col}44;
+        `<div style="background:${bg};border:1px solid ${col}33;border-radius:10px;padding:0.75rem 1rem;
+                    display:flex;align-items:center;gap:0.65rem">
+           <div style="width:34px;height:34px;border-radius:8px;background:${col}18;border:1px solid ${col}33;
                        display:flex;align-items:center;justify-content:center;flex-shrink:0">
-             <i class="fas fa-${icon}" style="color:${col};font-size:1rem"></i>
+             <i class="fas fa-${icon}" style="color:${col};font-size:0.9rem"></i>
            </div>
            <div>
-             <div style="font-size:1.4rem;font-weight:800;color:${col};line-height:1">${val}</div>
-             <div style="font-size:0.68rem;color:var(--text-secondary);margin-top:2px;white-space:nowrap">${lbl}</div>
+             <div style="font-size:1.3rem;font-weight:800;color:${col};line-height:1">${val}</div>
+             <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:2px;white-space:nowrap">${lbl}</div>
            </div>
          </div>`
-      statsEl.innerHTML =
-        kpiCard('list-check',   stats.total||0,          'Total 2026',      '#3b82f6','rgba(59,130,246,0.06)') +
-        kpiCard('check-circle', stats.fait_count||0,     'Réalisées',       '#22c55e','rgba(34,197,94,0.06)') +
-        kpiCard('clock',        stats.en_attente_count||0,'En attente',     '#f59e0b','rgba(245,158,11,0.06)') +
-        kpiCard('file-contract',stats.contrats||0,       'Contrats',        '#60a5fa','rgba(96,165,250,0.06)') +
-        kpiCard('file-invoice', stats.bons_commande||0,  'Bons commande',   '#a78bfa','rgba(167,139,250,0.06)') +
-        `<div style="background:rgba(29,78,216,0.06);border:1px solid rgba(29,78,216,0.2);border-radius:10px;
-                    padding:0.8rem 1rem;display:flex;flex-direction:column;justify-content:center;gap:6px">
-           <div style="display:flex;justify-content:space-between;align-items:center">
-             <span style="font-size:0.72rem;color:var(--text-secondary)">Avancement global 2026</span>
-             <strong style="font-size:1rem;font-weight:800;color:${pct>=80?'#22c55e':pct>=40?'#f59e0b':'#ef4444'}">${pct}%</strong>
-           </div>
-           <div style="height:8px;background:var(--bg-secondary);border-radius:4px;overflow:hidden">
-             <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#1d4ed8,#22c55e);border-radius:4px;transition:width .6s ease"></div>
-           </div>
-         </div>`
+
+      const moisLabels2 = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc']
+      const moisBar = moisStats.map(({mNum, total, fait, pct:p}) => {
+        if (total === 0) return `
+          <div style="text-align:center">
+            <div style="font-size:0.58rem;color:var(--text-muted);margin-bottom:4px">${moisLabels2[mNum-1]}</div>
+            <div style="height:40px;background:rgba(255,255,255,0.03);border-radius:4px;border:1px solid rgba(255,255,255,0.06)"></div>
+            <div style="font-size:0.58rem;color:var(--text-muted);margin-top:3px">—</div>
+          </div>`
+        const isCur = mNum === currentM && currentY===2026
+        const col = p===100 ? '#22c55e' : p>0 ? '#f59e0b' : (mNum < currentM ? '#ef4444' : '#3b82f6')
+        const filledH = Math.max(4, Math.round((p||0) * 40 / 100))
+        return `
+          <div style="text-align:center" title="${moisLabels2[mNum-1]}: ${fait}/${total} (${p??0}%)">
+            <div style="font-size:0.58rem;font-weight:${isCur?'800':'500'};color:${isCur?'#60a5fa':'var(--text-secondary)'};margin-bottom:4px">${moisLabels2[mNum-1]}</div>
+            <div style="height:40px;background:rgba(255,255,255,0.04);border-radius:4px;border:1px solid rgba(255,255,255,0.08);position:relative;overflow:hidden;${isCur?'border-color:rgba(59,130,246,0.4)':''}">
+              <div style="position:absolute;bottom:0;left:0;right:0;height:${filledH}px;background:${col};opacity:0.7;border-radius:0 0 3px 3px;transition:height .4s ease"></div>
+              <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
+                <span style="font-size:0.55rem;font-weight:700;color:${col};text-shadow:0 0 4px rgba(0,0,0,.5)">${total}</span>
+              </div>
+            </div>
+            <div style="font-size:0.55rem;font-weight:600;color:${col};margin-top:3px">${p !== null ? p+'%' : ''}</div>
+          </div>`
+      }).join('')
+
+      statsEl.innerHTML = `
+        <!-- Ligne 1: KPI globaux -->
+        <div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:0.6rem">
+          ${kpiCard('list-check',   stats.total||0,          'Total 2026',      '#3b82f6','rgba(59,130,246,0.06)')}
+          ${kpiCard('check-circle', stats.fait_count||0,     'Réalisées',       '#22c55e','rgba(34,197,94,0.06)')}
+          ${kpiCard('clock',        stats.en_attente_count||0,'En attente',     '#f59e0b','rgba(245,158,11,0.06)')}
+          ${kpiCard('file-contract',stats.contrats||0,       'Contrats',        '#60a5fa','rgba(96,165,250,0.06)')}
+          ${kpiCard('file-invoice', stats.bons_commande||0,  'Bons commande',   '#a78bfa','rgba(167,139,250,0.06)')}
+          <div style="background:rgba(29,78,216,0.06);border:1px solid rgba(29,78,216,0.2);border-radius:10px;
+                      padding:0.75rem 1rem;display:flex;flex-direction:column;justify-content:center;gap:5px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:0.68rem;color:var(--text-secondary)">Avancement 2026</span>
+              <strong style="font-size:1rem;font-weight:800;color:${pct>=80?'#22c55e':pct>=40?'#f59e0b':'#ef4444'}">${pct}%</strong>
+            </div>
+            <div style="height:7px;background:var(--bg-secondary);border-radius:4px;overflow:hidden">
+              <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#1d4ed8,#22c55e);border-radius:4px;transition:width .6s ease"></div>
+            </div>
+            <div style="font-size:0.6rem;color:var(--text-muted)">${stats.fait_count||0} / ${stats.total||0} interventions</div>
+          </div>
+        </div>
+        <!-- Ligne 2: Avancement mensuel (mini histogrammes) -->
+        <div style="grid-column:1/-1;padding:0.5rem 0.25rem;border-top:1px solid rgba(255,255,255,0.05)">
+          <div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:0.5rem;font-weight:600;letter-spacing:0.05em">AVANCEMENT MENSUEL</div>
+          <div style="display:grid;grid-template-columns:repeat(12,1fr);gap:4px">
+            ${moisBar}
+          </div>
+        </div>
+      `
     }
 
     const counter = document.getElementById('preventif-counter')
