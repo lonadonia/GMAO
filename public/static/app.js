@@ -3800,8 +3800,9 @@ async function loadPreventifTable() {
 
   try {
     const res = await http.get(url)
-    const rows  = res.data || []
-    const stats = res.stats || {}
+    const payload = res.data || {}
+    const rows  = payload.data || (Array.isArray(payload) ? payload : [])
+    const stats = payload.stats || {}
 
     // Stats bar
     const statsEl = document.getElementById('preventif-stats')
@@ -3933,7 +3934,9 @@ async function openPreventifModal(id = null) {
   if (id) {
     try { 
       const res = await http.get(`${API.planningPreventif}?annee=2026`)
-      entry = res.data?.find(r => r.id === id) || null
+      const resPayload = res.data || {}
+      const resRows = resPayload.data || (Array.isArray(resPayload) ? resPayload : [])
+      entry = resRows.find(r => r.id === id) || null
     } catch(e) {}
   }
 
