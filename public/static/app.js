@@ -3678,10 +3678,6 @@ async function renderPlanning() {
         <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px">Calendrier de maintenance préventive 2026</p>
       </div>
       <div style="display:flex;gap:0.5rem;align-items:center">
-        <button class="btn btn-ghost btn-sm" onclick="togglePreventifSection()" id="btn-toggle-gantt"
-          style="border:1px solid rgba(79,158,248,0.3);color:var(--accent-blue)">
-          <i class="fas fa-table-list"></i> Planning Contractuel
-        </button>
         <button class="btn btn-ghost btn-sm" onclick="openPreventifModal()">
           <i class="fas fa-plus"></i> Ajouter
         </button>
@@ -3692,7 +3688,7 @@ async function renderPlanning() {
     </div>
     <div class="page-content">
 
-      <!-- ===== CALENDRIER ===== -->
+      <!-- Navigation mois -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem">
         <div style="display:flex;gap:0.4rem;align-items:center">
           <button class="btn btn-ghost btn-sm" onclick="prevMonth()"><i class="fas fa-chevron-left"></i></button>
@@ -3707,73 +3703,21 @@ async function renderPlanning() {
           <span class="calendar-event bdc"        style="padding:2px 7px;font-size:0.66rem">📋 Bon de commande</span>
         </div>
       </div>
+
+      <!-- Résumé mensuel -->
       <div id="calendar-month-summary" style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.75rem;min-height:26px;flex-wrap:wrap"></div>
-      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:1rem;margin-bottom:1.5rem">
+
+      <!-- Grille calendrier -->
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:1rem;">
         <div class="calendar-grid" id="calendar-grid">
           <div class="loading-overlay" style="grid-column:1/-1"><span class="loader"></span></div>
         </div>
       </div>
 
-      <!-- ===== PLANNING CONTRACTUEL PREMIUM ===== -->
-      <div id="section-preventif">
-
-        <!-- KPI STRIP -->
-        <div id="preventif-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;margin-bottom:1.25rem"></div>
-
-        <!-- BARRE DE CONTRÔLE -->
-        <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:1rem;flex-wrap:wrap;
-                    background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:0.6rem 1rem">
-          <i class="fas fa-filter" style="color:var(--accent-blue);font-size:0.8rem"></i>
-          <select id="filter-nature" class="select" style="width:175px;height:32px;font-size:0.77rem" onchange="loadPreventifTable()">
-            <option value="">Toutes les natures</option>
-            <option value="Contrat de maintenance">📄 Contrat de maintenance</option>
-            <option value="Bon de commande">📋 Bon de commande</option>
-          </select>
-          <select id="filter-frequence" class="select" style="width:150px;height:32px;font-size:0.77rem" onchange="loadPreventifTable()">
-            <option value="">Toutes fréquences</option>
-            <option value="Annuelle">🔁 Annuelle</option>
-            <option value="Semestrielle">🔁 Semestrielle</option>
-            <option value="Trimestrielle">🔁 Trimestrielle</option>
-          </select>
-          <select id="filter-fait" class="select" style="width:140px;height:32px;font-size:0.77rem" onchange="loadPreventifTable()">
-            <option value="">Tous les statuts</option>
-            <option value="true">✅ Fait</option>
-            <option value="false">⏳ En attente</option>
-          </select>
-          <input type="text" id="filter-client" class="input" style="flex:1;min-width:160px;height:32px;font-size:0.77rem" placeholder="🔍 Rechercher client..." oninput="loadPreventifTable()">
-          <div id="preventif-counter" style="font-size:0.75rem;color:var(--text-secondary);white-space:nowrap;margin-left:auto"></div>
-        </div>
-
-        <!-- TABLEAU GANTT PREMIUM -->
-        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden">
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:0.9rem 1.2rem;
-                      border-bottom:1px solid var(--border);
-                      background:linear-gradient(90deg,rgba(29,78,216,0.08),rgba(99,102,241,0.04))">
-            <div style="display:flex;align-items:center;gap:0.6rem">
-              <div style="width:32px;height:32px;border-radius:8px;background:rgba(29,78,216,0.15);
-                          border:1px solid rgba(29,78,216,0.3);display:flex;align-items:center;justify-content:center">
-                <i class="fas fa-file-contract" style="color:var(--accent-blue);font-size:0.85rem"></i>
-              </div>
-              <div>
-                <div style="font-weight:700;font-size:0.92rem;color:var(--text-primary)">Planning Préventif Contractuel</div>
-                <div style="font-size:0.7rem;color:var(--text-secondary)">Année 2026 — 1 intervention/semaine — Lundi &amp; Jeudi</div>
-              </div>
-            </div>
-            <div style="display:flex;gap:0.5rem">
-              <button class="btn btn-ghost btn-sm" onclick="openPreventifModal()" style="font-size:0.75rem">
-                <i class="fas fa-plus"></i> Nouvelle
-              </button>
-            </div>
-          </div>
-          <div id="preventif-table"><div class="loading-overlay" style="padding:3rem"><span class="loader"></span></div></div>
-        </div>
-
-      </div>
     </div>
   `
 
   renderCalendar()
-  loadPreventifTable()
 }
 
 function togglePreventifSection() {
