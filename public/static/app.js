@@ -732,10 +732,6 @@ async function renderDashboard() {
         from { opacity:0; transform:translateY(18px); }
         to   { opacity:1; transform:translateY(0); }
       }
-      @keyframes techSlideIn {
-        from { opacity:0; transform:translateX(60px) scale(.96); }
-        to   { opacity:1; transform:translateX(0) scale(1); }
-      }
       @keyframes statCount {
         from { opacity:0; transform:translateY(10px); }
         to   { opacity:1; transform:translateY(0); }
@@ -890,42 +886,6 @@ async function renderDashboard() {
               </select>
             </div>
             <div id="kpi-active-badge"></div>
-          </div>
-        </div>
-
-        <!-- ─── RIGHT PANEL — Technician image ─── -->
-        <div style="
-          width: 200px;
-          flex-shrink: 0;
-          position: relative;
-          overflow: hidden;
-          animation: techSlideIn .65s ease both .1s;
-        ">
-          <!-- Gradient fade left edge -->
-          <div style="position:absolute;top:0;left:0;width:70px;height:100%;
-                      background:linear-gradient(90deg,#060e1f 0%,transparent 100%);
-                      pointer-events:none;z-index:2"></div>
-          <!-- Gradient fade bottom edge -->
-          <div style="position:absolute;bottom:0;left:0;right:0;height:60px;
-                      background:linear-gradient(to top,#060e1f 0%,transparent 100%);
-                      pointer-events:none;z-index:2"></div>
-          <!-- Blue tint overlay -->
-          <div style="position:absolute;inset:0;background:rgba(9,30,80,0.35);pointer-events:none;z-index:1;
-                      mix-blend-mode:multiply"></div>
-          <!-- Technician image -->
-          <img src="/static/technician-hero.png" alt="Technicien" style="
-            width:100%;height:100%;object-fit:cover;object-position:top center;
-            display:block;filter:saturate(0.7) brightness(0.92) contrast(1.05);
-          " />
-          <!-- Bottom label -->
-          <div style="position:absolute;bottom:12px;right:12px;z-index:3;text-align:right">
-            <div style="background:rgba(37,99,235,.25);backdrop-filter:blur(8px);
-                        border:1px solid rgba(59,130,246,.3);border-radius:8px;
-                        padding:4px 10px">
-              <div style="font-size:.58rem;font-weight:800;color:#93c5fd;text-transform:uppercase;letter-spacing:.8px">
-                <i class="fas fa-tablet-alt" style="margin-right:3px"></i>Technicien
-              </div>
-            </div>
           </div>
         </div>
 
