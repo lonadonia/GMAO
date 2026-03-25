@@ -3675,49 +3675,21 @@ async function renderPlanning() {
     <div class="page-header">
       <div>
         <h1 style="font-size:1.2rem;font-weight:700"><i class="fas fa-calendar-alt" style="color:var(--accent-blue);margin-right:8px"></i>Planning</h1>
-        <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px">Calendrier de maintenance préventive 2026</p>
+        <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px">Gestion du planning de maintenance</p>
       </div>
       <div style="display:flex;gap:0.5rem;align-items:center">
-        <button class="btn btn-ghost btn-sm" onclick="openPreventifModal()">
-          <i class="fas fa-plus"></i> Ajouter
-        </button>
         <button class="btn btn-primary" onclick="openPlanModal()">
           <i class="fas fa-plus"></i> Nouveau plan
         </button>
       </div>
     </div>
     <div class="page-content">
-
-      <!-- Navigation mois -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem">
-        <div style="display:flex;gap:0.4rem;align-items:center">
-          <button class="btn btn-ghost btn-sm" onclick="prevMonth()"><i class="fas fa-chevron-left"></i></button>
-          <span id="calendar-title" style="font-size:1rem;font-weight:700;min-width:170px;text-align:center"></span>
-          <button class="btn btn-ghost btn-sm" onclick="nextMonth()"><i class="fas fa-chevron-right"></i></button>
-          <button class="btn btn-ghost btn-sm" onclick="goToday()">Aujourd'hui</button>
-        </div>
-        <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
-          <span class="calendar-event preventive" style="padding:2px 7px;font-size:0.66rem">🔧 Préventif</span>
-          <span class="calendar-event corrective" style="padding:2px 7px;font-size:0.66rem">⚠️ Correctif planifié</span>
-          <span class="calendar-event contrat"    style="padding:2px 7px;font-size:0.66rem">📄 Contrat</span>
-          <span class="calendar-event bdc"        style="padding:2px 7px;font-size:0.66rem">📋 Bon de commande</span>
-        </div>
+      <div class="table-card">
+        <div id="plans-list"><div class="loading-overlay"><span class="loader"></span></div></div>
       </div>
-
-      <!-- Résumé mensuel -->
-      <div id="calendar-month-summary" style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.75rem;min-height:26px;flex-wrap:wrap"></div>
-
-      <!-- Grille calendrier -->
-      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:1rem;">
-        <div class="calendar-grid" id="calendar-grid">
-          <div class="loading-overlay" style="grid-column:1/-1"><span class="loader"></span></div>
-        </div>
-      </div>
-
     </div>
   `
-
-  renderCalendar()
+  loadPlansList()
 }
 
 function togglePreventifSection() {
