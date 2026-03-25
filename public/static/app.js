@@ -1138,36 +1138,135 @@ function renderKPISection(data) {
       </div>
     </div>
 
-    <!-- Charts -->
+    <!-- ═══════════════════════════════════════
+         CHARTS — dark premium blue
+    ═══════════════════════════════════════ -->
     <div class="chart-grid">
-      <div class="chart-card wide">
-        <div class="chart-title"><i class="fas fa-chart-bar"></i> Interventions par mois (12 derniers mois)</div>
-        <canvas id="chart-monthly" height="90"></canvas>
+
+      <!-- 1. Mensuel wide -->
+      <div class="chart-card wide" style="
+        background:linear-gradient(145deg,var(--bg-secondary) 0%,rgba(99,132,255,0.04) 100%);
+        border:1px solid rgba(99,132,255,0.15);border-radius:14px;padding:1.25rem 1.5rem;
+        position:relative;overflow:hidden;
+      ">
+        <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;
+                    background:radial-gradient(circle,rgba(99,132,255,0.1) 0%,transparent 70%);pointer-events:none"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem">
+          <div>
+            <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.8px;color:rgba(99,132,255,.7);font-weight:700;margin-bottom:3px">
+              <i class="fas fa-chart-mixed" style="margin-right:5px"></i>Vue mensuelle
+            </div>
+            <div style="font-size:.92rem;font-weight:700;color:var(--text-primary)">Interventions par mois <span style="font-size:.72rem;color:var(--text-secondary);font-weight:400">— 12 derniers mois</span></div>
+          </div>
+          <div style="display:flex;gap:.4rem">
+            <span style="font-size:.65rem;padding:3px 9px;background:rgba(99,132,255,.12);border:1px solid rgba(99,132,255,.2);color:#6384ff;border-radius:20px;font-weight:700">LIVE</span>
+          </div>
+        </div>
+        <canvas id="chart-monthly" height="88"></canvas>
       </div>
-      <div class="chart-card">
-        <div class="chart-title"><i class="fas fa-chart-pie"></i> Statut des interventions</div>
+
+      <!-- 2. Statut donut -->
+      <div class="chart-card" style="
+        background:linear-gradient(145deg,var(--bg-secondary) 0%,rgba(52,211,153,0.03) 100%);
+        border:1px solid rgba(52,211,153,0.12);border-radius:14px;padding:1.25rem 1.5rem;
+        position:relative;overflow:hidden;
+      ">
+        <div style="position:absolute;top:-20px;right:-20px;width:90px;height:90px;border-radius:50%;
+                    background:radial-gradient(circle,rgba(52,211,153,0.1) 0%,transparent 70%);pointer-events:none"></div>
+        <div style="margin-bottom:1rem">
+          <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.8px;color:rgba(52,211,153,.7);font-weight:700;margin-bottom:3px">
+            <i class="fas fa-circle-half-stroke" style="margin-right:5px"></i>Répartition
+          </div>
+          <div style="font-size:.88rem;font-weight:700;color:var(--text-primary)">Statut des interventions</div>
+        </div>
         <canvas id="chart-status" height="180"></canvas>
       </div>
-      <div class="chart-card">
-        <div class="chart-title"><i class="fas fa-chart-donut"></i> Priorité des interventions</div>
+
+      <!-- 3. Priorité donut -->
+      <div class="chart-card" style="
+        background:linear-gradient(145deg,var(--bg-secondary) 0%,rgba(244,63,94,0.03) 100%);
+        border:1px solid rgba(244,63,94,0.12);border-radius:14px;padding:1.25rem 1.5rem;
+        position:relative;overflow:hidden;
+      ">
+        <div style="position:absolute;top:-20px;right:-20px;width:90px;height:90px;border-radius:50%;
+                    background:radial-gradient(circle,rgba(244,63,94,0.1) 0%,transparent 70%);pointer-events:none"></div>
+        <div style="margin-bottom:1rem">
+          <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.8px;color:rgba(244,63,94,.7);font-weight:700;margin-bottom:3px">
+            <i class="fas fa-exclamation-triangle" style="margin-right:5px"></i>Criticité
+          </div>
+          <div style="font-size:.88rem;font-weight:700;color:var(--text-primary)">Priorité des interventions</div>
+        </div>
         <canvas id="chart-priority" height="180"></canvas>
       </div>
-      <div class="chart-card">
-        <div class="chart-title"><i class="fas fa-map-marker-alt"></i> Top villes</div>
+
+      <!-- 4. Top villes -->
+      <div class="chart-card" style="
+        background:linear-gradient(145deg,var(--bg-secondary) 0%,rgba(251,191,36,0.03) 100%);
+        border:1px solid rgba(251,191,36,0.12);border-radius:14px;padding:1.25rem 1.5rem;
+        position:relative;overflow:hidden;
+      ">
+        <div style="position:absolute;top:-20px;right:-20px;width:90px;height:90px;border-radius:50%;
+                    background:radial-gradient(circle,rgba(251,191,36,0.1) 0%,transparent 70%);pointer-events:none"></div>
+        <div style="margin-bottom:1rem">
+          <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.8px;color:rgba(251,191,36,.7);font-weight:700;margin-bottom:3px">
+            <i class="fas fa-map-marker-alt" style="margin-right:5px"></i>Géographie
+          </div>
+          <div style="font-size:.88rem;font-weight:700;color:var(--text-primary)">Top villes</div>
+        </div>
         <canvas id="chart-cities" height="180"></canvas>
       </div>
-      <div class="chart-card">
-        <div class="chart-title"><i class="fas fa-user-cog"></i> Performance techniciens</div>
+
+      <!-- 5. Performance techniciens -->
+      <div class="chart-card" style="
+        background:linear-gradient(145deg,var(--bg-secondary) 0%,rgba(99,132,255,0.04) 100%);
+        border:1px solid rgba(99,132,255,0.13);border-radius:14px;padding:1.25rem 1.5rem;
+        position:relative;overflow:hidden;
+      ">
+        <div style="position:absolute;top:-20px;right:-20px;width:90px;height:90px;border-radius:50%;
+                    background:radial-gradient(circle,rgba(99,132,255,0.1) 0%,transparent 70%);pointer-events:none"></div>
+        <div style="margin-bottom:1rem">
+          <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.8px;color:rgba(99,132,255,.7);font-weight:700;margin-bottom:3px">
+            <i class="fas fa-user-cog" style="margin-right:5px"></i>Ressources
+          </div>
+          <div style="font-size:.88rem;font-weight:700;color:var(--text-primary)">Performance techniciens</div>
+        </div>
         <canvas id="chart-technicians" height="180"></canvas>
       </div>
-      <div class="chart-card">
-        <div class="chart-title"><i class="fas fa-building"></i> Top clients</div>
+
+      <!-- 6. Top clients -->
+      <div class="chart-card" style="
+        background:linear-gradient(145deg,var(--bg-secondary) 0%,rgba(167,139,250,0.04) 100%);
+        border:1px solid rgba(167,139,250,0.13);border-radius:14px;padding:1.25rem 1.5rem;
+        position:relative;overflow:hidden;
+      ">
+        <div style="position:absolute;top:-20px;right:-20px;width:90px;height:90px;border-radius:50%;
+                    background:radial-gradient(circle,rgba(167,139,250,0.1) 0%,transparent 70%);pointer-events:none"></div>
+        <div style="margin-bottom:1rem">
+          <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.8px;color:rgba(167,139,250,.7);font-weight:700;margin-bottom:3px">
+            <i class="fas fa-building" style="margin-right:5px"></i>Clientèle
+          </div>
+          <div style="font-size:.88rem;font-weight:700;color:var(--text-primary)">Top clients</div>
+        </div>
         <canvas id="chart-clients" height="180"></canvas>
       </div>
-      <div class="chart-card">
-        <div class="chart-title"><i class="fas fa-cogs"></i> Équipements en panne</div>
+
+      <!-- 7. Équipements en panne -->
+      <div class="chart-card" style="
+        background:linear-gradient(145deg,var(--bg-secondary) 0%,rgba(251,146,60,0.03) 100%);
+        border:1px solid rgba(251,146,60,0.12);border-radius:14px;padding:1.25rem 1.5rem;
+        position:relative;overflow:hidden;
+      ">
+        <div style="position:absolute;top:-20px;right:-20px;width:90px;height:90px;border-radius:50%;
+                    background:radial-gradient(circle,rgba(251,146,60,0.1) 0%,transparent 70%);pointer-events:none"></div>
+        <div style="margin-bottom:1rem">
+          <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.8px;color:rgba(251,146,60,.7);font-weight:700;margin-bottom:3px">
+            <i class="fas fa-cogs" style="margin-right:5px"></i>Matériel
+          </div>
+          <div style="font-size:.88rem;font-weight:700;color:var(--text-primary)">Équipements en panne</div>
+        </div>
         <canvas id="chart-equipment" height="180"></canvas>
       </div>
+
     </div>
 
     <!-- ═══════════════════════════════════════════════════
@@ -1389,22 +1488,91 @@ function renderKPISection(data) {
 }
 
 function renderCharts(kpis, charts) {
-  Chart.defaults.color = '#8892b0'
-  Chart.defaults.borderColor = '#2a3349'
-  const gridColor = 'rgba(42,51,73,0.7)'
+  // ── Configuration globale Chart.js — dark premium blue ──────
+  Chart.defaults.color           = '#8892b0'
+  Chart.defaults.borderColor     = 'rgba(99,132,255,0.08)'
+  Chart.defaults.font.family     = "'Segoe UI', system-ui, sans-serif"
+  Chart.defaults.font.size       = 11
 
   // Détruire les charts existants
   Object.values(state.charts).forEach(c => { try { c.destroy() } catch(e){} })
   state.charts = {}
 
-  // Monthly chart
+  // ── Palettes & helpers ──────────────────────────────────────
+  const gridColor   = 'rgba(99,132,255,0.07)'
+  const tickColor   = '#8892b0'
+
+  // Gradient factory
+  const makeGrad = (ctx, color1, color2, vertical = true) => {
+    const g = vertical
+      ? ctx.createLinearGradient(0, 0, 0, ctx.canvas.height)
+      : ctx.createLinearGradient(0, 0, ctx.canvas.width, 0)
+    g.addColorStop(0, color1)
+    g.addColorStop(1, color2)
+    return g
+  }
+
+  // Tooltip style commun
+  const tooltipStyle = {
+    backgroundColor: 'rgba(10,14,40,0.95)',
+    borderColor: 'rgba(99,132,255,0.35)',
+    borderWidth: 1,
+    padding: 12,
+    titleColor: '#e2e8f0',
+    bodyColor: '#a0aec0',
+    titleFont: { size: 12, weight: '700' },
+    bodyFont: { size: 11 },
+    cornerRadius: 10,
+    displayColors: true,
+    boxPadding: 4,
+  }
+
+  // Axes communs
+  const axisStyle = {
+    x: {
+      grid: { color: gridColor, drawBorder: false },
+      ticks: { color: tickColor, font: { size: 10 } },
+      border: { display: false }
+    },
+    y: {
+      grid: { color: gridColor, drawBorder: false },
+      ticks: { color: tickColor, font: { size: 10 } },
+      border: { display: false },
+      beginAtZero: true
+    }
+  }
+
+  // Legend style commun
+  const legendStyle = {
+    position: 'top',
+    align: 'end',
+    labels: {
+      color: '#8892b0',
+      font: { size: 10, weight: '600' },
+      boxWidth: 10,
+      boxHeight: 10,
+      borderRadius: 3,
+      usePointStyle: true,
+      pointStyle: 'rectRounded',
+      padding: 16
+    }
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // 1. CHART MENSUEL — Area line + bars
+  // ════════════════════════════════════════════════════════════
   const monthlyEl = document.getElementById('chart-monthly')
   if (monthlyEl && charts.by_month?.length > 0) {
+    const ctx = monthlyEl.getContext('2d')
     const labels = charts.by_month.map(m => {
       const [y, mo] = m.month.split('-')
       return dayjs(`${y}-${mo}-01`).locale('fr').format('MMM YY')
     })
-    state.charts.monthly = new Chart(monthlyEl, {
+    const gradTotal      = makeGrad(ctx, 'rgba(99,132,255,0.55)', 'rgba(99,132,255,0.04)')
+    const gradResolved   = makeGrad(ctx, 'rgba(52,211,153,0.45)', 'rgba(52,211,153,0.03)')
+    const gradPreventive = makeGrad(ctx, 'rgba(167,139,250,0.45)', 'rgba(167,139,250,0.03)')
+
+    state.charts.monthly = new Chart(ctx, {
       type: 'bar',
       data: {
         labels,
@@ -1412,83 +1580,187 @@ function renderCharts(kpis, charts) {
           {
             label: 'Total',
             data: charts.by_month.map(m => m.total),
-            backgroundColor: 'rgba(79,158,248,0.7)',
-            borderRadius: 4,
+            backgroundColor: 'rgba(99,132,255,0.75)',
+            borderColor: '#6384ff',
+            borderWidth: 1,
+            borderRadius: { topLeft: 5, topRight: 5 },
+            borderSkipped: false,
+            order: 2,
           },
           {
             label: 'Résolues',
             data: charts.by_month.map(m => m.resolved),
-            backgroundColor: 'rgba(52,211,153,0.7)',
-            borderRadius: 4,
+            type: 'line',
+            fill: true,
+            backgroundColor: gradResolved,
+            borderColor: '#34d399',
+            borderWidth: 2.5,
+            pointBackgroundColor: '#34d399',
+            pointBorderColor: '#0a0e28',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 7,
+            tension: 0.42,
+            order: 1,
           },
           {
             label: 'Préventives',
             data: charts.by_month.map(m => m.preventive),
-            backgroundColor: 'rgba(167,139,250,0.7)',
-            borderRadius: 4,
+            type: 'line',
+            fill: true,
+            backgroundColor: gradPreventive,
+            borderColor: '#a78bfa',
+            borderWidth: 2,
+            pointBackgroundColor: '#a78bfa',
+            pointBorderColor: '#0a0e28',
+            pointBorderWidth: 2,
+            pointRadius: 3,
+            pointHoverRadius: 6,
+            tension: 0.42,
+            order: 0,
           },
         ]
       },
       options: {
         responsive: true,
-        plugins: { legend: { position: 'top' } },
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: legendStyle,
+          tooltip: tooltipStyle,
+        },
         scales: {
-          x: { grid: { color: gridColor } },
-          y: { grid: { color: gridColor }, beginAtZero: true, ticks: { stepSize: 1 } }
-        }
+          x: { ...axisStyle.x },
+          y: { ...axisStyle.y, ticks: { ...axisStyle.y.ticks, stepSize: 1 } }
+        },
+        animation: { duration: 900, easing: 'easeOutQuart' }
       }
     })
   } else if (monthlyEl) {
-    monthlyEl.parentElement.innerHTML += `<div class="empty-state" style="padding:1rem"><p>Aucune donnée mensuelle</p></div>`
+    monthlyEl.parentElement.innerHTML += `<div style="padding:2rem;text-align:center;color:#4a5568;font-size:.8rem"><i class="fas fa-chart-bar" style="font-size:2rem;display:block;margin-bottom:.5rem;opacity:.3"></i>Aucune donnée mensuelle</div>`
   }
 
-  // Status Donut
+  // ════════════════════════════════════════════════════════════
+  // 2. STATUS — Donut premium
+  // ════════════════════════════════════════════════════════════
   const statusEl = document.getElementById('chart-status')
   if (statusEl && charts.by_status?.length > 0) {
-    const colorMap = { resolved: '#34d399', in_progress: '#4f9ef8', planned: '#a78bfa', cancelled: '#4a5568' }
+    const colorMap = {
+      resolved:    '#34d399',
+      in_progress: '#6384ff',
+      planned:     '#a78bfa',
+      cancelled:   '#2d3758'
+    }
+    const labelMap = { resolved:'Résolu', in_progress:'En cours', planned:'Planifié', cancelled:'Annulé' }
+    const colors = charts.by_status.map(s => colorMap[s.status] || '#2d3758')
     state.charts.status = new Chart(statusEl, {
       type: 'doughnut',
       data: {
-        labels: charts.by_status.map(s => ({ resolved:'Résolu', in_progress:'En cours', planned:'Planifié', cancelled:'Annulé' }[s.status] || s.status)),
-        datasets: [{ data: charts.by_status.map(s => s.count), backgroundColor: charts.by_status.map(s => colorMap[s.status] || '#4a5568'), borderWidth: 0 }]
+        labels: charts.by_status.map(s => labelMap[s.status] || s.status),
+        datasets: [{
+          data: charts.by_status.map(s => s.count),
+          backgroundColor: colors,
+          hoverBackgroundColor: colors.map(c => c + 'dd'),
+          borderWidth: 0,
+          borderRadius: 6,
+          spacing: 3,
+        }]
       },
-      options: { responsive: true, plugins: { legend: { position: 'bottom' } }, cutout: '65%' }
+      options: {
+        responsive: true,
+        cutout: '70%',
+        plugins: {
+          legend: { ...legendStyle, position: 'bottom', align: 'center' },
+          tooltip: {
+            ...tooltipStyle,
+            callbacks: {
+              label: ctx => ` ${ctx.label}: ${ctx.parsed} (${Math.round(ctx.parsed / ctx.dataset.data.reduce((a,b)=>a+b,0) * 100)}%)`
+            }
+          }
+        },
+        animation: { animateRotate: true, duration: 900 }
+      }
     })
   }
 
-  // Priority donut
+  // ════════════════════════════════════════════════════════════
+  // 3. PRIORITÉ — Donut premium rose/orange
+  // ════════════════════════════════════════════════════════════
   const prioEl = document.getElementById('chart-priority')
   if (prioEl && charts.by_priority?.length > 0) {
-    const colorMap = { critical: '#f87171', high: '#fb923c', medium: '#fbbf24', low: '#34d399' }
+    const colorMap = { critical:'#f43f5e', high:'#fb923c', medium:'#fbbf24', low:'#34d399' }
+    const labelMap = { critical:'Critique', high:'Haute', medium:'Moyenne', low:'Basse' }
+    const colors   = charts.by_priority.map(p => colorMap[p.priority] || '#4a5568')
     state.charts.priority = new Chart(prioEl, {
       type: 'doughnut',
       data: {
-        labels: charts.by_priority.map(p => ({ critical:'Critique', high:'Haute', medium:'Moyenne', low:'Basse' }[p.priority] || p.priority)),
-        datasets: [{ data: charts.by_priority.map(p => p.count), backgroundColor: charts.by_priority.map(p => colorMap[p.priority] || '#4a5568'), borderWidth: 0 }]
+        labels: charts.by_priority.map(p => labelMap[p.priority] || p.priority),
+        datasets: [{
+          data: charts.by_priority.map(p => p.count),
+          backgroundColor: colors,
+          hoverBackgroundColor: colors.map(c => c + 'dd'),
+          borderWidth: 0,
+          borderRadius: 6,
+          spacing: 3,
+        }]
       },
-      options: { responsive: true, plugins: { legend: { position: 'bottom' } }, cutout: '65%' }
+      options: {
+        responsive: true,
+        cutout: '70%',
+        plugins: {
+          legend: { ...legendStyle, position: 'bottom', align: 'center' },
+          tooltip: {
+            ...tooltipStyle,
+            callbacks: {
+              label: ctx => ` ${ctx.label}: ${ctx.parsed} (${Math.round(ctx.parsed / ctx.dataset.data.reduce((a,b)=>a+b,0) * 100)}%)`
+            }
+          }
+        },
+        animation: { animateRotate: true, duration: 900 }
+      }
     })
   }
 
-  // Cities bar
+  // ════════════════════════════════════════════════════════════
+  // 4. TOP VILLES — Bar horizontal premium
+  // ════════════════════════════════════════════════════════════
   const cityEl = document.getElementById('chart-cities')
   if (cityEl && charts.by_city?.length > 0) {
-    state.charts.cities = new Chart(cityEl, {
+    const ctx = cityEl.getContext('2d')
+    const top = charts.by_city.slice(0, 8)
+    const gradCity = makeGrad(ctx, 'rgba(251,191,36,0.9)', 'rgba(251,191,36,0.3)', false)
+    state.charts.cities = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: charts.by_city.map(c => c.city || 'N/A'),
-        datasets: [{ label: 'Interventions', data: charts.by_city.map(c => c.count), backgroundColor: 'rgba(251,191,36,0.7)', borderRadius: 4 }]
+        labels: top.map(c => c.city || 'N/A'),
+        datasets: [{
+          label: 'Interventions',
+          data: top.map(c => c.count),
+          backgroundColor: top.map((_, i) => `rgba(251,191,36,${0.9 - i * 0.08})`),
+          borderColor: 'rgba(251,191,36,0.4)',
+          borderWidth: 1,
+          borderRadius: { topRight: 5, bottomRight: 5 },
+          borderSkipped: 'left',
+        }]
       },
       options: {
         indexAxis: 'y',
         responsive: true,
-        plugins: { legend: { display: false } },
-        scales: { x: { grid: { color: gridColor }, beginAtZero: true }, y: { grid: { display: false } } }
+        plugins: {
+          legend: { display: false },
+          tooltip: tooltipStyle,
+        },
+        scales: {
+          x: { ...axisStyle.x, beginAtZero: true, ticks: { ...axisStyle.x.ticks, stepSize: 1 } },
+          y: { grid: { display: false }, ticks: { color: tickColor, font: { size: 10 }, mirror: false }, border: { display: false } }
+        },
+        animation: { duration: 800, easing: 'easeOutQuart' }
       }
     })
   }
 
-  // Technicians bar
+  // ════════════════════════════════════════════════════════════
+  // 5. PERFORMANCE TECHNICIENS — Bar groupé premium
+  // ════════════════════════════════════════════════════════════
   const techEl = document.getElementById('chart-technicians')
   if (techEl && charts.top_technicians?.length > 0) {
     state.charts.technicians = new Chart(techEl, {
@@ -1496,55 +1768,133 @@ function renderCharts(kpis, charts) {
       data: {
         labels: charts.top_technicians.map(t => t.technician_name || 'N/A'),
         datasets: [
-          { label: 'Total', data: charts.top_technicians.map(t => t.total), backgroundColor: 'rgba(79,158,248,0.7)', borderRadius: 4 },
-          { label: 'Résolues', data: charts.top_technicians.map(t => t.resolved), backgroundColor: 'rgba(52,211,153,0.7)', borderRadius: 4 },
+          {
+            label: 'Total',
+            data: charts.top_technicians.map(t => t.total),
+            backgroundColor: 'rgba(99,132,255,0.75)',
+            borderColor: 'rgba(99,132,255,0.5)',
+            borderWidth: 1,
+            borderRadius: { topLeft: 5, topRight: 5 },
+            borderSkipped: false,
+          },
+          {
+            label: 'Résolues',
+            data: charts.top_technicians.map(t => t.resolved),
+            backgroundColor: 'rgba(52,211,153,0.75)',
+            borderColor: 'rgba(52,211,153,0.5)',
+            borderWidth: 1,
+            borderRadius: { topLeft: 5, topRight: 5 },
+            borderSkipped: false,
+          },
         ]
       },
       options: {
         responsive: true,
-        plugins: { legend: { position: 'top' } },
-        scales: { x: { grid: { display: false } }, y: { grid: { color: gridColor }, beginAtZero: true } }
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: legendStyle,
+          tooltip: tooltipStyle,
+        },
+        scales: {
+          x: { ...axisStyle.x },
+          y: { ...axisStyle.y }
+        },
+        animation: { duration: 800 }
       }
     })
   }
 
-  // Top clients bar
+  // ════════════════════════════════════════════════════════════
+  // 6. TOP CLIENTS — Bar horizontal premium
+  // ════════════════════════════════════════════════════════════
   const clientEl = document.getElementById('chart-clients')
   if (clientEl && charts.by_client?.length > 0) {
+    const top = charts.by_client.slice(0, 7)
     state.charts.clients = new Chart(clientEl, {
       type: 'bar',
       data: {
-        labels: charts.by_client.map(c => c.client || 'N/A'),
+        labels: top.map(c => (c.client || 'N/A').slice(0, 18)),
         datasets: [
-          { label: 'Total', data: charts.by_client.map(c => c.total), backgroundColor: 'rgba(167,139,250,0.7)', borderRadius: 4 },
-          { label: 'Résolues', data: charts.by_client.map(c => c.resolved), backgroundColor: 'rgba(52,211,153,0.7)', borderRadius: 4 },
+          {
+            label: 'Total',
+            data: top.map(c => c.total),
+            backgroundColor: 'rgba(167,139,250,0.75)',
+            borderColor: 'rgba(167,139,250,0.4)',
+            borderWidth: 1,
+            borderRadius: { topLeft: 5, topRight: 5 },
+            borderSkipped: false,
+          },
+          {
+            label: 'Résolues',
+            data: top.map(c => c.resolved),
+            backgroundColor: 'rgba(52,211,153,0.65)',
+            borderColor: 'rgba(52,211,153,0.4)',
+            borderWidth: 1,
+            borderRadius: { topLeft: 5, topRight: 5 },
+            borderSkipped: false,
+          },
         ]
       },
       options: {
         responsive: true,
-        plugins: { legend: { position: 'top' } },
-        scales: { x: { grid: { display: false } }, y: { grid: { color: gridColor }, beginAtZero: true, ticks: { stepSize: 1 } } }
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: legendStyle,
+          tooltip: tooltipStyle,
+        },
+        scales: {
+          x: { ...axisStyle.x },
+          y: { ...axisStyle.y, ticks: { ...axisStyle.y.ticks, stepSize: 1 } }
+        },
+        animation: { duration: 800 }
       }
     })
   }
 
-  // Top équipements bar
+  // ════════════════════════════════════════════════════════════
+  // 7. TOP ÉQUIPEMENTS — Bar horizontal premium
+  // ════════════════════════════════════════════════════════════
   const equipEl = document.getElementById('chart-equipment')
   if (equipEl && charts.by_equipment?.length > 0) {
+    const top = charts.by_equipment.slice(0, 7)
     state.charts.equipment = new Chart(equipEl, {
       type: 'bar',
       data: {
-        labels: charts.by_equipment.map(e => (e.equipment || 'N/A').slice(0,22)),
+        labels: top.map(e => (e.equipment || 'N/A').slice(0, 20)),
         datasets: [
-          { label: 'Pannes', data: charts.by_equipment.map(e => e.total), backgroundColor: 'rgba(251,146,60,0.7)', borderRadius: 4 },
-          { label: 'Arrêts prod.', data: charts.by_equipment.map(e => e.with_downtime), backgroundColor: 'rgba(248,113,113,0.7)', borderRadius: 4 },
+          {
+            label: 'Pannes',
+            data: top.map(e => e.total),
+            backgroundColor: 'rgba(251,146,60,0.75)',
+            borderColor: 'rgba(251,146,60,0.4)',
+            borderWidth: 1,
+            borderRadius: { topRight: 5, bottomRight: 5 },
+            borderSkipped: 'left',
+          },
+          {
+            label: 'Arrêts prod.',
+            data: top.map(e => e.with_downtime),
+            backgroundColor: 'rgba(244,63,94,0.65)',
+            borderColor: 'rgba(244,63,94,0.4)',
+            borderWidth: 1,
+            borderRadius: { topRight: 5, bottomRight: 5 },
+            borderSkipped: 'left',
+          },
         ]
       },
       options: {
         indexAxis: 'y',
         responsive: true,
-        plugins: { legend: { position: 'top' } },
-        scales: { x: { grid: { color: gridColor }, beginAtZero: true }, y: { grid: { display: false } } }
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: legendStyle,
+          tooltip: tooltipStyle,
+        },
+        scales: {
+          x: { ...axisStyle.x, beginAtZero: true },
+          y: { grid: { display: false }, ticks: { color: tickColor, font: { size: 10 } }, border: { display: false } }
+        },
+        animation: { duration: 800 }
       }
     })
   }
