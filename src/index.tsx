@@ -60,8 +60,6 @@ app.get('*', (c) => {
   <!-- Leaflet.js for interactive map -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <!-- SheetJS for Excel import -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <link href="/static/styles.css" rel="stylesheet" />
 </head>
 <body>
