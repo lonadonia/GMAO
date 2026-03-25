@@ -3681,6 +3681,9 @@ async function renderPlanning() {
         <button class="btn btn-ghost btn-sm" onclick="togglePreventifSection()" id="btn-toggle-gantt">
           <i class="fas fa-table"></i> Planning Contractuel
         </button>
+        <button class="btn btn-ghost btn-sm" onclick="openImportExcelModal()" title="Importer depuis Excel" style="color:var(--accent-green);border-color:rgba(52,211,153,.3)">
+          <i class="fas fa-file-excel"></i> Import Excel
+        </button>
         <button class="btn btn-ghost btn-sm" onclick="openPreventifModal()">
           <i class="fas fa-plus"></i> Ajouter
         </button>
@@ -3759,6 +3762,288 @@ async function renderPlanning() {
   // Charger les deux sections
   renderCalendar()
   loadPreventifTable()
+}
+
+// ============================================================
+// IMPORT EXCEL — Planning Préventif
+// ============================================================
+function openImportExcelModal() {
+  const modal = document.getElementById('modal-container')
+  modal.innerHTML = `
+    <div class="modal-overlay" onclick="closeModal(event)">
+      <div class="modal modal-lg" style="max-width:640px">
+        <div class="modal-header" style="background:linear-gradient(135deg,rgba(13,22,50,.95),rgba(17,30,65,.9));border-bottom:1px solid rgba(37,99,235,.2)">
+          <div class="modal-title" style="display:flex;align-items:center;gap:8px">
+            <i class="fas fa-file-excel" style="color:#34d399;font-size:1.1rem"></i>
+            <span>Import Excel — Planning Préventif</span>
+          </div>
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="closeModalAll()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+
+          <!-- Zone de dépôt fichier -->
+          <div id="excel-drop-zone" style="
+            border:2px dashed rgba(37,99,235,.35);border-radius:12px;
+            padding:2rem 1.5rem;text-align:center;cursor:pointer;
+            background:rgba(37,99,235,.04);transition:all .2s;
+            position:relative;
+          "
+          onclick="document.getElementById('excel-file-input').click()"
+          ondragover="event.preventDefault();this.style.borderColor='#3b82f6';this.style.background='rgba(37,99,235,.1)'"
+          ondragleave="this.style.borderColor='rgba(37,99,235,.35)';this.style.background='rgba(37,99,235,.04)'"
+          ondrop="handleExcelDrop(event)">
+            <i class="fas fa-cloud-upload-alt" style="font-size:2.2rem;color:#3b82f6;margin-bottom:.75rem;display:block"></i>
+            <div style="font-weight:700;color:#f1f5f9;font-size:.9rem;margin-bottom:.35rem">
+              Glisser-déposer votre fichier Excel ici
+            </div>
+            <div style="font-size:.75rem;color:rgba(148,163,184,.7)">
+              ou <span style="color:#60a5fa;font-weight:600">cliquer pour parcourir</span>
+            </div>
+            <div style="font-size:.65rem;color:rgba(148,163,184,.4);margin-top:.5rem">
+              Format accepté : .xlsx · Structure attendue : Nature | Description | Client | Fréquence
+            </div>
+            <input type="file" id="excel-file-input" accept=".xlsx,.xls" style="display:none" onchange="handleExcelFile(event)">
+          </div>
+
+          <!-- Aide format -->
+          <div style="margin-top:1rem;background:rgba(37,99,235,.06);border:1px solid rgba(37,99,235,.15);border-radius:10px;padding:.9rem 1.1rem">
+            <div style="font-size:.72rem;font-weight:700;color:#60a5fa;margin-bottom:.5rem">
+              <i class="fas fa-info-circle" style="margin-right:4px"></i>Format Excel attendu
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;font-size:.65rem">
+              <div style="background:rgba(37,99,235,.12);border-radius:5px;padding:4px 6px;color:#93c5fd;font-weight:600;text-align:center">Col. A<br><span style="font-weight:400;color:rgba(148,163,184,.7)">Nature</span></div>
+              <div style="background:rgba(37,99,235,.12);border-radius:5px;padding:4px 6px;color:#93c5fd;font-weight:600;text-align:center">Col. B<br><span style="font-weight:400;color:rgba(148,163,184,.7)">Description</span></div>
+              <div style="background:rgba(37,99,235,.12);border-radius:5px;padding:4px 6px;color:#93c5fd;font-weight:600;text-align:center">Col. C<br><span style="font-weight:400;color:rgba(148,163,184,.7)">Client</span></div>
+              <div style="background:rgba(37,99,235,.12);border-radius:5px;padding:4px 6px;color:#93c5fd;font-weight:600;text-align:center">Col. D<br><span style="font-weight:400;color:rgba(148,163,184,.7)">Fréquence</span></div>
+              <div style="background:rgba(37,99,235,.08);border-radius:5px;padding:4px 6px;color:rgba(148,163,184,.6);font-weight:600;text-align:center">Col. F→Q<br><span style="font-weight:400">Mois 1→12</span></div>
+            </div>
+            <div style="font-size:.63rem;color:rgba(148,163,184,.5);margin-top:.5rem">
+              Si les colonnes mois sont vides, les mois seront déduits automatiquement depuis la fréquence.
+            </div>
+          </div>
+
+          <!-- Aperçu des données parsées -->
+          <div id="excel-preview" style="display:none;margin-top:1rem"></div>
+
+          <!-- Options d'import -->
+          <div id="excel-import-options" style="display:none;margin-top:1rem">
+            <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
+              <div style="font-size:.75rem;color:var(--text-secondary)">Mode d'import :</div>
+              <label style="display:flex;align-items:center;gap:5px;font-size:.75rem;cursor:pointer">
+                <input type="radio" name="import-mode" value="append" checked style="accent-color:#3b82f6"> 
+                <span>Ajouter aux existants</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:.75rem;cursor:pointer">
+                <input type="radio" name="import-mode" value="replace" style="accent-color:#f87171">
+                <span style="color:#fca5a5">Remplacer tout (2026)</span>
+              </label>
+              <div style="font-size:.7rem;color:var(--text-secondary)">Année :</div>
+              <input type="number" id="import-annee" value="2026" min="2020" max="2035"
+                style="width:80px;height:30px;border-radius:7px;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);font-size:.75rem;padding:0 8px">
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="closeModalAll()">Annuler</button>
+          <button id="btn-do-import" class="btn btn-primary" onclick="doImportExcel()" disabled
+            style="background:linear-gradient(135deg,#1d4ed8,#4f46e5);display:flex;align-items:center;gap:6px">
+            <i class="fas fa-file-import"></i> Importer
+          </button>
+        </div>
+      </div>
+    </div>
+  `
+  modal.style.display = 'flex'
+}
+
+// Stockage temporaire des rows parsées
+let _excelParsedRows = []
+
+function handleExcelDrop(event) {
+  event.preventDefault()
+  const zone = document.getElementById('excel-drop-zone')
+  zone.style.borderColor = 'rgba(37,99,235,.35)'
+  zone.style.background  = 'rgba(37,99,235,.04)'
+  const file = event.dataTransfer?.files?.[0]
+  if (file) processExcelFile(file)
+}
+
+function handleExcelFile(event) {
+  const file = event.target.files?.[0]
+  if (file) processExcelFile(file)
+}
+
+function processExcelFile(file) {
+  if (!file.name.match(/\.xlsx?$/i)) {
+    showToast('Format non supporté — utilisez .xlsx ou .xls', 'error')
+    return
+  }
+
+  const reader = new FileReader()
+  reader.onload = function(e) {
+    try {
+      // Utiliser SheetJS (XLSX) chargé depuis CDN
+      if (typeof XLSX === 'undefined') {
+        showToast('Librairie XLSX non chargée', 'error')
+        return
+      }
+      const data = new Uint8Array(e.target.result)
+      const wb   = XLSX.read(data, { type: 'array' })
+      const ws   = wb.Sheets[wb.SheetNames[0]]
+      const raw  = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null })
+
+      parseExcelRows(raw, file.name)
+    } catch(err) {
+      showToast('Erreur lecture fichier: ' + err.message, 'error')
+    }
+  }
+  reader.readAsArrayBuffer(file)
+}
+
+function parseExcelRows(raw, fileName) {
+  _excelParsedRows = []
+
+  // Mois labels pour identifier les colonnes header
+  const FREQ_VALID = ['Annuelle','Semestrielle','Trimestrielle','Mensuelle','Bimestrielle']
+
+  for (let i = 0; i < raw.length; i++) {
+    const row = raw[i]
+    if (!row || !row[0] || !row[2]) continue  // besoin au minimum de col A (nature/titre) et C (client)
+
+    const nature      = String(row[0] || '').trim()
+    const description = String(row[1] || '').trim()
+    const client      = String(row[2] || '').trim()
+    const frequence   = String(row[3] || '').trim()
+
+    // Ignorer les lignes titre / section
+    if (!description || !client) continue
+    if (nature.toLowerCase().includes('planning') || nature.toLowerCase().includes('nature')) continue
+    if (!FREQ_VALID.includes(frequence) && !['Contrat de maintenance','Bon de commande'].includes(nature)) continue
+
+    // Mois : colonnes F(5) à Q(16) = index 5..16
+    const moisData: Record<string, number> = {}
+    for (let m = 1; m <= 12; m++) {
+      const val = row[4 + m]  // col F=index5 → mois_1, col G=index6 → mois_2 ...
+      moisData[`mois_${m}`] = (val !== null && val !== undefined && val !== '' && val !== 0 && val !== '0') ? 1 : 0
+    }
+
+    _excelParsedRows.push({
+      nature:      ['Contrat de maintenance','Bon de commande'].includes(nature) ? nature : 'Contrat de maintenance',
+      description: description || '—',
+      client,
+      frequence:   FREQ_VALID.includes(frequence) ? frequence : 'Annuelle',
+      ...moisData
+    })
+  }
+
+  showExcelPreview(fileName)
+}
+
+function showExcelPreview(fileName) {
+  const previewEl = document.getElementById('excel-preview')
+  const optionsEl = document.getElementById('excel-import-options')
+  const btnImport = document.getElementById('btn-do-import')
+
+  if (!_excelParsedRows.length) {
+    if (previewEl) previewEl.innerHTML = `
+      <div style="text-align:center;padding:1.5rem;background:rgba(244,63,94,.06);border:1px solid rgba(244,63,94,.2);border-radius:10px">
+        <i class="fas fa-exclamation-triangle" style="color:#f87171;font-size:1.5rem;display:block;margin-bottom:.5rem"></i>
+        <div style="color:#fca5a5;font-size:.8rem">Aucune ligne valide détectée dans ce fichier.<br>
+        Vérifiez que les colonnes Nature / Description / Client / Fréquence sont présentes.</div>
+      </div>`
+    if (previewEl) previewEl.style.display = 'block'
+    if (btnImport) btnImport.disabled = true
+    return
+  }
+
+  const contrats = _excelParsedRows.filter(r => r.nature === 'Contrat de maintenance').length
+  const bdc      = _excelParsedRows.filter(r => r.nature === 'Bon de commande').length
+
+  if (previewEl) {
+    previewEl.style.display = 'block'
+    previewEl.innerHTML = `
+      <div style="background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.2);border-radius:10px;padding:.9rem 1.1rem;margin-bottom:.75rem">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:.6rem">
+          <i class="fas fa-check-circle" style="color:#34d399"></i>
+          <span style="font-weight:700;font-size:.82rem;color:#f1f5f9">${_excelParsedRows.length} ligne(s) détectée(s) dans <em style="color:#6ee7b7">${escHtml(fileName)}</em></span>
+        </div>
+        <div style="display:flex;gap:1rem;font-size:.72rem;color:rgba(148,163,184,.8)">
+          <span><i class="fas fa-file-contract" style="color:#60a5fa;margin-right:3px"></i>${contrats} contrat(s)</span>
+          <span><i class="fas fa-shopping-cart" style="color:#a78bfa;margin-right:3px"></i>${bdc} bon(s) de commande</span>
+        </div>
+      </div>
+      <div style="overflow-x:auto;max-height:220px;border:1px solid rgba(37,99,235,.15);border-radius:8px">
+        <table style="min-width:600px;font-size:.68rem">
+          <thead>
+            <tr>
+              <th style="padding:6px 10px;text-align:left">Nature</th>
+              <th style="padding:6px 10px;text-align:left;min-width:200px">Description</th>
+              <th style="padding:6px 10px;text-align:left;min-width:140px">Client</th>
+              <th style="padding:6px 10px;text-align:center">Fréquence</th>
+              <th style="padding:6px 10px;text-align:center">Mois planifiés</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${_excelParsedRows.map(r => {
+              const nbMois = [1,2,3,4,5,6,7,8,9,10,11,12].filter(m => r[`mois_${m}`] === 1).length
+              const isContrat = r.nature === 'Contrat de maintenance'
+              return `<tr>
+                <td style="padding:5px 10px">
+                  <span style="font-size:.6rem;padding:2px 7px;border-radius:20px;font-weight:700;
+                    ${isContrat ? 'background:rgba(37,99,235,.15);color:#93c5fd' : 'background:rgba(167,139,250,.15);color:#c4b5fd'}">
+                    ${isContrat ? 'Contrat' : 'BdC'}
+                  </span>
+                </td>
+                <td style="padding:5px 10px;color:var(--text-primary)">${escHtml(r.description.length>50?r.description.slice(0,50)+'…':r.description)}</td>
+                <td style="padding:5px 10px;font-weight:600;color:var(--text-primary)">${escHtml(r.client)}</td>
+                <td style="padding:5px 10px;text-align:center">
+                  <span style="font-size:.62rem;color:${r.frequence==='Annuelle'?'#fbbf24':r.frequence==='Semestrielle'?'#60a5fa':'#34d399'}">${r.frequence}</span>
+                </td>
+                <td style="padding:5px 10px;text-align:center">
+                  <span style="${nbMois>0 ? 'color:#34d399;font-weight:700' : 'color:rgba(148,163,184,.5)'}">
+                    ${nbMois > 0 ? nbMois + ' mois' : 'Auto'}
+                  </span>
+                </td>
+              </tr>`
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `
+  }
+
+  if (optionsEl) optionsEl.style.display = 'block'
+  if (btnImport) btnImport.disabled = false
+}
+
+async function doImportExcel() {
+  if (!_excelParsedRows.length) return
+
+  const btn    = document.getElementById('btn-do-import')
+  const mode   = document.querySelector('input[name="import-mode"]:checked')?.value || 'append'
+  const annee  = parseInt(document.getElementById('import-annee')?.value || '2026')
+
+  btn.disabled = true
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Import en cours...'
+
+  try {
+    const res = await axios.post(`${API.planningPreventif}/import-bulk`, {
+      rows: _excelParsedRows,
+      annee,
+      mode
+    })
+    const d = res.data
+    showToast(`✓ ${d.message}`, 'success')
+    closeModalAll()
+    _excelParsedRows = []
+    loadPreventifTable()
+  } catch(e) {
+    const msg = e.response?.data?.error || e.message || 'Erreur import'
+    showToast('Erreur : ' + msg, 'error')
+    btn.disabled = false
+    btn.innerHTML = '<i class="fas fa-file-import"></i> Importer'
+  }
 }
 
 function togglePreventifSection() {

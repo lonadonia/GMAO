@@ -194,6 +194,77 @@ app.delete('/preventif/:id', async (c) => {
   return c.json({ success: true })
 })
 
+// POST /api/planning/preventif/import-bulk — import en masse depuis Excel/JSON
+// Body: { rows: [{nature, description, client, frequence, mois_1..12}], annee, mode }
+// mode: "append" | "replace"
+app.post('/preventif/import-bulk', async (c) => {
+  const body = await c.req.json()
+  const { rows = [], annee = 2026, mode = 'append' } = body
+
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return c.json({ error: 'Aucune donnée à importer' }, 400)
+  }
+
+  let inserted = 0
+  let skipped  = 0
+  const errors: string[] = []
+
+  // Si mode replace : supprimer toutes les entrées de cette année d'abord
+  if (mode === 'replace') {
+    await c.env.DB.prepare('DELETE FROM planning_preventif WHERE annee = ?').bind(annee).run()
+  }
+
+  for (const row of rows) {
+    try {
+      if (!row.description || !row.client) { skipped++; continue }
+
+      const nature    = row.nature    || 'Contrat de maintenance'
+      const frequence = row.frequence || 'Annuelle'
+      const fait      = row.fait ? 1 : 0
+
+      // Auto-calcul des mois selon fréquence si aucun mois fourni
+      const hasMois = [1,2,3,4,5,6,7,8,9,10,11,12].some(m => row[`mois_${m}`] === 1)
+      let mois: Record<string, number> = {}
+      if (hasMois) {
+        for (let m = 1; m <= 12; m++) mois[`mois_${m}`] = row[`mois_${m}`] ? 1 : 0
+      } else {
+        // Déduire les mois depuis la fréquence
+        for (let m = 1; m <= 12; m++) mois[`mois_${m}`] = 0
+        if (frequence === 'Annuelle')       { mois['mois_6'] = 1 }
+        if (frequence === 'Semestrielle')   { mois['mois_3'] = 1; mois['mois_9'] = 1 }
+        if (frequence === 'Trimestrielle')  { mois['mois_3'] = 1; mois['mois_6'] = 1; mois['mois_9'] = 1; mois['mois_12'] = 1 }
+        if (frequence === 'Mensuelle')      { for (let m=1;m<=12;m++) mois[`mois_${m}`]=1 }
+      }
+
+      await c.env.DB.prepare(`
+        INSERT INTO planning_preventif
+        (nature, description, client, frequence, fait, annee,
+         mois_1,mois_2,mois_3,mois_4,mois_5,mois_6,
+         mois_7,mois_8,mois_9,mois_10,mois_11,mois_12)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+      `).bind(
+        nature, row.description.trim(), row.client.trim(),
+        frequence, fait, annee,
+        mois.mois_1,mois.mois_2,mois.mois_3,mois.mois_4,
+        mois.mois_5,mois.mois_6,mois.mois_7,mois.mois_8,
+        mois.mois_9,mois.mois_10,mois.mois_11,mois.mois_12
+      ).run()
+      inserted++
+    } catch (e: any) {
+      errors.push(`${row.client}: ${e.message}`)
+      skipped++
+    }
+  }
+
+  return c.json({
+    success: true,
+    inserted,
+    skipped,
+    errors: errors.slice(0, 10),
+    message: `${inserted} entrée(s) importée(s)${skipped > 0 ? `, ${skipped} ignorée(s)` : ''}`
+  })
+})
+
 // ============================================================
 // PLANS DE MAINTENANCE (maintenance_plans) — routes génériques
 // Ces routes doivent être après les routes /preventif
