@@ -4118,48 +4118,38 @@ async function renderCalendar() {
       events[day].push({ ...i, kind: 'corrective', source: 'intervention' })
     })
 
-    // Planning préventif contractuel — distribué sur les semaines du mois
+    // Planning préventif contractuel — utilise date_planifiee exacte (lun/jeu calculés)
     const contractItems = preventifData.data || []
-    if (contractItems.length > 0) {
-      const dInMonth = new Date(year, month, 0).getDate()
+    contractItems.forEach(item => {
+      let targetDay = null
 
-      // Construire les semaines ouvrées du mois (groupées par semaine calendaire)
-      // semaine 1 = jours 1-7, semaine 2 = jours 8-14, etc.
-      // Pour chaque semaine, choisir le 1er jour ouvré (lun-ven)
-      const weekBuckets = [] // tableau de jours représentants (1 par semaine)
-      for (let weekStart = 1; weekStart <= dInMonth; weekStart += 7) {
-        for (let d = weekStart; d <= Math.min(weekStart + 6, dInMonth); d++) {
-          const dow = new Date(year, month-1, d).getDay()
-          if (dow >= 1 && dow <= 5) { // lundi à vendredi
-            weekBuckets.push(d)
-            break
-          }
+      if (item.date_planifiee) {
+        // Utiliser la date précise calculée par l'algorithme de scheduling
+        const dp = new Date(item.date_planifiee + 'T00:00:00')
+        if (dp.getFullYear() === year && dp.getMonth() + 1 === month) {
+          targetDay = dp.getDate()
         }
       }
-      // Si le mois a peu de semaines, compléter avec les jours ouvrés restants
-      if (weekBuckets.length < contractItems.length) {
+
+      // Fallback : si pas de date_planifiee, prendre le 1er lundi du mois
+      if (targetDay === null) {
+        const dInMonth = new Date(year, month, 0).getDate()
         for (let d = 1; d <= dInMonth; d++) {
           const dow = new Date(year, month-1, d).getDay()
-          if (dow >= 1 && dow <= 5 && !weekBuckets.includes(d)) weekBuckets.push(d)
+          if (dow === 1) { targetDay = d; break }
         }
+        targetDay = targetDay || 1
       }
-      weekBuckets.sort((a,b) => a-b)
 
-      // Répartir les interventions sur les semaines (plusieurs par semaine si besoin)
-      const itemsPerBucket = Math.ceil(contractItems.length / weekBuckets.length)
-      contractItems.forEach((item, idx) => {
-        const bucketIdx = Math.floor(idx / itemsPerBucket)
-        const targetDay = weekBuckets[Math.min(bucketIdx, weekBuckets.length - 1)] || weekBuckets[idx % weekBuckets.length] || 1
-        if (!events[targetDay]) events[targetDay] = []
-        events[targetDay].push({
-          ...item,
-          kind: item.nature === 'Bon de commande' ? 'bdc' : 'contrat',
-          source: 'preventif',
-          displayName: item.client,
-          tooltip: `[${item.nature}]\n${item.description}\nClient : ${item.client}\nFréquence : ${item.frequence}`
-        })
+      if (!events[targetDay]) events[targetDay] = []
+      events[targetDay].push({
+        ...item,
+        kind: item.nature === 'Bon de commande' ? 'bdc' : 'contrat',
+        source: 'preventif',
+        displayName: item.client,
+        tooltip: `[${item.nature}] — ${item.date_planifiee || ''}\n${item.description}\nClient : ${item.client}\nFréquence : ${item.frequence}`
       })
-    }
+    })
 
     const daysInMonth = new Date(year, month, 0).getDate()
     const firstDay = new Date(year, month - 1, 1).getDay()
@@ -4275,19 +4265,42 @@ function showDayDetail(day, month, year) {
       const d = parseInt(i.scheduled_date?.split('T')[0]?.split('-')[2] || 0)
       if (d === day) items.push({ label: i.title || i.client, sub: `Correctif planifié — ${i.city||''}`, color: 'var(--accent-yellow)', icon: '⚠️' })
     })
-    // Pour le préventif on ne filtre pas par jour exact (distribué)
-    const body = document.getElementById('day-detail-body')
+    // Pour le préventif contractuel, filtrer par date_planifiee du jour exact
+    const prev_payload = prev.data || {}
+    const prevItems = prev_payload.data || (Array.isArray(prev_payload) ? prev_payload : [])
+    prevItems.forEach(item => {
+      let itemDay = null
+      if (item.date_planifiee) {
+        const dp = new Date(item.date_planifiee + 'T00:00:00')
+        if (dp.getFullYear() === year && dp.getMonth() + 1 === month) {
+          itemDay = dp.getDate()
+        }
+      }
+      if (itemDay === day) {
+        const nature_s = item.nature === 'Bon de commande' ? 'BdC' : 'Contrat'
+        const jours = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam']
+        const jourLabel = item.date_planifiee ? jours[new Date(item.date_planifiee+'T00:00:00').getDay()] : ''
+        items.push({
+          label: item.client,
+          sub: `${nature_s} — ${item.frequence} — ${jourLabel} ${day}/${month < 10 ? '0'+month : month}/${year}`,
+          sub2: item.description,
+          color: item.nature === 'Bon de commande' ? 'var(--accent-purple)' : 'var(--accent-blue)',
+          icon: item.nature === 'Bon de commande' ? '📋' : '📄'
+        })
+      }
+    })
     if (!body) return
     if (!items.length) {
       body.innerHTML = `<p style="color:var(--text-secondary);text-align:center;padding:1rem">Aucune intervention enregistrée ce jour</p>`
       return
     }
     body.innerHTML = items.map(it => `
-      <div style="display:flex;gap:0.75rem;align-items:flex-start;padding:0.6rem 0;border-bottom:1px solid var(--border)">
-        <span style="font-size:1.2rem">${it.icon}</span>
-        <div>
-          <div style="font-weight:600;font-size:0.85rem;color:${it.color}">${escHtml(it.label||'—')}</div>
-          <div style="font-size:0.72rem;color:var(--text-secondary)">${escHtml(it.sub||'')}</div>
+      <div style="display:flex;gap:0.75rem;align-items:flex-start;padding:0.75rem 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:1.3rem;flex-shrink:0;margin-top:2px">${it.icon}</span>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:0.88rem;color:${it.color}">${escHtml(it.label||'—')}</div>
+          <div style="font-size:0.72rem;color:var(--text-secondary);margin-top:2px">${escHtml(it.sub||'')}</div>
+          ${it.sub2 ? `<div style="font-size:0.7rem;color:var(--text-muted);margin-top:3px;font-style:italic">${escHtml(it.sub2)}</div>` : ''}
         </div>
       </div>
     `).join('')

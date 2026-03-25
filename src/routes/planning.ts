@@ -92,14 +92,24 @@ app.get('/preventif', async (c) => {
   return c.json({ data: rows.results, stats })
 })
 
-// GET /api/planning/preventif/mois/:mois — interventions prévues ce mois
+// GET /api/planning/preventif/mois/:mois — interventions prévues ce mois (par date_planifiee)
 app.get('/preventif/mois/:mois', async (c) => {
   const mois = parseInt(c.req.param('mois'))
+  const annee = parseInt(c.req.query('annee') || '2026')
   if (mois < 1 || mois > 12) return c.json({ error: 'Mois invalide (1-12)' }, 400)
 
+  const monthStr = `${annee}-${String(mois).padStart(2,'0')}`
+
+  // Priorité: date_planifiee exacte, sinon fallback sur mois_N flag
   const rows = await c.env.DB.prepare(
-    `SELECT * FROM planning_preventif WHERE mois_${mois} = 1 ORDER BY nature ASC, client ASC`
-  ).all()
+    `SELECT * FROM planning_preventif 
+     WHERE annee = ?
+       AND (
+         (date_planifiee IS NOT NULL AND strftime('%Y-%m', date_planifiee) = ?)
+         OR (date_planifiee IS NULL AND mois_${mois} = 1)
+       )
+     ORDER BY date_planifiee ASC, nature ASC, client ASC`
+  ).bind(annee, monthStr).all()
   return c.json({ mois, data: rows.results, count: rows.results.length })
 })
 
