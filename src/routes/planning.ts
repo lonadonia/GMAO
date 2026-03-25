@@ -116,7 +116,7 @@ app.post('/preventif', async (c) => {
   const body = await c.req.json()
   const {
     nature = 'Contrat de maintenance', description, client, frequence = 'Annuelle',
-    fait = 0, annee = 2026, notes,
+    fait = 0, annee = 2026, notes, date_planifiee = null,
     mois_1=0,mois_2=0,mois_3=0,mois_4=0,mois_5=0,mois_6=0,
     mois_7=0,mois_8=0,mois_9=0,mois_10=0,mois_11=0,mois_12=0
   } = body
@@ -125,12 +125,12 @@ app.post('/preventif', async (c) => {
 
   const result = await c.env.DB.prepare(`
     INSERT INTO planning_preventif 
-    (nature, description, client, frequence, fait, annee, notes,
+    (nature, description, client, frequence, fait, annee, notes, date_planifiee,
      mois_1,mois_2,mois_3,mois_4,mois_5,mois_6,
      mois_7,mois_8,mois_9,mois_10,mois_11,mois_12)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
   `).bind(
-    nature, description, client, frequence, fait?1:0, annee, notes||null,
+    nature, description, client, frequence, fait?1:0, annee, notes||null, date_planifiee||null,
     mois_1?1:0,mois_2?1:0,mois_3?1:0,mois_4?1:0,mois_5?1:0,mois_6?1:0,
     mois_7?1:0,mois_8?1:0,mois_9?1:0,mois_10?1:0,mois_11?1:0,mois_12?1:0
   ).run()
@@ -152,6 +152,7 @@ app.put('/preventif/:id', async (c) => {
   await c.env.DB.prepare(`
     UPDATE planning_preventif SET
       nature=?, description=?, client=?, frequence=?, fait=?, annee=?, notes=?,
+      date_planifiee=?,
       mois_1=?,mois_2=?,mois_3=?,mois_4=?,mois_5=?,mois_6=?,
       mois_7=?,mois_8=?,mois_9=?,mois_10=?,mois_11=?,mois_12=?,
       updated_at=CURRENT_TIMESTAMP
@@ -164,6 +165,7 @@ app.put('/preventif/:id', async (c) => {
     body.fait !== undefined ? (body.fait?1:0) : e.fait,
     body.annee      ?? e.annee,
     body.notes      !== undefined ? (body.notes||null) : e.notes,
+    body.date_planifiee !== undefined ? (body.date_planifiee||null) : e.date_planifiee,
     body.mois_1  !== undefined ? (body.mois_1 ?1:0) : e.mois_1,
     body.mois_2  !== undefined ? (body.mois_2 ?1:0) : e.mois_2,
     body.mois_3  !== undefined ? (body.mois_3 ?1:0) : e.mois_3,

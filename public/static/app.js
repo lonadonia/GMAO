@@ -4125,9 +4125,20 @@ async function openPreventifModal(id = null) {
                 </select>
               </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Client *</label>
-              <input type="text" name="client" class="input" required placeholder="Nom du client" value="${escHtml(entry?.client||'')}">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Client *</label>
+                <input type="text" name="client" class="input" required placeholder="Nom du client" value="${escHtml(entry?.client||'')}">
+              </div>
+              <div class="form-group">
+                <label class="form-label">
+                  <i class="fas fa-calendar-day" style="color:#60a5fa;margin-right:4px"></i>
+                  Date planifiée
+                </label>
+                <input type="date" name="date_planifiee" class="input"
+                  value="${entry?.date_planifiee || ''}"
+                  style="color-scheme:dark">
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label">Description de l'intervention *</label>
@@ -4182,22 +4193,32 @@ function autoSelectMois(sel) {
 async function savePreventif(e, id) {
   e.preventDefault()
   const fd = new FormData(e.target)
+  const datePlanifiee = fd.get('date_planifiee') || null
   const data = {
-    nature:      fd.get('nature'),
-    description: fd.get('description'),
-    client:      fd.get('client'),
-    frequence:   fd.get('frequence'),
-    fait:        parseInt(fd.get('fait')) || 0,
-    notes:       fd.get('notes') || null,
-    annee:       2026,
+    nature:          fd.get('nature'),
+    description:     fd.get('description'),
+    client:          fd.get('client'),
+    frequence:       fd.get('frequence'),
+    fait:            parseInt(fd.get('fait')) || 0,
+    notes:           fd.get('notes') || null,
+    annee:           2026,
+    date_planifiee:  datePlanifiee || null,
   }
   for (let i=1;i<=12;i++) data[`mois_${i}`] = fd.get(`mois_${i}`) === '1' ? 1 : 0
+
+  // Si date_planifiee fournie, auto-cocher le bon mois
+  if (datePlanifiee) {
+    const dp = new Date(datePlanifiee + 'T00:00:00')
+    const moisDp = dp.getMonth() + 1
+    data[`mois_${moisDp}`] = 1
+  }
 
   try {
     if (id) { await axios.put(`${API.planningPreventif}/${id}`, data); showToast('Modifié ✓', 'success') }
     else    { await axios.post(API.planningPreventif, data);           showToast('Créé ✓', 'success') }
     closeModalAll()
-    loadPreventifTable()
+    // Rafraîchir le calendrier pour montrer la nouvelle date
+    renderCalendar()
   } catch(err) { showToast(err.response?.data?.error || 'Erreur', 'error') }
 }
 
