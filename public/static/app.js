@@ -3669,102 +3669,76 @@ async function deleteClient(id) {
 // ============================================================
 // PLANNING PAGE
 // ============================================================
+// Calendrier mensuel simple : affiche les interventions exactement
+// à la date de date_planifiee — aucun calcul, aucune distribution
+// ============================================================
+
 async function renderPlanning() {
+  // Initialiser l'état si nécessaire
+  if (!state.planning.currentYear)  state.planning.currentYear  = new Date().getFullYear()
+  if (!state.planning.currentMonth) state.planning.currentMonth = new Date().getMonth() + 1
+
   const container = document.getElementById('page-container')
   container.innerHTML = `
     <div class="page-header">
       <div>
-        <h1 style="font-size:1.2rem;font-weight:700"><i class="fas fa-calendar-alt" style="color:var(--accent-blue);margin-right:8px"></i>Planning</h1>
-        <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px">Planning annuel de maintenance préventive 2026</p>
+        <h1 style="font-size:1.2rem;font-weight:700">
+          <i class="fas fa-calendar-alt" style="color:var(--accent-blue);margin-right:8px"></i>Planning
+        </h1>
+        <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px">
+          Planning annuel de maintenance préventive 2026
+        </p>
       </div>
       <div style="display:flex;gap:0.5rem;align-items:center">
-        <button class="btn btn-ghost btn-sm" onclick="openPlanModal()" title="Nouveau plan de maintenance cyclique">
-          <i class="fas fa-plus"></i> Nouveau plan
-        </button>
-        <button class="btn btn-primary btn-sm" onclick="openPreventifModal()">
+        <button class="btn btn-ghost btn-sm" onclick="openPreventifModal()">
           <i class="fas fa-plus"></i> Nouvelle intervention
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="openPlanModal()">
+          <i class="fas fa-plus"></i> Nouveau plan
         </button>
       </div>
     </div>
-    <div class="page-content" style="display:flex;flex-direction:column;gap:1.5rem">
 
-      <!-- ═══ SECTION 1: PLANNING PRÉVENTIF CONTRACTUEL ═══ -->
+    <div class="page-content" style="display:flex;flex-direction:column;gap:1rem">
+
+      <!-- ═══ CALENDRIER MENSUEL ═══ -->
       <div class="table-card" style="overflow:visible">
-        <!-- En-tête section -->
-        <div style="padding:1rem 1.25rem;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem">
+
+        <!-- Navigation mois -->
+        <div style="padding:0.75rem 1.25rem;border-bottom:1px solid rgba(255,255,255,0.06);
+                    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem">
           <div style="display:flex;align-items:center;gap:0.75rem">
-            <div style="width:38px;height:38px;border-radius:10px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center">
-              <i class="fas fa-table-cells" style="color:#60a5fa;font-size:1rem"></i>
-            </div>
-            <div>
-              <div style="font-weight:700;font-size:0.9rem">Planning Préventif Contractuel</div>
-              <div style="font-size:0.7rem;color:var(--text-secondary)">Année 2026 — 1 intervention/semaine — Lundi & Jeudi</div>
-            </div>
+            <button class="btn btn-ghost btn-sm btn-icon" onclick="prevMonth()" title="Mois précédent">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <h2 id="calendar-title" style="font-size:1rem;font-weight:700;min-width:160px;text-align:center">
+              Chargement…
+            </h2>
+            <button class="btn btn-ghost btn-sm btn-icon" onclick="nextMonth()" title="Mois suivant">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="goToday()" style="font-size:0.72rem">
+              Aujourd'hui
+            </button>
           </div>
-          <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
-            <select id="filter-nature" onchange="loadPreventifTable()" class="form-control" style="font-size:0.72rem;padding:4px 8px;height:30px;min-width:120px">
-              <option value="">Toutes natures</option>
-              <option value="Contrat de maintenance">Contrats</option>
-              <option value="Bon de commande">Bons de commande</option>
-            </select>
-            <select id="filter-frequence" onchange="loadPreventifTable()" class="form-control" style="font-size:0.72rem;padding:4px 8px;height:30px;min-width:110px">
-              <option value="">Toutes fréq.</option>
-              <option value="Trimestrielle">Trimestrielle</option>
-              <option value="Semestrielle">Semestrielle</option>
-              <option value="Annuelle">Annuelle</option>
-            </select>
-            <select id="filter-fait" onchange="loadPreventifTable()" class="form-control" style="font-size:0.72rem;padding:4px 8px;height:30px;min-width:90px">
-              <option value="">Tous statuts</option>
-              <option value="0">En attente</option>
-              <option value="1">Réalisé</option>
-            </select>
-            <span id="preventif-counter" style="font-size:0.7rem;color:var(--text-secondary);white-space:nowrap;padding:4px 8px;background:rgba(255,255,255,0.04);border-radius:6px;border:1px solid rgba(255,255,255,0.08)">— entrées</span>
+          <div id="calendar-month-summary" style="display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center">
           </div>
         </div>
 
-        <!-- KPI Strip + avancement mensuel -->
-        <div id="preventif-stats" style="display:grid;grid-template-columns:1fr;gap:0.75rem;padding:1rem 1.25rem;border-bottom:1px solid rgba(255,255,255,0.06)">
+        <!-- Grille calendrier -->
+        <div id="calendar-grid" class="calendar-grid" style="padding:0.75rem">
           <div class="loading-overlay"><span class="loader"></span></div>
         </div>
 
-        <!-- Tableau Gantt -->
-        <div id="preventif-table" style="padding:0">
-          <div class="loading-overlay" style="height:120px"><span class="loader"></span></div>
-        </div>
       </div>
 
-      <!-- ═══ SECTION 2: PLANS DE MAINTENANCE (liste) ═══ -->
-      <div class="table-card">
-        <div style="padding:0.875rem 1.25rem;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:0.75rem">
-          <div style="width:34px;height:34px;border-radius:9px;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.25);display:flex;align-items:center;justify-content:center">
-            <i class="fas fa-wrench" style="color:#4ade80;font-size:0.85rem"></i>
-          </div>
-          <div>
-            <div style="font-weight:700;font-size:0.85rem">Plans de maintenance actifs</div>
-            <div style="font-size:0.68rem;color:var(--text-secondary)">Interventions récurrentes programmées</div>
-          </div>
-        </div>
-        <div id="plans-list" style="padding:0"><div class="loading-overlay" style="height:80px"><span class="loader"></span></div></div>
-      </div>
     </div>
   `
-  loadPreventifTable()
-  loadPlansList()
+  renderCalendar()
 }
 
-function togglePreventifSection() {
-  const sec = document.getElementById('section-preventif')
-  const btn = document.getElementById('btn-toggle-gantt')
-  if (!sec) return
-  const hidden = sec.style.display === 'none'
-  sec.style.display = hidden ? '' : 'none'
-  if (btn) btn.innerHTML = hidden
-    ? '<i class="fas fa-table"></i> Planning Contractuel'
-    : '<i class="fas fa-table"></i> Afficher Contractuel'
-}
-
-// switchPlanningTab kept for compatibility (no-op now)
-function switchPlanningTab(tab) {}
+function togglePreventifSection() {}   // no-op kept for compatibility
+function switchPlanningTab(tab) {}     // no-op kept for compatibility
 
 // ============================================================
 // PLANNING PRÉVENTIF CONTRACTUEL
@@ -4260,165 +4234,178 @@ async function deletePreventif(id) {
 async function renderCalendar() {
   const { currentYear: year, currentMonth: month } = state.planning
   const monthNames = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']
+
   const titleEl = document.getElementById('calendar-title')
   if (titleEl) titleEl.textContent = `${monthNames[month-1]} ${year}`
 
   const grid = document.getElementById('calendar-grid')
   if (!grid) return
-  grid.innerHTML = `<div class="loading-overlay" style="grid-column:1/-1"><span class="loader"></span></div>`
+  grid.innerHTML = `<div style="grid-column:1/-1;padding:2rem;text-align:center"><span class="loader"></span></div>`
 
   try {
-    // Charger en parallèle : plans maintenance + interventions planifiées + préventif contractuel du mois
-    const [calData, preventifData] = await Promise.all([
-      http.get(`${API.planning}/calendar/${year}/${month}`),
-      http.get(`${API.planningPreventif}/mois/${month}`).catch(() => ({ data: [] }))
+    // ═══════════════════════════════════════════════════
+    // CHARGER UNIQUEMENT les données réelles :
+    // 1) Interventions préventives contractuelles (date_planifiee exacte)
+    // 2) Plans de maintenance actifs (next_date)
+    // 3) Interventions correctives planifiées (scheduled_date)
+    // ═══════════════════════════════════════════════════
+    const [calRes, prevRes] = await Promise.all([
+      http.get(`${API.planning}/calendar/${year}/${month}`).catch(() => ({ maintenance_plans: [], planned_interventions: [] })),
+      http.get(`${API.planningPreventif}/mois/${month}?annee=${year}`).catch(() => ({ data: [] }))
     ])
 
-    // Build events map
+    // Map : jour → liste d'événements
     const events = {}
-
-    // Plans de maintenance existants
-    calData.maintenance_plans?.forEach(p => {
-      const day = parseInt(p.next_date?.split('T')[0]?.split('-')[2] || p.next_date?.split('-')[2])
-      if (!day || isNaN(day)) return
+    const addEvent = (day, ev) => {
+      if (!day || isNaN(day) || day < 1 || day > 31) return
       if (!events[day]) events[day] = []
-      events[day].push({ ...p, kind: 'preventive', source: 'plan' })
-    })
-
-    // Interventions correctives planifiées
-    calData.planned_interventions?.forEach(i => {
-      const day = parseInt(i.scheduled_date?.split('T')[0]?.split('-')[2] || i.scheduled_date?.split('-')[2])
-      if (!day || isNaN(day)) return
-      if (!events[day]) events[day] = []
-      events[day].push({ ...i, kind: 'corrective', source: 'intervention' })
-    })
-
-    // Planning préventif contractuel — utilise date_planifiee exacte (lun/jeu calculés)
-    const contractItems = preventifData.data || []
-    contractItems.forEach(item => {
-      let targetDay = null
-
-      if (item.date_planifiee) {
-        // Utiliser la date précise calculée par l'algorithme de scheduling
-        const dp = new Date(item.date_planifiee + 'T00:00:00')
-        if (dp.getFullYear() === year && dp.getMonth() + 1 === month) {
-          targetDay = dp.getDate()
-        }
-      }
-
-      // Fallback : si pas de date_planifiee, prendre le 1er lundi du mois
-      if (targetDay === null) {
-        const dInMonth = new Date(year, month, 0).getDate()
-        for (let d = 1; d <= dInMonth; d++) {
-          const dow = new Date(year, month-1, d).getDay()
-          if (dow === 1) { targetDay = d; break }
-        }
-        targetDay = targetDay || 1
-      }
-
-      if (!events[targetDay]) events[targetDay] = []
-      events[targetDay].push({
-        ...item,
-        kind: item.nature === 'Bon de commande' ? 'bdc' : 'contrat',
-        source: 'preventif',
-        displayName: item.client,
-        tooltip: `[${item.nature}] — ${item.date_planifiee || ''}\n${item.description}\nClient : ${item.client}\nFréquence : ${item.frequence}`
-      })
-    })
-
-    const daysInMonth = new Date(year, month, 0).getDate()
-    const firstDay = new Date(year, month - 1, 1).getDay()
-    const startOffset = (firstDay === 0 ? 6 : firstDay - 1)
-    const today = new Date()
-
-    // Compteurs pour le résumé
-    let totalPreventif = 0, totalCorrectif = 0, totalContrats = 0
-
-    const dayHeaders = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']
-    let html = dayHeaders.map(d => `<div class="calendar-day-header">${d}</div>`).join('')
-
-    // Empty cells before month start
-    for (let i = 0; i < startOffset; i++) html += `<div class="calendar-day other-month"></div>`
-
-    for (let d = 1; d <= daysInMonth; d++) {
-      const isToday = today.getFullYear() === year && today.getMonth() + 1 === month && today.getDate() === d
-      const isPast  = new Date(year, month-1, d) < new Date(today.getFullYear(), today.getMonth(), today.getDate())
-      const dayEvents = events[d] || []
-
-      dayEvents.forEach(e => {
-        if (e.source === 'preventif') totalContrats++
-        else if (e.kind === 'preventive') totalPreventif++
-        else totalCorrectif++
-      })
-
-      const MAX_VISIBLE = 2
-      const visibleEvents = dayEvents.slice(0, MAX_VISIBLE)
-      const hiddenCount = dayEvents.length - MAX_VISIBLE
-
-      html += `<div class="calendar-day ${isToday ? 'today' : ''} ${isPast && !isToday ? 'past-day' : ''}">
-        <div class="calendar-day-number">${d}</div>
-        ${visibleEvents.map(e => {
-          const raw = e.displayName || e.equipment_name || e.client || e.title || '—'
-          const shortName = escHtml(raw.length > 16 ? raw.slice(0,16)+'…' : raw)
-          const tooltip   = escHtml(e.tooltip || e.title || e.description || raw)
-          const cls = e.source === 'preventif'
-            ? (e.kind === 'bdc' ? 'calendar-event bdc' : 'calendar-event contrat')
-            : `calendar-event ${e.kind}`
-          const icon = e.source === 'preventif'
-            ? (e.kind === 'bdc' ? '📋' : '📄')
-            : e.kind === 'preventive' ? '🔧' : '⚠️'
-          return `<div class="${cls}" title="${tooltip}">${icon} ${shortName}</div>`
-        }).join('')}
-        ${hiddenCount > 0 ? `
-          <div class="cal-more" onclick="showDayDetail(${d},${month},${year})">
-            +${hiddenCount} autre${hiddenCount>1?'s':''}
-          </div>` : ''}
-        ${dayEvents.length > 0 ? `<div class="cal-dot-row">${dayEvents.map(e => {
-          const c = e.source==='preventif' ? (e.kind==='bdc'?'var(--accent-purple)':'var(--accent-blue)')
-                  : e.kind==='preventive' ? 'var(--accent-green)' : 'var(--accent-yellow)'
-          return `<span style="width:5px;height:5px;border-radius:50%;background:${c};display:inline-block"></span>`
-        }).join('')}</div>` : ''}
-      </div>`
+      events[day].push(ev)
     }
 
-    // Fill remaining cells
+    // ─── 1. Plans de maintenance (next_date) ───
+    const calData = calRes.data || calRes || {}
+    ;(calData.maintenance_plans || []).forEach(p => {
+      const raw = p.next_date?.split('T')[0] || p.next_date || ''
+      const d = parseInt(raw.split('-')[2])
+      addEvent(d, { label: p.equipment_name || p.title || '—', sub: `Préventif — ${p.frequency||''}`, kind: 'plan', color: '#4ade80', icon: '🔧', detail: p.description || '' })
+    })
+
+    // ─── 2. Interventions correctives planifiées (scheduled_date) ───
+    ;(calData.planned_interventions || []).forEach(i => {
+      const raw = i.scheduled_date?.split('T')[0] || i.scheduled_date || ''
+      const d = parseInt(raw.split('-')[2])
+      addEvent(d, { label: i.title || i.client || '—', sub: `Correctif — ${i.city||''}`, kind: 'correctif', color: '#fbbf24', icon: '⚠️', detail: i.description || '' })
+    })
+
+    // ─── 3. Préventif contractuel : UNIQUEMENT date_planifiee exacte ───
+    // PAS de fallback, PAS de calcul, PAS de distribution
+    const prevPayload = prevRes.data || prevRes || {}
+    const prevItems = prevPayload.data || (Array.isArray(prevPayload) ? prevPayload : [])
+    prevItems.forEach(item => {
+      if (!item.date_planifiee) return  // pas de date → on n'affiche pas
+      const dp = new Date(item.date_planifiee + 'T00:00:00')
+      // Vérifier que la date appartient bien à ce mois/année
+      if (dp.getFullYear() !== year || dp.getMonth() + 1 !== month) return
+      const d = dp.getDate()
+      const isBdc = item.nature === 'Bon de commande'
+      const jours = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam']
+      const jourLabel = jours[dp.getDay()]
+      addEvent(d, {
+        label: item.client,
+        sub: `${isBdc ? 'BdC' : 'Contrat'} — ${item.frequence} — ${jourLabel} ${d < 10 ? '0'+d : d}/${month < 10 ? '0'+month : month}`,
+        kind: isBdc ? 'bdc' : 'contrat',
+        color: isBdc ? '#a78bfa' : '#60a5fa',
+        icon: isBdc ? '📋' : '📄',
+        detail: item.description || '',
+        fait: item.fait === 1
+      })
+    })
+
+    // ═══════════════════════════════════════════════════
+    // CONSTRUIRE LA GRILLE CALENDRIER
+    // ═══════════════════════════════════════════════════
+    const daysInMonth  = new Date(year, month, 0).getDate()
+    const firstDayDow  = new Date(year, month - 1, 1).getDay()          // 0=dim
+    const startOffset  = firstDayDow === 0 ? 6 : firstDayDow - 1        // lundi=0
+    const today        = new Date()
+
+    let totalPrev = 0, totalCorr = 0, totalCont = 0
+
+    // En-têtes jours
+    const dayHeaders = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']
+    let html = dayHeaders.map(h =>
+      `<div class="calendar-day-header">${h}</div>`
+    ).join('')
+
+    // Cases vides avant le 1er
+    for (let i = 0; i < startOffset; i++) {
+      html += `<div class="calendar-day other-month"></div>`
+    }
+
+    // Cases des jours du mois
+    for (let d = 1; d <= daysInMonth; d++) {
+      const isToday = today.getFullYear()===year && today.getMonth()+1===month && today.getDate()===d
+      const isPast  = new Date(year, month-1, d) < new Date(today.getFullYear(), today.getMonth(), today.getDate())
+      const dayEvs  = events[d] || []
+
+      dayEvs.forEach(e => {
+        if (e.kind === 'plan')    totalPrev++
+        else if (e.kind === 'correctif') totalCorr++
+        else totalCont++
+      })
+
+      // Afficher TOUTES les interventions (pas de limite artificielle)
+      const evHtml = dayEvs.map(e => {
+        const shortLabel = escHtml(e.label.length > 18 ? e.label.slice(0,17)+'…' : e.label)
+        const tipText    = escHtml(`${e.sub}\n${e.detail}`.trim())
+        const doneStyle  = e.fait ? 'opacity:0.55;text-decoration:line-through;' : ''
+        return `<div class="calendar-event ${e.kind}"
+                     title="${tipText}"
+                     style="border-left:3px solid ${e.color};${doneStyle}cursor:default"
+                     onclick="showDayDetail(${d},${month},${year})">
+                  <span style="margin-right:3px">${e.icon}</span>${shortLabel}
+                </div>`
+      }).join('')
+
+      // Points couleurs
+      const dotHtml = dayEvs.length > 0
+        ? `<div class="cal-dot-row">${dayEvs.map(e =>
+            `<span style="width:5px;height:5px;border-radius:50%;background:${e.color};display:inline-block"></span>`
+          ).join('')}</div>`
+        : ''
+
+      html += `
+        <div class="calendar-day${isToday?' today':''}${isPast&&!isToday?' past-day':''}"
+             onclick="showDayDetail(${d},${month},${year})" style="cursor:pointer">
+          <div class="calendar-day-number">${d}</div>
+          ${evHtml}
+          ${dotHtml}
+        </div>`
+    }
+
+    // Cases vides après le dernier jour
     const totalCells = startOffset + daysInMonth
-    const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7)
-    for (let i = 0; i < remaining; i++) html += `<div class="calendar-day other-month"></div>`
+    const tail = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7)
+    for (let i = 0; i < tail; i++) html += `<div class="calendar-day other-month"></div>`
 
     grid.innerHTML = html
 
-    // Mettre à jour le résumé du mois
+    // ─── Résumé du mois ───
     const summaryEl = document.getElementById('calendar-month-summary')
     if (summaryEl) {
-      const total = totalPreventif + totalCorrectif + totalContrats
+      const total = totalPrev + totalCorr + totalCont
       summaryEl.innerHTML = total === 0
         ? `<span style="color:var(--text-muted);font-size:0.75rem">Aucune intervention ce mois</span>`
-        : `
-          ${totalPreventif > 0 ? `<span class="cal-badge cal-badge-prev">🔧 ${totalPreventif} Préventif</span>` : ''}
-          ${totalCorrectif > 0 ? `<span class="cal-badge cal-badge-corr">⚠️ ${totalCorrectif} Correctif</span>` : ''}
-          ${totalContrats  > 0 ? `<span class="cal-badge cal-badge-cont">📄 ${totalContrats} Contrat/BDC</span>` : ''}
-        `
+        : [
+            totalPrev  > 0 ? `<span class="cal-badge cal-badge-prev">🔧 ${totalPrev} Préventif</span>`   : '',
+            totalCorr  > 0 ? `<span class="cal-badge cal-badge-corr">⚠️ ${totalCorr} Correctif</span>`   : '',
+            totalCont  > 0 ? `<span class="cal-badge cal-badge-cont">📄 ${totalCont} Contrat/BdC</span>` : ''
+          ].join('')
     }
 
-  } catch(e) {
-    console.error(e)
-    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-calendar-times"></i><p>Erreur de chargement</p></div>`
+  } catch(err) {
+    console.error('renderCalendar error:', err)
+    if (grid) grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <i class="fas fa-calendar-times"></i><p>Erreur de chargement</p>
+    </div>`
   }
 }
 
 // Afficher le détail d'un jour (popup)
 function showDayDetail(day, month, year) {
   const monthNames = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']
-  // Récupérer tous les events du jour depuis le DOM ou refaire un fetch
-  // Simple: recharger en filtrant
   const modal = document.getElementById('modal-container')
   modal.innerHTML = `
     <div class="modal-overlay" onclick="closeModal(event)">
-      <div class="modal" style="max-width:500px">
+      <div class="modal" style="max-width:520px">
         <div class="modal-header">
-          <div class="modal-title"><i class="fas fa-calendar-day" style="color:var(--accent-blue)"></i> ${day} ${monthNames[month-1]} ${year}</div>
-          <button class="btn btn-ghost btn-sm btn-icon" onclick="closeModalAll()"><i class="fas fa-times"></i></button>
+          <div class="modal-title">
+            <i class="fas fa-calendar-day" style="color:var(--accent-blue)"></i>
+            ${day} ${monthNames[month-1]} ${year}
+          </div>
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="closeModalAll()">
+            <i class="fas fa-times"></i>
+          </button>
         </div>
         <div class="modal-body" id="day-detail-body">
           <div class="loading-overlay"><span class="loader"></span></div>
@@ -4426,59 +4413,102 @@ function showDayDetail(day, month, year) {
       </div>
     </div>
   `
-  // Charger les données du mois et filtrer le jour
+  const body = document.getElementById('day-detail-body')
+
+  // Charger plans + préventif et filtrer par date exacte
   Promise.all([
-    http.get(`${API.planning}/calendar/${year}/${month}`),
-    http.get(`${API.planningPreventif}/mois/${month}`).catch(() => ({ data: [] }))
-  ]).then(([cal, prev]) => {
+    http.get(`${API.planning}/calendar/${year}/${month}`).catch(() => ({})),
+    http.get(`${API.planningPreventif}/mois/${month}?annee=${year}`).catch(() => ({ data: [] }))
+  ]).then(([calRes, prevRes]) => {
     const items = []
-    cal.maintenance_plans?.forEach(p => {
-      const d = parseInt(p.next_date?.split('T')[0]?.split('-')[2] || 0)
-      if (d === day) items.push({ label: p.title || p.equipment_name, sub: `Préventif — ${p.frequency||''}`, color: 'var(--accent-green)', icon: '🔧' })
+    const calData = calRes.data || calRes || {}
+
+    // Plans de maintenance
+    ;(calData.maintenance_plans || []).forEach(p => {
+      const raw = p.next_date?.split('T')[0] || ''
+      const d = parseInt(raw.split('-')[2])
+      if (d === day) items.push({
+        label: p.equipment_name || p.title || '—',
+        sub: `Maintenance préventive — ${p.frequency || ''}`,
+        sub2: p.description || '',
+        color: '#4ade80', icon: '🔧'
+      })
     })
-    cal.planned_interventions?.forEach(i => {
-      const d = parseInt(i.scheduled_date?.split('T')[0]?.split('-')[2] || 0)
-      if (d === day) items.push({ label: i.title || i.client, sub: `Correctif planifié — ${i.city||''}`, color: 'var(--accent-yellow)', icon: '⚠️' })
+
+    // Interventions correctives
+    ;(calData.planned_interventions || []).forEach(i => {
+      const raw = i.scheduled_date?.split('T')[0] || ''
+      const d = parseInt(raw.split('-')[2])
+      if (d === day) items.push({
+        label: i.title || i.client || '—',
+        sub: `Intervention corrective — ${i.city || ''}`,
+        sub2: i.description || '',
+        color: '#fbbf24', icon: '⚠️'
+      })
     })
-    // Pour le préventif contractuel, filtrer par date_planifiee du jour exact
-    const prev_payload = prev.data || {}
-    const prevItems = prev_payload.data || (Array.isArray(prev_payload) ? prev_payload : [])
+
+    // Préventif contractuel — UNIQUEMENT date_planifiee exacte
+    const prevPayload = prevRes.data || prevRes || {}
+    const prevItems = prevPayload.data || (Array.isArray(prevPayload) ? prevPayload : [])
     prevItems.forEach(item => {
-      let itemDay = null
-      if (item.date_planifiee) {
-        const dp = new Date(item.date_planifiee + 'T00:00:00')
-        if (dp.getFullYear() === year && dp.getMonth() + 1 === month) {
-          itemDay = dp.getDate()
-        }
-      }
-      if (itemDay === day) {
-        const nature_s = item.nature === 'Bon de commande' ? 'BdC' : 'Contrat'
-        const jours = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam']
-        const jourLabel = item.date_planifiee ? jours[new Date(item.date_planifiee+'T00:00:00').getDay()] : ''
-        items.push({
-          label: item.client,
-          sub: `${nature_s} — ${item.frequence} — ${jourLabel} ${day}/${month < 10 ? '0'+month : month}/${year}`,
-          sub2: item.description,
-          color: item.nature === 'Bon de commande' ? 'var(--accent-purple)' : 'var(--accent-blue)',
-          icon: item.nature === 'Bon de commande' ? '📋' : '📄'
-        })
-      }
+      if (!item.date_planifiee) return
+      const dp = new Date(item.date_planifiee + 'T00:00:00')
+      if (dp.getFullYear() !== year || dp.getMonth() + 1 !== month) return
+      if (dp.getDate() !== day) return
+      const isBdc = item.nature === 'Bon de commande'
+      const jours = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam']
+      const jourLabel = jours[dp.getDay()]
+      const dd = day < 10 ? '0'+day : day
+      const mm = month < 10 ? '0'+month : month
+      items.push({
+        label: item.client,
+        sub: `${isBdc ? 'Bon de commande' : 'Contrat'} — ${item.frequence} — ${jourLabel} ${dd}/${mm}/${year}`,
+        sub2: item.description || '',
+        color: isBdc ? '#a78bfa' : '#60a5fa',
+        icon: isBdc ? '📋' : '📄',
+        fait: item.fait === 1,
+        id: item.id,
+        isBdc
+      })
     })
+
     if (!body) return
     if (!items.length) {
-      body.innerHTML = `<p style="color:var(--text-secondary);text-align:center;padding:1rem">Aucune intervention enregistrée ce jour</p>`
+      body.innerHTML = `
+        <div style="text-align:center;padding:2rem;color:var(--text-secondary)">
+          <i class="fas fa-calendar-check" style="font-size:2rem;opacity:0.3;margin-bottom:0.75rem;display:block"></i>
+          <p>Aucune intervention programmée ce jour</p>
+        </div>`
       return
     }
+
     body.innerHTML = items.map(it => `
-      <div style="display:flex;gap:0.75rem;align-items:flex-start;padding:0.75rem 0;border-bottom:1px solid var(--border)">
-        <span style="font-size:1.3rem;flex-shrink:0;margin-top:2px">${it.icon}</span>
-        <div style="flex:1">
-          <div style="font-weight:700;font-size:0.88rem;color:${it.color}">${escHtml(it.label||'—')}</div>
-          <div style="font-size:0.72rem;color:var(--text-secondary);margin-top:2px">${escHtml(it.sub||'')}</div>
-          ${it.sub2 ? `<div style="font-size:0.7rem;color:var(--text-muted);margin-top:3px;font-style:italic">${escHtml(it.sub2)}</div>` : ''}
+      <div style="display:flex;gap:0.75rem;align-items:flex-start;
+                  padding:0.875rem;margin-bottom:0.5rem;border-radius:10px;
+                  background:${it.color}0d;border:1px solid ${it.color}22;
+                  ${it.fait ? 'opacity:0.6' : ''}">
+        <span style="font-size:1.4rem;flex-shrink:0;margin-top:1px">${it.icon}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:0.9rem;color:${it.color};
+                      ${it.fait ? 'text-decoration:line-through' : ''}">
+            ${escHtml(it.label || '—')}
+            ${it.fait ? '<span style="font-size:0.65rem;background:#22c55e22;color:#22c55e;border-radius:4px;padding:1px 5px;margin-left:6px">✓ Fait</span>' : ''}
+          </div>
+          <div style="font-size:0.73rem;color:var(--text-secondary);margin-top:3px">${escHtml(it.sub || '')}</div>
+          ${it.sub2 ? `<div style="font-size:0.7rem;color:var(--text-muted);margin-top:4px;font-style:italic;line-height:1.4">${escHtml(it.sub2)}</div>` : ''}
+          ${it.id ? `<div style="margin-top:8px;display:flex;gap:6px">
+            <button class="btn btn-ghost btn-sm" onclick="closeModalAll();openPreventifModal(${it.id})" style="font-size:0.68rem;padding:3px 8px">
+              <i class="fas fa-pen"></i> Modifier
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="toggleFait(${it.id},${it.fait?1:0})" style="font-size:0.68rem;padding:3px 8px">
+              <i class="fas fa-${it.fait ? 'times' : 'check'}"></i> ${it.fait ? 'Marquer non fait' : 'Marquer fait'}
+            </button>
+          </div>` : ''}
         </div>
       </div>
     `).join('')
+  }).catch(err => {
+    if (body) body.innerHTML = `<p style="color:var(--text-secondary);padding:1rem">Erreur de chargement</p>`
   })
 }
 

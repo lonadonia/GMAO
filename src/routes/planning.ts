@@ -92,7 +92,7 @@ app.get('/preventif', async (c) => {
   return c.json({ data: rows.results, stats })
 })
 
-// GET /api/planning/preventif/mois/:mois — interventions prévues ce mois (par date_planifiee)
+// GET /api/planning/preventif/mois/:mois — interventions prévues ce mois (par date_planifiee EXACTE uniquement)
 app.get('/preventif/mois/:mois', async (c) => {
   const mois = parseInt(c.req.param('mois'))
   const annee = parseInt(c.req.query('annee') || '2026')
@@ -100,15 +100,13 @@ app.get('/preventif/mois/:mois', async (c) => {
 
   const monthStr = `${annee}-${String(mois).padStart(2,'0')}`
 
-  // Priorité: date_planifiee exacte, sinon fallback sur mois_N flag
+  // Uniquement les entrées avec date_planifiee dans ce mois — PAS de fallback
   const rows = await c.env.DB.prepare(
     `SELECT * FROM planning_preventif 
      WHERE annee = ?
-       AND (
-         (date_planifiee IS NOT NULL AND strftime('%Y-%m', date_planifiee) = ?)
-         OR (date_planifiee IS NULL AND mois_${mois} = 1)
-       )
-     ORDER BY date_planifiee ASC, nature ASC, client ASC`
+       AND date_planifiee IS NOT NULL
+       AND strftime('%Y-%m', date_planifiee) = ?
+     ORDER BY date_planifiee ASC, client ASC`
   ).bind(annee, monthStr).all()
   return c.json({ mois, data: rows.results, count: rows.results.length })
 })
